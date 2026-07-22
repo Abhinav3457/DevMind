@@ -1,0 +1,89 @@
+# DevMind AI - Render Deployment Configuration
+# Docs: https://render.com/docs/infrastructure-as-code
+
+services:
+  # Backend web service (also serves the built frontend in production)
+  - type: web
+    name: devmind-ai
+    runtime: node
+    repo: https://github.com/your-username/your-repo-name # 👈 UPDATE THIS
+    region: oregon # Options: oregon (US), frankfurt (EU), singapore (Asia)
+    plan: free
+    branch: main
+    buildCommand: npm run install:all && npm run build
+    startCommand: npm run render-start
+    healthCheckPath: /api/v1/health
+    numInstances: 1
+
+    envVars:
+      # ──────────────────────────────
+      # App Configuration
+      # ──────────────────────────────
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "10000" # Render assigns this dynamically
+      - key: CLIENT_URL
+        value: https://devmind-ai.onrender.com
+      - key: SOCKET_CORS_ORIGIN
+        value: https://devmind-ai.onrender.com
+
+      # ──────────────────────────────
+      # MongoDB (use MongoDB Atlas)
+      # ──────────────────────────────
+      - key: MONGODB_URI
+        sync: false # Set this in Render dashboard
+
+      # ──────────────────────────────
+      # JWT Authentication
+      # ──────────────────────────────
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: JWT_REFRESH_SECRET
+        sync: false
+      - key: JWT_REFRESH_EXPIRES_IN
+        value: 30d
+
+      # ──────────────────────────────
+      # Cloudinary (file uploads)
+      # ──────────────────────────────
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+
+      # ──────────────────────────────
+      # SMTP / Email (Nodemailer)
+      # ──────────────────────────────
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: SMTP_FROM
+        sync: false
+
+      # ──────────────────────────────
+      # AI APIs
+      # ──────────────────────────────
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+
+      # ──────────────────────────────
+      # GitHub Integration
+      # ──────────────────────────────
+      - key: GITHUB_TOKEN
+        sync: false
+      - key: GITHUB_CLIENT_ID
+        sync: false
+      - key: GITHUB_CLIENT_SECRET
+        sync: false
