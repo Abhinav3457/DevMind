@@ -54,7 +54,7 @@ export class GitHubService {
       per_page: options.per_page || 30,
       page: options.page || 1,
     });
-    const repos = response.data.map((repo: { id: number; name: string; full_name: string; owner: { id: number; login: string; avatar_url: string }; description: string; html_url: string; private: boolean; default_branch: string; language: string | null; topics: string[]; stargazers_count: number; forks_count: number; open_issues_count: number; permissions?: { admin: boolean; push: boolean; pull: boolean } }) => ({
+    const repos = response.data.map((repo: { id: number; name: string; full_name: string; owner: { id: number; login: string; avatar_url: string }; description: string | null; html_url: string; private: boolean; default_branch: string; language: string | null; topics?: string[]; stargazers_count: number; forks_count: number; open_issues_count: number; permissions?: { admin: boolean; push: boolean; pull: boolean } }) => ({
       githubId: repo.id,
       name: repo.name,
       fullName: repo.full_name,
@@ -93,7 +93,7 @@ export class GitHubService {
       per_page: options.per_page || 30,
       page: options.page || 1,
     });
-    return response.data.map((commit: { sha: string; commit: { message: string; author?: { name?: string; date?: string } }; html_url: string }) => ({
+    return response.data.map((commit: { sha: string; commit: { message: string; author?: { name?: string; date?: string } | null }; html_url: string }) => ({
       sha: commit.sha,
       message: commit.commit.message,
       author: commit.commit.author?.name || 'Unknown',
@@ -110,7 +110,7 @@ export class GitHubService {
       per_page: options.per_page || 30,
       page: options.page || 1,
     });
-    return response.data.map((pr: { number: number; title: string; state: string; user?: { login: string }; created_at: string; html_url: string }) => ({
+    return response.data.map((pr: { number: number; title: string; state: string; user?: { login: string } | null; created_at: string; html_url: string }) => ({
       number: pr.number, title: pr.title, state: pr.state,
       author: pr.user?.login || 'Unknown', createdAt: pr.created_at, url: pr.html_url,
     }));

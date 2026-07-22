@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "commonjs",
+    "module": "node16",
     "lib": ["ES2022"],
     "outDir": "./dist",
     "rootDir": "./src",
@@ -13,26 +13,7 @@
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
-    "moduleResolution": "node",
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["src/*"],
-      "@config/*": ["src/config/*"],
-      "@controllers/*": ["src/controllers/*"],
-      "@models/*": ["src/models/*"],
-      "@routes/*": ["src/routes/*"],
-      "@middleware/*": ["src/middleware/*"],
-      "@services/*": ["src/services/*"],
-      "@repositories/*": ["src/repositories/*"],
-      "@validators/*": ["src/validators/*"],
-      "@utils/*": ["src/utils/*"],
-      "@helpers/*": ["src/helpers/*"],
-      "@socket/*": ["src/socket/*"],
-      "@ai/*": ["src/ai/*"],
-      "@github/*": ["src/github/*"],
-      "@database/*": ["src/database/*"],
-      "@constants/*": ["src/constants/*"]
-    }
+    "moduleResolution": "node16"
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]

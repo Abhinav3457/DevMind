@@ -1,4 +1,3 @@
-import { Octokit } from 'octokit';
 import GitHubAccount, { IGitHubAccount } from '../models/GitHubAccount';
 import { env } from '../config/environment';
 import logger from '../utils/logger';
@@ -31,6 +30,7 @@ export class GitHubOAuthService {
       throw new Error(`GitHub OAuth error: ${tokenData.error || 'No access token received'}`);
     }
 
+    const { Octokit } = await import('octokit');
     const octokit = new Octokit({ auth: tokenData.access_token });
     const { data: user } = await octokit.rest.users.getAuthenticated();
     return { accessToken: tokenData.access_token, login: user.login };
@@ -50,6 +50,7 @@ export class GitHubOAuthService {
     }
     const { accessToken, login } = await this.handleCallback(code);
 
+    const { Octokit } = await import('octokit');
     const octokit = new Octokit({ auth: accessToken });
     const [userRes, emailsRes] = await Promise.all([
       octokit.rest.users.getAuthenticated(),

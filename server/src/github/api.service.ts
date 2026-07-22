@@ -1,4 +1,4 @@
-import { Octokit } from 'octokit';
+import type { Octokit } from 'octokit' with { 'resolution-mode': 'import' };
 import { Document } from 'mongoose';
 import { env } from '../config/environment';
 import GitHubAccount, { IGitHubAccount } from '../models/GitHubAccount';
@@ -14,8 +14,9 @@ interface GitHubApiOptions {
 export class GitHubApiService {
   private globalOctokit: Octokit | null = null;
 
-  private getGlobalClient(): Octokit {
+  private async getGlobalClient(): Promise<Octokit> {
     if (!this.globalOctokit) {
+      const { Octokit } = await import('octokit');
       this.globalOctokit = new Octokit({ auth: env.GITHUB_TOKEN });
     }
     return this.globalOctokit;
@@ -29,6 +30,7 @@ export class GitHubApiService {
 
     await this.checkRateLimit(account);
 
+    const { Octokit } = await import('octokit');
     return new Octokit({ auth: account.accessToken });
   }
 
@@ -69,7 +71,7 @@ export class GitHubApiService {
     userId: string | undefined,
     fetchFn: (octokit: Octokit) => Promise<T>,
   ): Promise<{ data: T; headers: Record<string, unknown> }> {
-    const octokit = userId ? await this.getUserClient(userId) : this.getGlobalClient();
+    const octokit = userId ? await this.getUserClient(userId) : await this.getGlobalClient();
     const response = await fetchFn(octokit) as unknown as { data: T; headers: Record<string, unknown> };
     if (userId && response.headers) {
       const remaining = parseInt(response.headers['x-ratelimit-remaining'] as string, 10);
