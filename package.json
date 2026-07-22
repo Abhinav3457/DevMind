@@ -1,0 +1,38 @@
+{
+  "name": "devmind-ai",
+  "version": "1.0.0",
+  "description": "Full Stack AI Software Engineer Workspace",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -n client,server -c cyan,green \"npm run dev:client\" \"npm run dev:server\"",
+    "dev:client": "cd client && npm run dev",
+    "dev:server": "cd server && npm run dev",
+    "build": "npm run build:server && npm run build:client",
+    "build:client": "cd client && npm run build",
+    "build:server": "cd server && npm run build",
+    "start": "cd server && node dist/index.js",
+    "install:all": "npm install && cd client && npm install && cd ../server && npm install",
+    "render-start": "node server/dist/index.js",
+    "lint": "concurrently \"cd client && npm run lint\" \"cd server && npm run lint\"",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,css,md}\"",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.4.3",
+    "prettier": "^3.4.2"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx}": [
+      "prettier --write",
+      "eslint --fix"
+    ],
+    "*.{json,css,md}": [
+      "prettier --write"
+    ]
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

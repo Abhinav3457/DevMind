@@ -1,0 +1,9 @@
+export { authController, AuthController } from './auth.controller';
+export { workspaceController, WorkspaceController } from './workspace.controller';
+export { gitHubController, GitHubController } from './github.controller';
+export { indexerController, IndexerController } from './indexer.controller';
+export { repoIntelligenceController, RepoIntelligenceController } from './repo-intelligence.controller';
+export { codeReviewController, CodeReviewController } from './code-review.controller';
+export { docGeneratorController, DocGeneratorController } from './doc-generator.controller';
+export { analyticsController, AnalyticsController } from './analytics.controller';
+export { projectController, ProjectController } from './project.controller';
