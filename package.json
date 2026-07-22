@@ -15,7 +15,7 @@
     "render-start": "node server/dist/index.js",
     "lint": "concurrently \"cd client && npm run lint\" \"cd server && npm run lint\"",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,css,md}\"",
-    "prepare": "husky"
+    "prepare": "node -e \"try { require('husky').install() } catch (e) {}\""
   },
   "devDependencies": {
     "concurrently": "^9.1.2",

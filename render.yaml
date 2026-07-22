@@ -6,7 +6,7 @@ services:
   - type: web
     name: devmind-ai
     runtime: node
-    repo: https://github.com/your-username/your-repo-name # 👈 UPDATE THIS
+    repo: https://github.com/Abhinav3457/DevMind
     region: oregon # Options: oregon (US), frankfurt (EU), singapore (Asia)
     plan: free
     branch: main
