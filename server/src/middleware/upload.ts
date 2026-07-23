@@ -19,10 +19,13 @@ const ALLOWED_FILE_TYPES = [
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
+// Uploads directory — consistent in both dev (ts-node) and production (compiled)
+const UPLOADS_DIR = path.join(process.cwd(), 'src', 'uploads');
+
 // Local storage configuration
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => {
-    cb(null, path.join(__dirname, '../uploads'));
+    cb(null, UPLOADS_DIR);
   },
   filename: (_req, file, cb) => {
     const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;

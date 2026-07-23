@@ -77,7 +77,7 @@ if (process.env.NODE_ENV !== 'test') {
 }
 
 // Serve static files for uploads
-app.use('/uploads', express.static('src/uploads'));
+app.use('/uploads', express.static(path.join(process.cwd(), 'src', 'uploads')));
 
 // API routes
 app.use('/api/v1', apiRoutes);

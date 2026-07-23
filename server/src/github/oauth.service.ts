@@ -1,18 +1,35 @@
+import crypto from 'crypto';
 import GitHubAccount, { IGitHubAccount } from '../models/GitHubAccount';
 import { env } from '../config/environment';
 import logger from '../utils/logger';
 
-export class GitHubOAuthService {
-  private pendingStates = new Map<string, string>(); // state -> userId
+interface PendingState {
+  userId: string;
+  expiresAt: number;
+}
 
-  getAuthorizationUrl(state: string): string {
+const STATE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+const CLEANUP_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+
+export class GitHubOAuthService {
+  private pendingStates = new Map<string, PendingState>();
+
+  constructor() {
+    // Periodically clean up expired states to prevent memory leaks from abandoned flows
+    setInterval(() => this.cleanupExpiredStates(), CLEANUP_INTERVAL_MS);
+  }
+
+  getAuthorizationUrl(userId: string): { url: string; state: string } {
+    const state = crypto.randomBytes(32).toString('hex');
+    this.pendingStates.set(state, { userId, expiresAt: Date.now() + STATE_TTL_MS });
+
     const params = new URLSearchParams({
       client_id: env.GITHUB_CLIENT_ID,
       redirect_uri: `${env.CLIENT_URL}/auth/github/callback`,
       scope: 'repo,user:email,read:org',
       state,
     });
-    return `https://github.com/login/oauth/authorize?${params.toString()}`;
+    return { url: `https://github.com/login/oauth/authorize?${params.toString()}`, state };
   }
 
   async handleCallback(code: string): Promise<{ accessToken: string; login: string }> {
@@ -38,16 +55,21 @@ export class GitHubOAuthService {
 
   async connectAccount(userId: string, code: string, state: string): Promise<IGitHubAccount> {
     // Validate state to prevent CSRF attacks on OAuth flow
-    // State is base64(userId:timestamp) — decode and check it starts with the userId
-    let decodedState: string;
-    try {
-      decodedState = Buffer.from(state, 'base64').toString('utf-8');
-    } catch {
-      throw new Error('Invalid OAuth state parameter. Possible CSRF attack.');
+    const stored = this.pendingStates.get(state);
+    if (!stored) {
+      throw new Error('Invalid or expired OAuth state parameter. Possible CSRF attack.');
     }
-    if (!decodedState.startsWith(`${userId}:`)) {
-      throw new Error('Invalid OAuth state parameter. Possible CSRF attack.');
+    if (stored.userId !== userId) {
+      throw new Error('OAuth state parameter does not match user. Possible CSRF attack.');
     }
+    if (stored.expiresAt < Date.now()) {
+      this.pendingStates.delete(state);
+      throw new Error('OAuth state parameter has expired. Please try again.');
+    }
+
+    // Remove state immediately to prevent replay attacks
+    this.pendingStates.delete(state);
+
     const { accessToken, login } = await this.handleCallback(code);
 
     const { Octokit } = await import('octokit');
@@ -89,6 +111,20 @@ export class GitHubOAuthService {
 
   async getConnectedAccount(userId: string): Promise<IGitHubAccount | null> {
     return GitHubAccount.findOne({ userId, isConnected: true });
+  }
+
+  private cleanupExpiredStates(): void {
+    const now = Date.now();
+    let cleaned = 0;
+    for (const [state, data] of this.pendingStates.entries()) {
+      if (data.expiresAt < now) {
+        this.pendingStates.delete(state);
+        cleaned++;
+      }
+    }
+    if (cleaned > 0) {
+      logger.debug(`OAuth: Cleaned up ${cleaned} expired state(s)`);
+    }
   }
 }
 

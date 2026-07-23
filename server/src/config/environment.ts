@@ -58,7 +58,7 @@ export const env: Environment = {
   GEMINI_API_KEY: getOptionalEnvVar('GEMINI_API_KEY', ''),
   GROQ_API_KEY: getOptionalEnvVar('GROQ_API_KEY', ''),
   GITHUB_TOKEN: getOptionalEnvVar('GITHUB_TOKEN', ''),
-  GITHUB_CLIENT_ID: getEnvVar('GITHUB_CLIENT_ID'),
-  GITHUB_CLIENT_SECRET: getEnvVar('GITHUB_CLIENT_SECRET'),
+  GITHUB_CLIENT_ID: getOptionalEnvVar('GITHUB_CLIENT_ID', ''),
+  GITHUB_CLIENT_SECRET: getOptionalEnvVar('GITHUB_CLIENT_SECRET', ''),
   SOCKET_CORS_ORIGIN: getOptionalEnvVar('SOCKET_CORS_ORIGIN', 'http://localhost:5173'),
 };

@@ -27,9 +27,7 @@ interface GitHubRepoMetadata {
 
 export class GitHubService {
   async getAuthorizationUrl(userId: string): Promise<{ url: string; state: string }> {
-    const state = Buffer.from(`${userId}:${Date.now()}`).toString('base64');
-    const url = gitHubOAuthService.getAuthorizationUrl(state);
-    return { url, state };
+    return gitHubOAuthService.getAuthorizationUrl(userId);
   }
 
   async handleOAuthCallback(userId: string, code: string, state: string): Promise<{ connected: boolean; login: string }> {
