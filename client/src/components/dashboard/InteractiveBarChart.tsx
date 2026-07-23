@@ -54,10 +54,10 @@ export function InteractiveBarChart({
         <div className="absolute inset-0 flex flex-col-reverse justify-between pointer-events-none">
           {gridLines.map((line) => (
             <div key={line} className="flex items-center gap-2">
-              <span className="text-[10px] text-gray-600 w-8 text-right font-medium">
+              <span className="text-[10px] text-surface-500 w-8 text-right font-medium">
                 {Math.round((line / 100) * max)}
               </span>
-              <div className="flex-1 border-t border-gray-800/30" />
+              <div className="flex-1 border-t border-surface-700/30" />
             </div>
           ))}
         </div>
@@ -80,13 +80,13 @@ export function InteractiveBarChart({
                 <motion.div
                   initial={{ opacity: 0, y: 5, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
-                  className="absolute -top-8 z-20 whitespace-nowrap rounded-lg bg-gray-900/95 border border-gray-700/50 px-2.5 py-1.5 text-xs shadow-xl backdrop-blur-sm"
+                  className="absolute -top-8 z-20 whitespace-nowrap rounded-lg bg-surface-900/95 border border-surface-600/50 px-2.5 py-1.5 text-xs shadow-xl backdrop-blur-sm"
                   style={{ left: `${(index / data.length) * 100}%`, transform: 'translateX(-50%)' }}
                 >
-                  <p className="font-medium text-gray-200">{item.tooltip || item.label}</p>
-                  <p className="text-gray-400">{item.value.toLocaleString()}</p>
+                  <p className="font-medium text-surface-200">{item.tooltip || item.label}</p>
+                  <p className="text-surface-300">{item.value.toLocaleString()}</p>
                   {item.secondaryValue !== undefined && (
-                    <p className="text-gray-500">{item.secondaryValue.toLocaleString()}</p>
+                    <p className="text-surface-400">{item.secondaryValue.toLocaleString()}</p>
                   )}
                 </motion.div>
               )}
@@ -123,7 +123,7 @@ export function InteractiveBarChart({
               </div>
 
               {/* Label */}
-              <span className="text-[10px] text-gray-500 truncate max-w-full text-center mt-1">
+              <span className="text-[10px] text-surface-400 truncate max-w-full text-center mt-1">
                 {item.label}
               </span>
             </div>

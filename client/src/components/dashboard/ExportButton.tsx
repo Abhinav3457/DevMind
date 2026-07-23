@@ -72,7 +72,7 @@ export function ExportButton({ onExport, className = '' }: ExportButtonProps) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 5, scale: 0.96 }}
             transition={{ duration: 0.15 }}
-            className="absolute right-0 z-50 mt-2 w-48 rounded-2xl border border-gray-700/50 bg-gray-900/95 p-2 shadow-2xl backdrop-blur-xl"
+            className="absolute right-0 z-50 mt-2 w-48 rounded-2xl border border-surface-600/50 bg-surface-900/95 p-2 shadow-2xl backdrop-blur-xl"
             role="menu"
           >
             {formats.map((fmt) => {
@@ -84,13 +84,13 @@ export function ExportButton({ onExport, className = '' }: ExportButtonProps) {
                   key={fmt.id}
                   onClick={() => handleExport(fmt.id)}
                   disabled={!!exporting}
-                  className="w-full rounded-lg px-3 py-2.5 flex items-center gap-3 text-sm text-gray-400 hover:text-gray-200 hover:bg-gray-800/50 transition-all disabled:opacity-50"
+                  className="w-full rounded-lg px-3 py-2.5 flex items-center gap-3 text-sm text-surface-300 hover:text-surface-100 hover:bg-surface-800/50 transition-all disabled:opacity-50"
                   role="menuitem"
                 >
-                  <Icon className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                  <Icon className="h-4 w-4 text-surface-400 flex-shrink-0" />
                   <div className="flex-1 text-left">
                     <span className="font-medium">{fmt.label}</span>
-                    <p className="text-[10px] text-gray-600">{fmt.description}</p>
+                    <p className="text-[10px] text-surface-500">{fmt.description}</p>
                   </div>
                   {isLoading && (
                     <svg className="animate-spin h-4 w-4 text-blue-400" viewBox="0 0 24 24">
@@ -112,5 +112,3 @@ export function ExportButton({ onExport, className = '' }: ExportButtonProps) {
     </div>
   );
 }
-
-

@@ -59,7 +59,7 @@ export function RegisterPage() {
 
   if (isSuccess) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#0a0f1a] px-4">
+      <div className="flex min-h-screen items-center justify-center bg-surface-950 px-4">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -70,8 +70,8 @@ export function RegisterPage() {
               <UserPlus className="h-10 w-10 text-emerald-400" />
             </div>
           </div>
-          <h2 className="mb-2 text-2xl font-bold text-gray-100">Registration Successful!</h2>
-          <p className="mb-6 text-sm text-gray-500">
+          <h2 className="mb-2 text-2xl font-bold text-surface-100">Registration Successful!</h2>
+          <p className="mb-6 text-sm text-surface-400">
             Please check your email to verify your account. Redirecting to login...
           </p>
           <Link
@@ -86,7 +86,7 @@ export function RegisterPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#0a0f1a] px-4">
+    <div className="flex min-h-screen items-center justify-center bg-surface-950 px-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -105,12 +105,12 @@ export function RegisterPage() {
               <Code2 className="h-8 w-8 text-white" />
             </div>
           </motion.div>
-          <h1 className="text-3xl font-bold text-gray-100">Create Account</h1>
-          <p className="mt-2 text-sm text-gray-500">Join DevMind AI and start building</p>
+          <h1 className="text-3xl font-bold text-surface-100">Create Account</h1>
+          <p className="mt-2 text-sm text-surface-400">Join DevMind AI and start building</p>
         </div>
 
         {/* Register Form */}
-        <div className="rounded-2xl border border-gray-800 bg-gray-900/50 p-8 backdrop-blur-xl">
+        <div className="rounded-2xl border border-surface-700 bg-surface-800/50 p-8 backdrop-blur-xl">
           {serverError && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
@@ -124,19 +124,19 @@ export function RegisterPage() {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
             {/* Name */}
             <div>
-              <label htmlFor="name" className="mb-1.5 block text-sm font-medium text-gray-300">
+              <label htmlFor="name" className="mb-1.5 block text-sm font-medium text-surface-200">
                 Full Name
               </label>
               <div className="relative">
-                <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+                <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
                 <input
                   id="name"
                   type="text"
                   autoComplete="name"
                   placeholder="John Doe"
                   className={
-                    'w-full rounded-lg border bg-gray-800 py-2.5 pl-10 pr-4 text-sm text-gray-100 placeholder-gray-500 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ' +
-                    (errors.name ? 'border-red-500' : 'border-gray-700')
+                    'w-full rounded-lg border bg-surface-800 py-2.5 pl-10 pr-4 text-sm text-surface-100 placeholder-surface-500 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ' +
+                    (errors.name ? 'border-red-500' : 'border-surface-600')
                   }
                   {...register('name')}
                 />
@@ -146,19 +146,19 @@ export function RegisterPage() {
 
             {/* Username */}
             <div>
-              <label htmlFor="username" className="mb-1.5 block text-sm font-medium text-gray-300">
+              <label htmlFor="username" className="mb-1.5 block text-sm font-medium text-surface-200">
                 Username
               </label>
               <div className="relative">
-                <AtSign className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+                <AtSign className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
                 <input
                   id="username"
                   type="text"
                   autoComplete="username"
                   placeholder="johndoe"
                   className={
-                    'w-full rounded-lg border bg-gray-800 py-2.5 pl-10 pr-4 text-sm text-gray-100 placeholder-gray-500 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ' +
-                    (errors.username ? 'border-red-500' : 'border-gray-700')
+                    'w-full rounded-lg border bg-surface-800 py-2.5 pl-10 pr-4 text-sm text-surface-100 placeholder-surface-500 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ' +
+                    (errors.username ? 'border-red-500' : 'border-surface-600')
                   }
                   {...register('username')}
                 />
@@ -170,19 +170,19 @@ export function RegisterPage() {
 
             {/* Email */}
             <div>
-              <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-gray-300">
+              <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-surface-200">
                 Email Address
               </label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+                <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
                 <input
                   id="email"
                   type="email"
                   autoComplete="email"
                   placeholder="you@example.com"
                   className={
-                    'w-full rounded-lg border bg-gray-800 py-2.5 pl-10 pr-4 text-sm text-gray-100 placeholder-gray-500 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ' +
-                    (errors.email ? 'border-red-500' : 'border-gray-700')
+                    'w-full rounded-lg border bg-surface-800 py-2.5 pl-10 pr-4 text-sm text-surface-100 placeholder-surface-500 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ' +
+                    (errors.email ? 'border-red-500' : 'border-surface-600')
                   }
                   {...register('email')}
                 />
@@ -192,26 +192,26 @@ export function RegisterPage() {
 
             {/* Password */}
             <div>
-              <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-gray-300">
+              <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-surface-200">
                 Password
               </label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+                <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
                 <input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="new-password"
                   placeholder="At least 8 characters"
                   className={
-                    'w-full rounded-lg border bg-gray-800 py-2.5 pl-10 pr-10 text-sm text-gray-100 placeholder-gray-500 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ' +
-                    (errors.password ? 'border-red-500' : 'border-gray-700')
+                    'w-full rounded-lg border bg-surface-800 py-2.5 pl-10 pr-10 text-sm text-surface-100 placeholder-surface-500 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ' +
+                    (errors.password ? 'border-red-500' : 'border-surface-600')
                   }
                   {...register('password')}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-surface-400 hover:text-surface-200 transition-colors"
                   tabIndex={-1}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -224,26 +224,26 @@ export function RegisterPage() {
 
             {/* Confirm Password */}
             <div>
-              <label htmlFor="confirmPassword" className="mb-1.5 block text-sm font-medium text-gray-300">
+              <label htmlFor="confirmPassword" className="mb-1.5 block text-sm font-medium text-surface-200">
                 Confirm Password
               </label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+                <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
                 <input
                   id="confirmPassword"
                   type={showConfirm ? 'text' : 'password'}
                   autoComplete="new-password"
                   placeholder="Re-enter your password"
                   className={
-                    'w-full rounded-lg border bg-gray-800 py-2.5 pl-10 pr-10 text-sm text-gray-100 placeholder-gray-500 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ' +
-                    (errors.confirmPassword ? 'border-red-500' : 'border-gray-700')
+                    'w-full rounded-lg border bg-surface-800 py-2.5 pl-10 pr-10 text-sm text-surface-100 placeholder-surface-500 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ' +
+                    (errors.confirmPassword ? 'border-red-500' : 'border-surface-600')
                   }
                   {...register('confirmPassword')}
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirm(!showConfirm)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-surface-400 hover:text-surface-200 transition-colors"
                   tabIndex={-1}
                 >
                   {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -270,7 +270,7 @@ export function RegisterPage() {
           </form>
 
           {/* Login Link */}
-          <p className="mt-6 text-center text-sm text-gray-500">
+          <p className="mt-6 text-center text-sm text-surface-400">
             Already have an account?{' '}
             <Link
               to="/auth/login"

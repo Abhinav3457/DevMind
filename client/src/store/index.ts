@@ -31,13 +31,24 @@ interface UIState {
   setTheme: (theme: 'dark' | 'light') => void;
 }
 
+const getInitialTheme = (): 'dark' | 'light' => {
+  if (typeof window !== 'undefined') {
+    const stored = localStorage.getItem('theme');
+    if (stored === 'light' || stored === 'dark') return stored;
+  }
+  return 'dark';
+};
+
 export const useUIStore = create<UIState>()(
   devtools(
     (set) => ({
       sidebarOpen: true,
-      theme: 'dark',
+      theme: getInitialTheme(),
       toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
-      setTheme: (theme) => set({ theme }),
+      setTheme: (theme) => {
+        localStorage.setItem('theme', theme);
+        set({ theme });
+      },
     }),
     { name: 'ui-store' },
   ),

@@ -116,7 +116,7 @@ export function StatCard({
       transition={{ duration: 0.5, delay, ease: [0.25, 0.46, 0.45, 0.94] }}
       whileHover={{ scale: 1.02, y: -2 }}
       onClick={onClick}
-      className={`group relative overflow-hidden rounded-2xl border ${colors.border} bg-gradient-to-br from-gray-900/80 to-gray-950/80 p-5 shadow-lg backdrop-blur-xl transition-all duration-300 ${onClick ? 'cursor-pointer' : ''}`}
+      className={`group relative overflow-hidden rounded-2xl border ${colors.border} bg-gradient-to-br from-surface-900/80 to-surface-950/80 p-5 shadow-lg backdrop-blur-xl transition-all duration-300 ${onClick ? 'cursor-pointer' : ''}`}
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
       onKeyDown={onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } } : undefined}
@@ -129,7 +129,7 @@ export function StatCard({
       <div className="relative z-10">
         <div className="flex items-start justify-between">
           <div className="space-y-3">
-            <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">{title}</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-surface-400">{title}</p>
             <p className={`text-3xl font-bold tracking-tight ${colors.text}`}>
               {isNumber ? (
                 <AnimatedCounter value={value} delay={delay} />
@@ -138,7 +138,7 @@ export function StatCard({
               )}
             </p>
             {subtitle && (
-              <p className="text-xs text-gray-500">{subtitle}</p>
+              <p className="text-xs text-surface-400">{subtitle}</p>
             )}
           </div>
           <div className={`rounded-xl p-3 ${colors.bg} ring-1 ${colors.ring} transition-all duration-300 group-hover:scale-110 group-hover:ring-2`}>
@@ -147,12 +147,12 @@ export function StatCard({
         </div>
         
         {(trend || changePercent !== null) && (
-          <div className="mt-4 flex items-center gap-2 border-t border-gray-800/50 pt-3">
+          <div className="mt-4 flex items-center gap-2 border-t border-surface-700/50 pt-3">
             {trend ? (
               <div className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
                 trend === 'up' ? 'bg-emerald-500/10 text-emerald-400' : 
                 trend === 'down' ? 'bg-rose-500/10 text-rose-400' : 
-                'bg-gray-500/10 text-gray-400'
+                'bg-surface-500/10 text-surface-400'
               }`}>
                 {trend === 'up' ? (
                   <TrendingUp className="h-3 w-3" />
@@ -167,7 +167,7 @@ export function StatCard({
               <div className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
                 changePercent > 0 ? 'bg-emerald-500/10 text-emerald-400' : 
                 changePercent < 0 ? 'bg-rose-500/10 text-rose-400' : 
-                'bg-gray-500/10 text-gray-400'
+                'bg-surface-500/10 text-surface-400'
               }`}>
                 {changePercent > 0 ? (
                   <TrendingUp className="h-3 w-3" />

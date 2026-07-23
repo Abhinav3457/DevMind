@@ -61,8 +61,8 @@ export function DashboardPage() {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-100">Dashboard</h1>
-        <p className="mt-1 text-sm text-gray-500">Overview of your development workspace</p>
+        <h1 className="text-2xl font-bold text-surface-100">Dashboard</h1>
+        <p className="mt-1 text-sm text-surface-400">Overview of your development workspace</p>
       </div>
 
       {loading ? (
@@ -82,7 +82,7 @@ export function DashboardPage() {
 
       {/* Quick Actions */}
       <div>
-        <h2 className="mb-3 text-lg font-semibold text-gray-200">Quick Actions</h2>
+        <h2 className="mb-3 text-lg font-semibold text-surface-200">Quick Actions</h2>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {quickActions.map((action, i) => (
             <Link key={action.label} to={action.to}>
@@ -90,7 +90,7 @@ export function DashboardPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 + i * 0.1 }}
-                className="group flex items-center justify-between rounded-xl border border-surface-800 bg-surface-900/50 p-4 backdrop-blur-sm transition-all hover:border-primary-500/30 hover:bg-surface-800/50"
+                className="group flex items-center justify-between rounded-xl border border-surface-700 bg-surface-900/50 p-4 backdrop-blur-sm transition-all hover:border-primary-500/30 hover:bg-surface-800/50"
               >
                 <div className="flex items-center gap-3">
                   <div className={
@@ -102,9 +102,9 @@ export function DashboardPage() {
                   }>
                     <action.icon className="h-5 w-5" />
                   </div>
-                  <span className="text-sm font-medium text-gray-300 group-hover:text-gray-200">{action.label}</span>
+                  <span className="text-sm font-medium text-surface-200 group-hover:text-surface-100">{action.label}</span>
                 </div>
-                <ArrowRight className="h-4 w-4 text-gray-600 transition-all group-hover:translate-x-0.5 group-hover:text-primary-400" />
+                <ArrowRight className="h-4 w-4 text-surface-500 transition-all group-hover:translate-x-0.5 group-hover:text-primary-400" />
               </motion.div>
             </Link>
           ))}
@@ -112,9 +112,9 @@ export function DashboardPage() {
       </div>
 
       {/* Recent Activity */}
-      <div className="rounded-xl border border-surface-800 bg-surface-900/50 p-5 backdrop-blur-sm">
-        <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-200">
-          <Clock className="h-4 w-4 text-gray-500" />
+      <div className="rounded-xl border border-surface-700 bg-surface-900/50 p-5 backdrop-blur-sm">
+        <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-surface-200">
+          <Clock className="h-4 w-4 text-surface-400" />
           Recent Activity
         </h2>
         {stats?.recentActivity && stats.recentActivity.length > 0 ? (
@@ -122,16 +122,16 @@ export function DashboardPage() {
             {stats.recentActivity.map((activity, i) => (
               <div key={i} className="flex items-center gap-3 rounded-lg bg-surface-800/50 px-4 py-3">
                 <Activity className="h-4 w-4 text-primary-400" />
-                <p className="flex-1 text-sm text-gray-400">{activity.description}</p>
-                <span className="text-xs text-gray-600">{new Date(activity.timestamp).toLocaleDateString()}</span>
+                <p className="flex-1 text-sm text-surface-300">{activity.description}</p>
+                <span className="text-xs text-surface-500">{new Date(activity.timestamp).toLocaleDateString()}</span>
               </div>
             ))}
           </div>
         ) : (
           <div className="flex flex-col items-center py-12 text-center">
-            <Activity className="mb-3 h-8 w-8 text-gray-700" />
-            <p className="text-sm text-gray-500">No recent activity</p>
-            <p className="text-xs text-gray-600">Start by creating a workspace or importing a repository</p>
+            <Activity className="mb-3 h-8 w-8 text-surface-600" />
+            <p className="text-sm text-surface-400">No recent activity</p>
+            <p className="text-xs text-surface-500">Start by creating a workspace or importing a repository</p>
           </div>
         )}
       </div>

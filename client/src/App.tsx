@@ -1,10 +1,23 @@
+import { useEffect } from 'react';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { AppRoutes } from './routes';
+import { useUIStore } from './store';
 
 function App() {
+  const theme = useUIStore((s) => s.theme);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme === 'light') {
+      root.classList.add('light');
+    } else {
+      root.classList.remove('light');
+    }
+  }, [theme]);
+
   return (
     <ErrorBoundary>
-      <div className="min-h-screen bg-surface-950">
+      <div className="min-h-screen">
         <AppRoutes />
       </div>
     </ErrorBoundary>

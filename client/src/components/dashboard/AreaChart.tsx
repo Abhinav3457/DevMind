@@ -36,7 +36,7 @@ export function AreaChart({
   if (data.length === 0) {
     return (
       <div className="flex items-center justify-center" style={{ height }}>
-        <p className="text-sm text-gray-500">No data available</p>
+        <p className="text-sm text-surface-400">No data available</p>
       </div>
     );
   }
@@ -63,10 +63,10 @@ export function AreaChart({
         <div className="absolute inset-0 flex flex-col justify-between pointer-events-none" style={{ height }}>
           {gridLines.map((line) => (
             <div key={line} className="flex items-center gap-2">
-              <span className="text-[10px] text-gray-600 w-8 text-right">
+              <span className="text-[10px] text-surface-500 w-8 text-right">
                 {Math.round(max - (line / 100) * range)}
               </span>
-              <div className="flex-1 border-t border-gray-800/30" />
+              <div className="flex-1 border-t border-surface-700/30" />
             </div>
           ))}
         </div>
@@ -119,7 +119,7 @@ export function AreaChart({
               cy={getY(d.value)}
               r={hoveredIndex === i ? 5 : 3}
               fill={color}
-              stroke="#0f172a"
+              stroke="var(--surface-900)"
               strokeWidth="2"
               initial={animated ? { opacity: 0, scale: 0 } : false}
               animate={{
@@ -143,7 +143,7 @@ export function AreaChart({
         {data
           .filter((_, i) => i % Math.max(1, Math.floor(data.length / 8)) === 0 || i === data.length - 1)
           .map((d, i) => (
-            <span key={i} className="text-[10px] text-gray-500 truncate">
+            <span key={i} className="text-[10px] text-surface-400 truncate">
               {d.label}
             </span>
           ))}
@@ -154,12 +154,12 @@ export function AreaChart({
         <motion.div
           initial={{ opacity: 0, y: 5 }}
           animate={{ opacity: 1, y: 0 }}
-          className="absolute -top-8 left-1/2 -translate-x-1/2 z-10 rounded-lg bg-gray-900/95 border border-gray-700/50 px-2.5 py-1.5 text-xs shadow-xl backdrop-blur-sm pointer-events-none"
+          className="absolute -top-8 left-1/2 -translate-x-1/2 z-10 rounded-lg bg-surface-900/95 border border-surface-600/50 px-2.5 py-1.5 text-xs shadow-xl backdrop-blur-sm pointer-events-none"
         >
-          <p className="font-medium text-gray-200">{data[hoveredIndex].label}</p>
-          <p className="text-gray-400">{data[hoveredIndex].value.toLocaleString()}</p>
+          <p className="font-medium text-surface-200">{data[hoveredIndex].label}</p>
+          <p className="text-surface-300">{data[hoveredIndex].value.toLocaleString()}</p>
           {data[hoveredIndex].secondaryValue !== undefined && (
-            <p className="text-gray-500">{data[hoveredIndex].secondaryValue.toLocaleString()}</p>
+            <p className="text-surface-400">{data[hoveredIndex].secondaryValue.toLocaleString()}</p>
           )}
         </motion.div>
       )}

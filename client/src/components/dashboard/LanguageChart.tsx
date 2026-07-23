@@ -40,7 +40,7 @@ export function LanguageChart({ languages }: LanguageChartProps) {
           ? [...topLanguages.map((l) => l.color + 'cc'), '#6b7280cc']
           : topLanguages.map((l) => l.color + 'cc'),
         borderWidth: 3,
-        borderColor: '#111827',
+        borderColor: 'var(--surface-950)',
         hoverBackgroundColor: otherFiles > 0
           ? [...topLanguages.map((l) => l.color), '#6b7280']
           : topLanguages.map((l) => l.color),
@@ -59,10 +59,10 @@ export function LanguageChart({ languages }: LanguageChartProps) {
         display: false,
       },
       tooltip: {
-        backgroundColor: '#111827ee',
-        titleColor: '#f9fafb',
-        bodyColor: '#d1d5db',
-        borderColor: '#374151',
+        backgroundColor: 'var(--surface-900)',
+        titleColor: 'var(--surface-100)',
+        bodyColor: 'var(--surface-300)',
+        borderColor: 'var(--surface-600)',
         borderWidth: 1,
         padding: { top: 12, bottom: 12, left: 16, right: 16 },
         cornerRadius: 12,
@@ -92,13 +92,13 @@ export function LanguageChart({ languages }: LanguageChartProps) {
     return (
       <div className="flex h-full items-center justify-center">
         <div className="text-center">
-          <div className="mx-auto mb-3 h-12 w-12 rounded-full bg-gray-800/50 flex items-center justify-center">
-            <svg className="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div className="mx-auto mb-3 h-12 w-12 rounded-full bg-surface-800/50 flex items-center justify-center">
+            <svg className="h-6 w-6 text-surface-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
             </svg>
           </div>
-          <p className="text-sm text-gray-500">No language data available</p>
-          <p className="text-xs text-gray-600 mt-1">Index a repository to see language breakdown</p>
+          <p className="text-sm text-surface-400">No language data available</p>
+          <p className="text-xs text-surface-500 mt-1">Index a repository to see language breakdown</p>
         </div>
       </div>
     );
@@ -110,8 +110,8 @@ export function LanguageChart({ languages }: LanguageChartProps) {
         <Doughnut data={data} options={options} />
         {/* Center label */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-2xl font-bold text-gray-100">{topLanguages.length}</span>
-          <span className="text-[10px] font-medium uppercase tracking-wider text-gray-500">Languages</span>
+          <span className="text-2xl font-bold text-surface-100">{topLanguages.length}</span>
+          <span className="text-[10px] font-medium uppercase tracking-wider text-surface-400">Languages</span>
         </div>
       </div>
       
@@ -129,8 +129,8 @@ export function LanguageChart({ languages }: LanguageChartProps) {
               className="h-2.5 w-2.5 rounded-full flex-shrink-0" 
               style={{ backgroundColor: lang.color }} 
             />
-            <span className="text-xs text-gray-400 truncate">{lang.name}</span>
-            <span className="text-xs font-medium text-gray-500">{lang.percentage}%</span>
+            <span className="text-xs text-surface-300 truncate">{lang.name}</span>
+            <span className="text-xs font-medium text-surface-400">{lang.percentage}%</span>
           </motion.div>
         ))}
       </div>

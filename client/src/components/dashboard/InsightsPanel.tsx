@@ -88,30 +88,30 @@ export function InsightsPanel({
 
   if (visibleInsights.length === 0) {
     return (
-      <div className={`rounded-2xl border border-gray-800/50 bg-gradient-to-br from-gray-900/80 to-gray-950/80 p-6 backdrop-blur-xl ${className}`}>
+      <div className={`rounded-2xl border border-surface-700/50 bg-gradient-to-br from-surface-900/80 to-surface-950/80 p-6 backdrop-blur-xl ${className}`}>
         <div className="flex items-center gap-2 mb-4">
           <div className="h-8 w-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
             <Sparkles className="h-4 w-4 text-blue-400" />
           </div>
-          <h3 className="text-sm font-semibold text-gray-200">{title}</h3>
+          <h3 className="text-sm font-semibold text-surface-200">{title}</h3>
         </div>
         <div className="flex flex-col items-center justify-center py-8 text-center">
-          <Zap className="h-8 w-8 text-gray-700 mb-3" />
-          <p className="text-sm text-gray-500">No insights yet</p>
-          <p className="text-xs text-gray-600 mt-1">Insights will appear as data is analyzed</p>
+          <Zap className="h-8 w-8 text-surface-600 mb-3" />
+          <p className="text-sm text-surface-400">No insights yet</p>
+          <p className="text-xs text-surface-500 mt-1">Insights will appear as data is analyzed</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className={`rounded-2xl border border-gray-800/50 bg-gradient-to-br from-gray-900/80 to-gray-950/80 p-6 backdrop-blur-xl ${className}`}>
+    <div className={`rounded-2xl border border-surface-700/50 bg-gradient-to-br from-surface-900/80 to-surface-950/80 p-6 backdrop-blur-xl ${className}`}>
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <div className="h-8 w-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
             <Sparkles className="h-4 w-4 text-blue-400" />
           </div>
-          <h3 className="text-sm font-semibold text-gray-200">{title}</h3>
+          <h3 className="text-sm font-semibold text-surface-200">{title}</h3>
           <span className="text-[10px] font-medium text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded-full">
             {visibleInsights.length}
           </span>
@@ -135,7 +135,7 @@ export function InsightsPanel({
               ? insight.change > 0
                 ? 'text-emerald-400'
                 : 'text-rose-400'
-              : 'text-gray-500';
+              : 'text-surface-400';
 
             return (
               <motion.div
@@ -149,10 +149,10 @@ export function InsightsPanel({
               >
                 <button
                   onClick={() => handleDismiss(insight.id)}
-                  className="absolute top-2 right-2 h-6 w-6 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-gray-800/50"
+                  className="absolute top-2 right-2 h-6 w-6 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-surface-800/50"
                   aria-label="Dismiss insight"
                 >
-                  <X className="h-3 w-3 text-gray-500" />
+                  <X className="h-3 w-3 text-surface-400" />
                 </button>
 
                 <div className="flex items-start gap-3">
@@ -161,7 +161,7 @@ export function InsightsPanel({
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <p className="text-sm font-medium text-gray-200">{insight.title}</p>
+                      <p className="text-sm font-medium text-surface-200">{insight.title}</p>
                       {insight.change !== undefined && (
                         <span className={`flex items-center gap-0.5 text-xs font-medium ${changeColor}`}>
                           {insight.change > 0 ? (
@@ -173,7 +173,7 @@ export function InsightsPanel({
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-gray-500 mt-1 leading-relaxed">{insight.description}</p>
+                    <p className="text-xs text-surface-400 mt-1 leading-relaxed">{insight.description}</p>
                     {insight.actionLabel && (
                       <button
                         onClick={insight.onAction}

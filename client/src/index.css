@@ -3,6 +3,37 @@
 @tailwind utilities;
 
 @layer base {
+  /* ── Theme Variables ───────────────────────────────────────────── */
+  /* Dark theme (default) */
+  :root {
+    --surface-50: #f8fafc;
+    --surface-100: #f1f5f9;
+    --surface-200: #e2e8f0;
+    --surface-300: #cbd5e1;
+    --surface-400: #94a3b8;
+    --surface-500: #64748b;
+    --surface-600: #475569;
+    --surface-700: #334155;
+    --surface-800: #1e293b;
+    --surface-900: #0f172a;
+    --surface-950: #020617;
+  }
+
+  /* Light theme */
+  .light {
+    --surface-50: #020617;
+    --surface-100: #0f172a;
+    --surface-200: #1e293b;
+    --surface-300: #334155;
+    --surface-400: #475569;
+    --surface-500: #64748b;
+    --surface-600: #94a3b8;
+    --surface-700: #cbd5e1;
+    --surface-800: #e2e8f0;
+    --surface-900: #f1f5f9;
+    --surface-950: #f8fafc;
+  }
+
   * {
     @apply border-surface-700;
   }
@@ -27,6 +58,26 @@
 
   ::-webkit-scrollbar-thumb:hover {
     @apply bg-surface-500;
+  }
+
+  /* Theme-aware prose for markdown rendering */
+  .prose-theme {
+    --tw-prose-body: var(--surface-200);
+    --tw-prose-headings: var(--surface-100);
+    --tw-prose-links: #60a5fa;
+    --tw-prose-code: var(--surface-100);
+    --tw-prose-pre-bg: var(--surface-800);
+    --tw-prose-pre-code: var(--surface-200);
+    --tw-prose-bold: var(--surface-100);
+    --tw-prose-quotes: var(--surface-300);
+    --tw-prose-quote-borders: var(--surface-600);
+    --tw-prose-hr: var(--surface-700);
+    --tw-prose-th-borders: var(--surface-600);
+    --tw-prose-td-borders: var(--surface-700);
+    --tw-prose-ul-bullets: var(--surface-500);
+    --tw-prose-ol-links: var(--surface-300);
+    --tw-prose-li-marker: var(--surface-500);
+    --tw-prose-captions: var(--surface-400);
   }
 }
 

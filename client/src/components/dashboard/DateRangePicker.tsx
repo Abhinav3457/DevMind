@@ -92,12 +92,12 @@ export function DateRangePicker({
     <div ref={ref} className={`relative ${className}`}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 rounded-xl border border-gray-800/80 bg-gray-900/80 px-4 py-2.5 text-sm text-gray-300 backdrop-blur-sm transition-all hover:border-gray-700 hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+        className="flex items-center gap-2 rounded-xl border border-surface-700/80 bg-surface-800/80 px-4 py-2.5 text-sm text-surface-200 backdrop-blur-sm transition-all hover:border-surface-600 hover:text-surface-100 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
         aria-haspopup="true"
         aria-expanded={isOpen}
         aria-label="Select date range"
       >
-        <Calendar className="h-4 w-4 text-gray-500" />
+        <Calendar className="h-4 w-4 text-surface-400" />
         <span className="hidden sm:inline">{value.label}</span>
         <span className="sm:hidden">{formatDate(value.start)} - {formatDate(value.end)}</span>
       </button>
@@ -109,7 +109,7 @@ export function DateRangePicker({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 8, scale: 0.96 }}
             transition={{ duration: 0.15, ease: 'easeOut' }}
-            className="absolute right-0 z-50 mt-2 w-56 rounded-2xl border border-gray-700/50 bg-gray-900/95 p-2 shadow-2xl backdrop-blur-xl"
+            className="absolute right-0 z-50 mt-2 w-56 rounded-2xl border border-surface-600/50 bg-surface-900/95 p-2 shadow-2xl backdrop-blur-xl"
             role="listbox"
             aria-label="Date range presets"
           >
@@ -127,13 +127,13 @@ export function DateRangePicker({
                     className={`w-full rounded-lg px-3 py-2 text-left text-sm transition-all ${
                       isActive
                         ? 'bg-blue-500/10 text-blue-400 font-medium'
-                        : 'text-gray-400 hover:bg-gray-800/50 hover:text-gray-200'
+                        : 'text-surface-300 hover:bg-surface-800/50 hover:text-surface-100'
                     }`}
                     role="option"
                     aria-selected={isActive}
                   >
                     <span>{preset.label}</span>
-                    <span className="ml-2 text-[10px] text-gray-600">
+                    <span className="ml-2 text-[10px] text-surface-500">
                       {formatDate(range.start)} - {formatDate(range.end)}
                     </span>
                   </button>

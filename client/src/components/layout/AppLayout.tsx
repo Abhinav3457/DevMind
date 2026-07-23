@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, Code2, Brain, Bug, FileText,
   Github, BarChart3, LogOut, ChevronLeft, ChevronRight,
-  Bell, Menu, X, Users,
+  Bell, Menu, X, Users, Sun, Moon,
 } from 'lucide-react';
 import { useAuthStore, useUIStore } from '../../store';
 
@@ -21,13 +21,17 @@ const navItems = [
 export function AppLayout() {
   const navigate = useNavigate();
   const { user, clearUser } = useAuthStore();
-  const { sidebarOpen, toggleSidebar } = useUIStore();
+  const { theme, setTheme, sidebarOpen, toggleSidebar } = useUIStore();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleLogout = () => {
     localStorage.removeItem('accessToken');
     clearUser();
     navigate('/auth/login', { replace: true });
+  };
+
+  const toggleTheme = () => {
+    setTheme(theme === 'dark' ? 'light' : 'dark');
   };
 
   return (
@@ -45,24 +49,24 @@ export function AppLayout() {
 
       {/* Sidebar */}
       <aside className={
-        'fixed left-0 top-0 z-50 flex h-full flex-col border-r border-surface-800 bg-surface-900/95 backdrop-blur-xl transition-all duration-300 lg:static lg:z-auto ' +
+        'fixed left-0 top-0 z-50 flex h-full flex-col border-r border-surface-700 bg-surface-900/95 backdrop-blur-xl transition-all duration-300 lg:static lg:z-auto ' +
         (sidebarOpen ? 'w-64' : 'w-0 lg:w-16') +
         (mobileOpen ? ' translate-x-0' : ' -translate-x-full lg:translate-x-0')
       }>
         {/* Logo */}
-        <div className={'flex h-16 items-center border-b border-surface-800 px-4 ' + (sidebarOpen ? 'justify-between' : 'justify-center')}>
+        <div className={'flex h-16 items-center border-b border-surface-700 px-4 ' + (sidebarOpen ? 'justify-between' : 'justify-center')}>
           {sidebarOpen && (
             <NavLink to="/dashboard" className="flex items-center gap-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-purple-600">
                 <Code2 className="h-4 w-4 text-white" />
               </div>
-              <span className="text-sm font-bold text-gray-100">DevMind AI</span>
+              <span className="text-sm font-bold text-surface-100">DevMind AI</span>
             </NavLink>
           )}
-          <button onClick={toggleSidebar} className="hidden rounded-lg p-1.5 text-gray-500 hover:bg-surface-800 hover:text-gray-300 lg:block">
+          <button onClick={toggleSidebar} className="hidden rounded-lg p-1.5 text-surface-400 hover:bg-surface-800 hover:text-surface-200 lg:block">
             {sidebarOpen ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
           </button>
-          <button onClick={() => setMobileOpen(false)} className="rounded-lg p-1.5 text-gray-500 hover:bg-surface-800 lg:hidden">
+          <button onClick={() => setMobileOpen(false)} className="rounded-lg p-1.5 text-surface-400 hover:bg-surface-800 lg:hidden">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -78,7 +82,7 @@ export function AppLayout() {
                 'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 ' +
                 (isActive
                   ? 'bg-primary-500/10 text-primary-400'
-                  : 'text-gray-500 hover:bg-surface-800 hover:text-gray-300')
+                  : 'text-surface-400 hover:bg-surface-800 hover:text-surface-200')
               }
             >
               <item.icon className="h-5 w-5 flex-shrink-0" />
@@ -88,10 +92,10 @@ export function AppLayout() {
         </nav>
 
         {/* Logout */}
-        <div className="border-t border-surface-800 p-3">
+        <div className="border-t border-surface-700 p-3">
           <button
             onClick={handleLogout}
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-500 transition-all hover:bg-red-500/10 hover:text-red-400"
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-surface-400 transition-all hover:bg-red-500/10 hover:text-red-400"
           >
             <LogOut className="h-5 w-5 flex-shrink-0" />
             {sidebarOpen && <span>Sign Out</span>}
@@ -102,16 +106,27 @@ export function AppLayout() {
       {/* Main Content */}
       <div className="flex flex-1 flex-col">
         {/* Top Bar */}
-        <header className="flex h-16 items-center justify-between border-b border-surface-800 bg-surface-900/50 px-4 backdrop-blur-xl lg:px-6">
+        <header className="flex h-16 items-center justify-between border-b border-surface-700 bg-surface-900/50 px-4 backdrop-blur-xl lg:px-6">
           <div className="flex items-center gap-3">
-            <button onClick={() => setMobileOpen(true)} className="rounded-lg p-1.5 text-gray-500 hover:bg-surface-800 lg:hidden">
+            <button onClick={() => setMobileOpen(true)} className="rounded-lg p-1.5 text-surface-400 hover:bg-surface-800 lg:hidden">
               <Menu className="h-5 w-5" />
             </button>
-            <span className="text-sm text-gray-400">Welcome back,</span>
-            <span className="text-sm font-medium text-gray-200">{user?.name || 'Developer'}</span>
+            <span className="text-sm text-surface-400">Welcome back,</span>
+            <span className="text-sm font-medium text-surface-200">{user?.name || 'Developer'}</span>
           </div>
-          <div className="flex items-center gap-3">
-            <button className="relative rounded-lg p-2 text-gray-500 hover:bg-surface-800 hover:text-gray-300 transition-colors">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={toggleTheme}
+              className="rounded-lg p-2 text-surface-400 hover:bg-surface-800 hover:text-surface-200 transition-colors"
+              title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+              {theme === 'dark' ? (
+                <Sun className="h-5 w-5" />
+              ) : (
+                <Moon className="h-5 w-5" />
+              )}
+            </button>
+            <button className="relative rounded-lg p-2 text-surface-400 hover:bg-surface-800 hover:text-surface-200 transition-colors">
               <Bell className="h-5 w-5" />
               <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-blue-500" />
             </button>

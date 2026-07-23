@@ -48,7 +48,7 @@ export function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#0a0f1a] px-4">
+    <div className="flex min-h-screen items-center justify-center bg-surface-950 px-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -67,12 +67,12 @@ export function LoginPage() {
               <Code2 className="h-8 w-8 text-white" />
             </div>
           </motion.div>
-          <h1 className="text-3xl font-bold text-gray-100">Welcome Back</h1>
-          <p className="mt-2 text-sm text-gray-500">Sign in to your DevMind AI workspace</p>
+          <h1 className="text-3xl font-bold text-surface-100">Welcome Back</h1>
+          <p className="mt-2 text-sm text-surface-400">Sign in to your DevMind AI workspace</p>
         </div>
 
         {/* Login Form */}
-        <div className="rounded-2xl border border-gray-800 bg-gray-900/50 p-8 backdrop-blur-xl">
+        <div className="rounded-2xl border border-surface-700 bg-surface-800/50 p-8 backdrop-blur-xl">
           {serverError && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
@@ -86,17 +86,17 @@ export function LoginPage() {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
             {/* Email */}
             <div>
-              <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-gray-300">
+              <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-surface-200">
                 Email Address
               </label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+                <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
                 <input
                   id="email"
                   type="email"
                   autoComplete="email"
                   placeholder="you@example.com"
-                  className={"w-full rounded-lg border bg-gray-800 py-2.5 pl-10 pr-4 text-sm text-gray-100 placeholder-gray-500 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent " + (errors.email ? 'border-red-500' : 'border-gray-700')}
+                  className={"w-full rounded-lg border bg-surface-800 py-2.5 pl-10 pr-4 text-sm text-surface-100 placeholder-surface-500 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent " + (errors.email ? 'border-red-500' : 'border-surface-600')}
                   {...register('email')}
                 />
               </div>
@@ -107,23 +107,23 @@ export function LoginPage() {
 
             {/* Password */}
             <div>
-              <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-gray-300">
+              <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-surface-200">
                 Password
               </label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+                <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
                 <input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="current-password"
                   placeholder="Enter your password"
-                  className={"w-full rounded-lg border bg-gray-800 py-2.5 pl-10 pr-10 text-sm text-gray-100 placeholder-gray-500 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent " + (errors.password ? 'border-red-500' : 'border-gray-700')}
+                  className={"w-full rounded-lg border bg-surface-800 py-2.5 pl-10 pr-10 text-sm text-surface-100 placeholder-surface-500 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent " + (errors.password ? 'border-red-500' : 'border-surface-600')}
                   {...register('password')}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-surface-400 hover:text-surface-200 transition-colors"
                   tabIndex={-1}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -136,7 +136,7 @@ export function LoginPage() {
 
             {/* Forgot Password — feature coming in future update */}
             <div className="flex justify-end">
-              <span className="text-xs text-gray-600 cursor-not-allowed">
+              <span className="text-xs text-surface-500 cursor-not-allowed">
                 Forgot password?
               </span>
             </div>
@@ -157,7 +157,7 @@ export function LoginPage() {
           </form>
 
           {/* Register Link */}
-          <p className="mt-6 text-center text-sm text-gray-500">
+          <p className="mt-6 text-center text-sm text-surface-400">
             Don't have an account?{' '}
             <Link to="/auth/register" className="font-medium text-blue-400 hover:text-blue-300 transition-colors">
               Create one

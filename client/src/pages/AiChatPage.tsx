@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Send, Loader2, Bot, User, AlertCircle, Database, RefreshCw, ExternalLink } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Send, Loader2, Bot, User, AlertCircle, Database, RefreshCw, ExternalLink, MessageSquare, BookOpen } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import apiClient from '../api/axios';
@@ -22,6 +22,8 @@ interface IndexStatus {
   loading: boolean;
 }
 
+type ChatMode = 'general' | 'repo';
+
 const initialState: IndexStatus = {
   hasReport: false,
   reportId: null,
@@ -31,12 +33,27 @@ const initialState: IndexStatus = {
   loading: true,
 };
 
+const generalSuggestions = [
+  'How do I center a div in CSS?',
+  'Explain React hooks in simple terms',
+  'How do I set up a Node.js REST API?',
+  'What is the difference between SQL and NoSQL?',
+];
+
+const repoSuggestions = [
+  'Explain the project architecture',
+  'How is authentication implemented?',
+  'Where is the database connected?',
+  'Explain the API flow',
+];
+
 export function AiChatPage() {
+  const [mode, setMode] = useState<ChatMode>('general');
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
       content:
-        'Hello! I am your AI coding assistant. Ask me anything about your repositories, code, or project architecture.',
+        'Hello! I am your AI coding assistant. Ask me anything about coding, or select **Repo Q&A** to ask questions about your indexed repositories.',
       timestamp: new Date(),
     },
   ]);
@@ -52,11 +69,27 @@ export function AiChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Reset messages when switching modes
+  useEffect(() => {
+    setMessages([
+      {
+        role: 'assistant',
+        content:
+          mode === 'general'
+            ? 'Ask me anything about coding, programming concepts, or best practices!'
+            : 'Ask me questions about your indexed repositories. Select a repository below to get started.',
+        timestamp: new Date(),
+      },
+    ]);
+  }, [mode]);
+
   // Check if user has any indexed repo on mount and fetch reports list
   useEffect(() => {
-    checkIndexStatus();
-    fetchReports();
-  }, []);
+    if (mode === 'repo') {
+      checkIndexStatus();
+      fetchReports();
+    }
+  }, [mode]);
 
   const fetchReports = async () => {
     try {
@@ -114,7 +147,48 @@ export function AiChatPage() {
     }
   };
 
-  const handleSend = async () => {
+  const handleSendGeneral = async () => {
+    if (!input.trim() || loading) return;
+    const userMsg: Message = { role: 'user', content: input.trim(), timestamp: new Date() };
+    setMessages((prev) => [...prev, userMsg]);
+    const userMessage = input.trim();
+    setInput('');
+    setLoading(true);
+
+    try {
+      // Send the last few messages as history for context
+      const recentHistory = messages
+        .slice(-10)
+        .map((m) => ({ role: m.role, content: m.content }));
+
+      const res = await apiClient.post('/ai/chat/generate', {
+        message: userMessage,
+        history: recentHistory,
+      });
+      const answer = res.data.data?.answer || 'No response received.';
+      setMessages((prev) => [
+        ...prev,
+        { role: 'assistant', content: answer, timestamp: new Date() },
+      ]);
+    } catch (err: unknown) {
+      const axiosErr = err as AxiosError<{ message?: string }>;
+      const serverMsg =
+        axiosErr?.response?.data?.message ||
+        'Could not connect to the AI service. Please check your API keys and server configuration.';
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'assistant',
+          content: `**Error:** ${serverMsg}`,
+          timestamp: new Date(),
+        },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSendRepo = async () => {
     if (!input.trim() || loading) return;
     const userMsg: Message = { role: 'user', content: input.trim(), timestamp: new Date() };
     setMessages((prev) => [...prev, userMsg]);
@@ -133,7 +207,8 @@ export function AiChatPage() {
       ]);
     } catch (err: unknown) {
       const axiosErr = err as AxiosError<{ message?: string }>;
-      const serverMsg = axiosErr?.response?.data?.message || 'Could not connect to the server. Please make sure the backend is running.';
+      const serverMsg =
+        axiosErr?.response?.data?.message || 'Could not connect to the server. Please make sure the backend is running.';
       setMessages((prev) => [
         ...prev,
         {
@@ -147,19 +222,18 @@ export function AiChatPage() {
     }
   };
 
-  const suggestions = [
-    'Explain the project architecture',
-    'How is authentication implemented?',
-    'Where is the database connected?',
-    'Explain the API flow',
-  ];
+  const handleSend = mode === 'general' ? handleSendGeneral : handleSendRepo;
+
+  const suggestions = mode === 'general' ? generalSuggestions : repoSuggestions;
 
   const statusBanner = () => {
+    if (mode !== 'repo') return null;
+
     if (indexStatus.loading) {
       return (
         <div className="mb-4 flex items-center gap-2 rounded-lg border border-surface-700 bg-surface-800/50 px-4 py-2">
-          <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
-          <span className="text-xs text-gray-400">Checking indexing status...</span>
+          <Loader2 className="h-4 w-4 animate-spin text-surface-400" />
+          <span className="text-xs text-surface-400">Checking indexing status...</span>
         </div>
       );
     }
@@ -172,7 +246,7 @@ export function AiChatPage() {
             Repository indexed{indexStatus.fileCount ? ` (${indexStatus.fileCount} files analyzed)` : ''} — ready to answer questions!
           </span>
           <RefreshCw
-            className="ml-auto h-3.5 w-3.5 cursor-pointer text-gray-500 hover:text-gray-300"
+            className="ml-auto h-3.5 w-3.5 cursor-pointer text-surface-500 hover:text-surface-300"
             onClick={checkIndexStatus}
           />
         </div>
@@ -203,7 +277,7 @@ export function AiChatPage() {
             to import and index a repository first.
           </span>
           <RefreshCw
-            className="ml-auto h-3.5 w-3.5 cursor-pointer text-gray-500 hover:text-gray-300"
+            className="ml-auto h-3.5 w-3.5 cursor-pointer text-surface-500 hover:text-surface-300"
             onClick={checkIndexStatus}
           />
         </div>
@@ -219,21 +293,50 @@ export function AiChatPage() {
       animate={{ opacity: 1 }}
       className="flex h-[calc(100vh-8rem)] flex-col"
     >
+      {/* Header */}
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-100">AI Assistant</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Ask questions about your codebase
+          <h1 className="text-2xl font-bold text-surface-100">AI Assistant</h1>
+          <p className="mt-1 text-sm text-surface-400">
+            {mode === 'general'
+              ? 'Your personal coding assistant'
+              : 'Ask questions about your codebase'}
           </p>
         </div>
         <div className="flex items-center gap-3">
-          {reports.length > 0 && (
+          {/* Mode Toggle */}
+          <div className="flex rounded-lg border border-surface-700 bg-surface-800 p-0.5">
+            <button
+              onClick={() => setMode('general')}
+              className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
+                mode === 'general'
+                  ? 'bg-primary-600 text-white shadow-sm'
+                  : 'text-surface-400 hover:text-surface-200'
+              }`}
+            >
+              <MessageSquare className="h-3.5 w-3.5" />
+              General Chat
+            </button>
+            <button
+              onClick={() => setMode('repo')}
+              className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
+                mode === 'repo'
+                  ? 'bg-primary-600 text-white shadow-sm'
+                  : 'text-surface-400 hover:text-surface-200'
+              }`}
+            >
+              <BookOpen className="h-3.5 w-3.5" />
+              Repo Q&A
+            </button>
+          </div>
+
+          {mode === 'repo' && reports.length > 0 && (
             <div className="flex items-center gap-2">
-              <Database className="h-4 w-4 text-gray-500" />
+              <Database className="h-4 w-4 text-surface-500" />
               <select
                 value={selectedReportId}
                 onChange={(e) => setSelectedReportId(e.target.value)}
-                className="rounded-lg border border-surface-700 bg-surface-800 px-3 py-1.5 text-xs text-gray-300 focus:border-primary-500/50 focus:outline-none max-w-[200px]"
+                className="rounded-lg border border-surface-700 bg-surface-800 px-3 py-1.5 text-xs text-surface-300 focus:border-primary-500/50 focus:outline-none max-w-[200px]"
               >
                 {reports.map((r) => (
                   <option key={r.id} value={r.id}>
@@ -246,79 +349,89 @@ export function AiChatPage() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto rounded-xl border border-surface-800 bg-surface-900/50 p-4 backdrop-blur-sm">
+      {/* Chat Area */}
+      <div className="flex-1 overflow-y-auto rounded-xl border border-surface-700 bg-surface-900/50 p-4 backdrop-blur-sm">
         {statusBanner()}
 
+        {/* Suggestions */}
         {messages.length <= 1 && (
           <div className="mb-4 grid grid-cols-2 gap-2">
             {suggestions.map((s) => (
               <button
                 key={s}
-                onClick={() => {
-                  setInput(s);
-                }}
-                className="rounded-lg border border-surface-700 bg-surface-800/50 px-3 py-2 text-left text-xs text-gray-400 transition-all hover:border-primary-500/30 hover:text-gray-300"
+                onClick={() => setInput(s)}
+                className="rounded-lg border border-surface-700 bg-surface-800/50 px-3 py-2 text-left text-xs text-surface-400 transition-all hover:border-primary-500/30 hover:text-surface-200"
               >
                 {s}
               </button>
             ))}
           </div>
         )}
+
+        {/* Messages */}
         <div className="space-y-4">
-          {messages.map((msg, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={
-                'flex gap-3 ' + (msg.role === 'user' ? 'justify-end' : 'justify-start')
-              }
-            >
-              {msg.role === 'assistant' && (
-                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-purple-600">
-                  <Bot className="h-4 w-4 text-white" />
-                </div>
-              )}
-              <div
+          <AnimatePresence initial={false}>
+            {messages.map((msg, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2 }}
                 className={
-                  'max-w-[80%] rounded-xl px-4 py-3 ' +
-                  (msg.role === 'user'
-                    ? 'bg-primary-600/20 text-gray-200'
-                    : 'bg-surface-800/80 text-gray-300')
+                  'flex gap-3 ' + (msg.role === 'user' ? 'justify-end' : 'justify-start')
                 }
               >
-                {msg.role === 'assistant' ? (
-                  <div className="prose prose-invert prose-sm max-w-none">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                      {msg.content}
-                    </ReactMarkdown>
+                {msg.role === 'assistant' && (
+                  <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-purple-600">
+                    <Bot className="h-4 w-4 text-white" />
                   </div>
-                ) : (
-                  <p className="text-sm">{msg.content}</p>
                 )}
-                <p className="mt-1 text-right text-[10px] text-gray-600">
-                  {msg.timestamp.toLocaleTimeString([], {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
-                </p>
-              </div>
-              {msg.role === 'user' && (
-                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-surface-700">
-                  <User className="h-4 w-4 text-gray-400" />
+                <div
+                  className={
+                    'max-w-[80%] rounded-xl px-4 py-3 ' +
+                    (msg.role === 'user'
+                      ? 'bg-primary-600/20 text-surface-100'
+                      : 'bg-surface-800/80 text-surface-200')
+                  }
+                >
+                  {msg.role === 'assistant' ? (
+                    <div className="prose prose-theme prose-sm max-w-none">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {msg.content}
+                      </ReactMarkdown>
+                    </div>
+                  ) : (
+                    <p className="text-sm">{msg.content}</p>
+                  )}
+                  <p className="mt-1 text-right text-[10px] text-surface-500">
+                    {msg.timestamp.toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </p>
                 </div>
-              )}
-            </motion.div>
-          ))}
+                {msg.role === 'user' && (
+                  <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-surface-700">
+                    <User className="h-4 w-4 text-surface-400" />
+                  </div>
+                )}
+              </motion.div>
+            ))}
+          </AnimatePresence>
           {loading && (
-            <div className="flex items-center gap-2 text-sm text-gray-500">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="flex items-center gap-2 text-sm text-surface-400"
+            >
               <Loader2 className="h-4 w-4 animate-spin" /> Thinking...
-            </div>
+            </motion.div>
           )}
           <div ref={messagesEndRef} />
         </div>
       </div>
 
+      {/* Input */}
       <div className="mt-4 flex gap-2">
         <input
           type="text"
@@ -326,11 +439,13 @@ export function AiChatPage() {
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleSend()}
           placeholder={
-            indexStatus.hasReport
-              ? 'Ask a question about your code...'
-              : 'Index a repo first, then ask questions...'
+            mode === 'general'
+              ? 'Ask a coding question...'
+              : indexStatus.hasReport
+                ? 'Ask a question about your code...'
+                : 'Index a repo first, then ask questions...'
           }
-          className="flex-1 rounded-xl border border-surface-800 bg-surface-900 px-4 py-3 text-sm text-gray-100 placeholder-gray-600 focus:border-primary-500/50 focus:outline-none"
+          className="flex-1 rounded-xl border border-surface-700 bg-surface-900 px-4 py-3 text-sm text-surface-100 placeholder-surface-500 focus:border-primary-500/50 focus:outline-none"
         />
         <button
           onClick={handleSend}

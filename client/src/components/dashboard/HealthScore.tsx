@@ -98,8 +98,8 @@ export function HealthScore({ score, level, metrics }: HealthScoreProps) {
             {/* Gradient definitions */}
             <defs>
               <linearGradient id="trackGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#1e293b" />
-                <stop offset="100%" stopColor="#0f172a" />
+                <stop offset="0%" stopColor="var(--surface-700)" />
+                <stop offset="100%" stopColor="var(--surface-900)" />
               </linearGradient>
               <linearGradient id={`progressGradient-${level}`} x1="0%" y1="0%" x2="100%" y2="100%">
                 <stop offset="0%" stopColor={level === 'excellent' ? '#34d399' : level === 'good' ? '#60a5fa' : level === 'fair' ? '#fbbf24' : '#fb7185'} />
@@ -117,17 +117,17 @@ export function HealthScore({ score, level, metrics }: HealthScoreProps) {
             >
               {score}
             </motion.p>
-            <p className="text-[10px] font-medium text-gray-500">/ 100</p>
+            <p className="text-[10px] font-medium text-surface-400">/ 100</p>
           </div>
         </div>
         
         <div className="space-y-2">
-          <p className="text-lg font-bold text-gray-100">Repository Health</p>
+          <p className="text-lg font-bold text-surface-100">Repository Health</p>
           <div className={`inline-flex items-center gap-2 rounded-full px-3 py-1 ${config.bg}`}>
             <div className={`h-2 w-2 rounded-full bg-gradient-to-r ${config.gradient}`} />
             <span className={`text-sm font-semibold ${config.color}`}>{config.label}</span>
           </div>
-          <p className="text-xs text-gray-500 max-w-[200px] leading-relaxed">
+          <p className="text-xs text-surface-400 max-w-[200px] leading-relaxed">
             Based on indexing completeness and documentation coverage
           </p>
         </div>
@@ -143,12 +143,12 @@ export function HealthScore({ score, level, metrics }: HealthScoreProps) {
             transition={{ delay: 0.6 + index * 0.1 }}
           >
             <div className="mb-2 flex items-center justify-between">
-              <span className="text-xs font-medium text-gray-400">{bar.label}</span>
-              <span className="text-xs font-semibold text-gray-300">
-                {bar.value} <span className="text-gray-500">({bar.percent}%)</span>
+              <span className="text-xs font-medium text-surface-300">{bar.label}</span>
+              <span className="text-xs font-semibold text-surface-200">
+                {bar.value} <span className="text-surface-400">({bar.percent}%)</span>
               </span>
             </div>
-            <div className="h-2 rounded-full bg-gray-800/50 overflow-hidden">
+            <div className="h-2 rounded-full bg-surface-700/50 overflow-hidden">
               <motion.div
                 className={`h-full rounded-full bg-gradient-to-r ${
                   bar.percent > 70 ? 'from-emerald-500 to-emerald-400' : 

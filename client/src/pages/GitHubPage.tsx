@@ -154,11 +154,11 @@ export function GitHubPage() {
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-100">GitHub Integration</h1>
-          <p className="mt-1 text-sm text-gray-500">Connect your GitHub account and import repositories</p>
+          <h1 className="text-2xl font-bold text-surface-100">GitHub Integration</h1>
+          <p className="mt-1 text-sm text-surface-400">Connect your GitHub account and import repositories</p>
         </div>
         <button onClick={handleConnect} disabled={connected}
-          className={'flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all ' + (connected ? 'bg-emerald-500/10 text-emerald-400 cursor-default' : 'bg-gray-800 text-gray-200 hover:bg-gray-700')}
+          className={'flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all ' + (connected ? 'bg-emerald-500/10 text-emerald-400 cursor-default' : 'bg-surface-800 text-surface-200 hover:bg-surface-700')}
         >
           <Github className="h-4 w-4" />
           {connected ? 'Connected as ' + githubUser : 'Connect GitHub'}
@@ -167,12 +167,12 @@ export function GitHubPage() {
 
       {!connected ? (
         <div className="flex flex-col items-center py-16 text-center">
-          <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-gray-800">
-            <Github className="h-10 w-10 text-gray-500" />
+          <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-surface-800">
+            <Github className="h-10 w-10 text-surface-400" />
           </div>
-          <h2 className="text-xl font-semibold text-gray-200">Connect Your GitHub Account</h2>
-          <p className="mt-2 max-w-md text-sm text-gray-500">Connect your GitHub account to import public and private repositories, analyze code, and generate documentation.</p>
-          <button onClick={handleConnect} className="mt-6 flex items-center gap-2 rounded-xl bg-gray-800 px-6 py-3 text-sm font-medium text-gray-200 transition-all hover:bg-gray-700">
+          <h2 className="text-xl font-semibold text-surface-200">Connect Your GitHub Account</h2>
+          <p className="mt-2 max-w-md text-sm text-surface-400">Connect your GitHub account to import public and private repositories, analyze code, and generate documentation.</p>
+          <button onClick={handleConnect} className="mt-6 flex items-center gap-2 rounded-xl bg-surface-800 px-6 py-3 text-sm font-medium text-surface-200 transition-all hover:bg-surface-700">
             <Github className="h-5 w-5" />
             Sign in with GitHub
           </button>
@@ -182,16 +182,16 @@ export function GitHubPage() {
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-3">
               <div className="relative max-w-md">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
                 <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search repositories..."
-                  className="w-full rounded-lg border border-surface-800 bg-surface-900 py-2.5 pl-10 pr-4 text-sm text-gray-100 placeholder-gray-500 focus:border-primary-500/50 focus:outline-none"
+                  className="w-full rounded-lg border border-surface-700 bg-surface-900 py-2.5 pl-10 pr-4 text-sm text-surface-100 placeholder-surface-500 focus:border-primary-500/50 focus:outline-none"
                 />
               </div>
               {workspaces.length > 0 && (
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-500">Link to:</span>
+                  <span className="text-xs text-surface-400">Link to:</span>
                   <select value={selectedWorkspaceId} onChange={e => setSelectedWorkspaceId(e.target.value)}
-                    className="rounded-lg border border-surface-700 bg-surface-800 px-3 py-2 text-xs text-gray-300 focus:border-primary-500/50 focus:outline-none"
+                    className="rounded-lg border border-surface-600 bg-surface-800 px-3 py-2 text-xs text-surface-300 focus:border-primary-500/50 focus:outline-none"
                   >
                     {workspaces.map((ws) => (
                       <option key={ws.id} value={ws.id}>{ws.name}</option>
@@ -201,7 +201,7 @@ export function GitHubPage() {
               )}
             </div>
             <button onClick={handleFetchRepos} disabled={loading}
-              className="flex items-center gap-2 rounded-lg border border-surface-800 bg-surface-900 px-4 py-2.5 text-sm text-gray-400 transition-all hover:text-gray-200"
+              className="flex items-center gap-2 rounded-lg border border-surface-700 bg-surface-900 px-4 py-2.5 text-sm text-surface-300 transition-all hover:text-surface-100"
             >
               <RefreshCw className={'h-4 w-4 ' + (loading ? 'animate-spin' : '')} />
               Refresh
@@ -210,25 +210,25 @@ export function GitHubPage() {
 
           {filteredRepos.length === 0 ? (
             <div className="flex flex-col items-center py-12 text-center">
-              <GitBranch className="mb-3 h-8 w-8 text-gray-700" />
-              <p className="text-sm text-gray-500">No repositories found</p>
-              <p className="text-xs text-gray-600">Click Refresh to fetch your GitHub repositories</p>
+              <GitBranch className="mb-3 h-8 w-8 text-surface-600" />
+              <p className="text-sm text-surface-400">No repositories found</p>
+              <p className="text-xs text-surface-500">Click Refresh to fetch your GitHub repositories</p>
             </div>
           ) : (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {filteredRepos.map(repo => (
-                <motion.div key={repo.id} layout className="rounded-xl border border-surface-800 bg-surface-900/50 p-4 backdrop-blur-sm transition-all hover:border-primary-500/30">
+                <motion.div key={repo.id} layout className="rounded-xl border border-surface-700 bg-surface-900/50 p-4 backdrop-blur-sm transition-all hover:border-primary-500/30">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-2">
-                      <GitBranch className="h-4 w-4 text-gray-500" />
-                      <span className="text-sm font-medium text-gray-200 truncate max-w-[180px]">{repo.name}</span>
+                      <GitBranch className="h-4 w-4 text-surface-400" />
+                      <span className="text-sm font-medium text-surface-200 truncate max-w-[180px]">{repo.name}</span>
                     </div>
                     {repo.private ? <Lock className="h-3.5 w-3.5 text-amber-500" /> : <Globe className="h-3.5 w-3.5 text-emerald-500" />}
                   </div>
-                  {repo.description && <p className="mt-2 text-xs text-gray-500 line-clamp-2">{repo.description}</p>}
+                  {repo.description && <p className="mt-2 text-xs text-surface-400 line-clamp-2">{repo.description}</p>}
                   <div className="mt-3 flex items-center justify-between">
                     {repo.language && (
-                      <span className="rounded-full bg-surface-800 px-2 py-0.5 text-[10px] text-gray-400">{repo.language}</span>
+                      <span className="rounded-full bg-surface-800 px-2 py-0.5 text-[10px] text-surface-300">{repo.language}</span>
                     )}
                     <button onClick={() => handleImport(repo.fullName || repo.name)} disabled={importing === repo.name}
                       className="flex items-center gap-1 rounded-lg bg-primary-600/20 px-3 py-1.5 text-xs font-medium text-primary-400 transition-all hover:bg-primary-600/30 disabled:opacity-50"
@@ -245,8 +245,8 @@ export function GitHubPage() {
           {/* Imported Repos Section */}
           {importedRepos.length > 0 && (
             <div className="mt-8">
-              <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold text-gray-200">
-                <Database className="h-4 w-4 text-gray-500" />
+              <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold text-surface-200">
+                <Database className="h-4 w-4 text-surface-400" />
                 Imported Repositories ({importedRepos.length})
               </h2>
               <div className="space-y-2">
@@ -254,16 +254,16 @@ export function GitHubPage() {
                   const status = ir.indexStatus || 'not_indexed';
                   const isIndexed = status === 'completed';
                   return (
-                    <div key={ir._id} className="flex items-center justify-between rounded-lg border border-surface-800 bg-surface-900/50 px-4 py-3">
+                    <div key={ir._id} className="flex items-center justify-between rounded-lg border border-surface-700 bg-surface-900/50 px-4 py-3">
                       <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <GitBranch className="h-4 w-4 flex-shrink-0 text-gray-500" />
-                        <span className="text-sm font-medium text-gray-200 truncate">{ir.fullName}</span>
+                        <GitBranch className="h-4 w-4 flex-shrink-0 text-surface-400" />
+                        <span className="text-sm font-medium text-surface-200 truncate">{ir.fullName}</span>
                         <span className={
                           'flex-shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ' +
                           (status === 'completed' ? 'bg-emerald-500/10 text-emerald-400' :
                            status === 'processing' || status === 'pending' ? 'bg-blue-500/10 text-blue-400' :
                            status === 'failed' ? 'bg-red-500/10 text-red-400' :
-                           'bg-surface-800 text-gray-500')
+                           'bg-surface-800 text-surface-400')
                         }>
                           {status === 'completed' ? '✓ ' + (ir.indexedFiles || 0) + ' files' :
                            status === 'processing' ? 'Processing...' :
@@ -282,7 +282,7 @@ export function GitHubPage() {
                             Index
                           </button>
                         ) : (
-                          <span className="text-xs text-gray-500">
+                          <span className="text-xs text-surface-400">
                             {ir.indexedAt ? new Date(ir.indexedAt).toLocaleDateString() : ''}
                           </span>
                         )}
@@ -306,15 +306,15 @@ export function GitHubPage() {
       {showRemoveConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setShowRemoveConfirm(null)}>
           <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }}
-            className="w-full max-w-sm rounded-xl border border-surface-800 bg-surface-900 p-6 shadow-2xl" onClick={e => e.stopPropagation()}
+            className="w-full max-w-sm rounded-xl border border-surface-700 bg-surface-900 p-6 shadow-2xl" onClick={e => e.stopPropagation()}
           >
             <h3 className="text-lg font-semibold text-red-400">Remove Repository?</h3>
-            <p className="mt-2 text-sm text-gray-400">
+            <p className="mt-2 text-sm text-surface-300">
               This will permanently remove the repository and <strong>all its indexed data</strong> (files, chunks, reports).
             </p>
             <div className="mt-5 flex justify-end gap-3">
               <button onClick={() => setShowRemoveConfirm(null)}
-                className="rounded-lg border border-surface-700 px-4 py-2 text-sm text-gray-400 hover:bg-surface-800"
+                className="rounded-lg border border-surface-600 px-4 py-2 text-sm text-surface-300 hover:bg-surface-800"
               >
                 Cancel
               </button>
@@ -332,34 +332,34 @@ export function GitHubPage() {
       {/* Index Modal */}
       {indexModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => { setIndexModal(null); setIndexDir(''); }}>
-          <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="w-full max-w-lg rounded-xl border border-surface-800 bg-surface-900 p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+          <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="w-full max-w-lg rounded-xl border border-surface-700 bg-surface-900 p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="flex items-center gap-3">
               <Database className="h-5 w-5 text-emerald-400" />
-              <h2 className="text-lg font-semibold text-gray-200">Index Repository</h2>
+              <h2 className="text-lg font-semibold text-surface-200">Index Repository</h2>
             </div>
-            <p className="mt-2 text-sm text-gray-400">
-              Provide the <strong>local directory path</strong> to <span className="font-medium text-gray-200">{indexModal.repoName}</span>
+            <p className="mt-2 text-sm text-surface-300">
+              Provide the <strong>local directory path</strong> to <span className="font-medium text-surface-100">{indexModal.repoName}</span>
             </p>
-            <p className="mt-1 text-xs text-gray-500">
-              Example: <code className="rounded bg-surface-800 px-1.5 py-0.5 text-gray-400">C:/Users/You/projects/my-repo</code>
+            <p className="mt-1 text-xs text-surface-400">
+              Example: <code className="rounded bg-surface-800 px-1.5 py-0.5 text-surface-300">C:/Users/You/projects/my-repo</code>
             </p>
             <div className="mt-4">
-              <label className="mb-1.5 block text-sm font-medium text-gray-300">Local Directory Path</label>
+              <label className="mb-1.5 block text-sm font-medium text-surface-200">Local Directory Path</label>
               <div className="relative">
-                <FolderOpen className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+                <FolderOpen className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
                 <input
                   type="text"
                   value={indexDir}
                   onChange={e => setIndexDir(e.target.value)}
                   placeholder="C:/Users/You/projects/my-repo"
-                  className="w-full rounded-lg border border-surface-700 bg-surface-800 py-2.5 pl-10 pr-4 text-sm text-gray-100 placeholder-gray-600 focus:border-emerald-500/50 focus:outline-none"
+                  className="w-full rounded-lg border border-surface-600 bg-surface-800 py-2.5 pl-10 pr-4 text-sm text-surface-100 placeholder-surface-500 focus:border-emerald-500/50 focus:outline-none"
                 />
               </div>
             </div>
             <div className="mt-5 flex justify-end gap-3">
               <button
                 onClick={() => { setIndexModal(null); setIndexDir(''); }}
-                className="rounded-lg border border-surface-700 px-4 py-2 text-sm text-gray-400 transition-all hover:bg-surface-800"
+                className="rounded-lg border border-surface-600 px-4 py-2 text-sm text-surface-300 transition-all hover:bg-surface-800"
               >
                 Cancel
               </button>

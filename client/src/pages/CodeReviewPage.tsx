@@ -44,16 +44,16 @@ export function CodeReviewPage() {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-100">AI Code Review</h1>
-        <p className="mt-1 text-sm text-gray-500">Get instant feedback on your code quality, security, and performance</p>
+        <h1 className="text-2xl font-bold text-surface-100">AI Code Review</h1>
+        <p className="mt-1 text-sm text-surface-400">Get instant feedback on your code quality, security, and performance</p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <label className="text-sm font-medium text-gray-300">Paste your code</label>
+            <label className="text-sm font-medium text-surface-200">Paste your code</label>
             <select value={language} onChange={e => setLanguage(e.target.value)}
-              className="rounded-lg border border-surface-700 bg-surface-800 px-3 py-1.5 text-xs text-gray-400"
+              className="rounded-lg border border-surface-600 bg-surface-800 px-3 py-1.5 text-xs text-surface-300"
             >
               <option value="typescript">TypeScript</option>
               <option value="javascript">JavaScript</option>
@@ -67,12 +67,12 @@ export function CodeReviewPage() {
           <textarea
             value={code} onChange={e => setCode(e.target.value)}
             placeholder={'// Paste your code here for AI review\nfunction example() {\n  // ...\n}'}
-            className="h-[400px] w-full resize-none rounded-xl border border-surface-800 bg-surface-900/50 p-4 font-mono text-sm text-gray-300 placeholder-gray-700 focus:border-primary-500/50 focus:outline-none"
+            className="h-[400px] w-full resize-none rounded-xl border border-surface-700 bg-surface-900/50 p-4 font-mono text-sm text-surface-200 placeholder-surface-600 focus:border-primary-500/50 focus:outline-none"
           />
           <div className="flex gap-2">
             {examples.map(ex => (
               <button key={ex.label} onClick={() => setCode(ex.code)}
-                className="rounded-lg border border-surface-700 bg-surface-800/50 px-3 py-1.5 text-xs text-gray-500 transition-all hover:border-primary-500/30 hover:text-gray-300"
+                className="rounded-lg border border-surface-600 bg-surface-800/50 px-3 py-1.5 text-xs text-surface-400 transition-all hover:border-primary-500/30 hover:text-surface-200"
               ><Code2 className="mr-1 inline h-3 w-3" />{ex.label}</button>
             ))}
           </div>
@@ -86,7 +86,7 @@ export function CodeReviewPage() {
 
         <div>
           <div className="flex items-center justify-between mb-3">
-            <label className="text-sm font-medium text-gray-300">Review Results</label>
+            <label className="text-sm font-medium text-surface-200">Review Results</label>
             {score !== null && (
               <span className={
                 'rounded-full px-3 py-1 text-xs font-medium ' +
@@ -96,16 +96,16 @@ export function CodeReviewPage() {
               }>Score: {score}/100</span>
             )}
           </div>
-          <div className="h-[400px] overflow-y-auto rounded-xl border border-surface-800 bg-surface-900/50 p-4 backdrop-blur-sm">
+          <div className="h-[400px] overflow-y-auto rounded-xl border border-surface-700 bg-surface-900/50 p-4 backdrop-blur-sm">
             {review ? (
-              <div className="prose prose-invert prose-sm max-w-none">
+              <div className="prose prose-theme prose-sm max-w-none">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>{review}</ReactMarkdown>
               </div>
             ) : (
               <div className="flex h-full flex-col items-center justify-center text-center">
-                <FileCode className="mb-3 h-10 w-10 text-gray-700" />
-                <p className="text-sm text-gray-500">Your review results will appear here</p>
-                <p className="mt-1 text-xs text-gray-600">Paste code and click &quot;Review Code&quot; to start</p>
+                <FileCode className="mb-3 h-10 w-10 text-surface-600" />
+                <p className="text-sm text-surface-400">Your review results will appear here</p>
+                <p className="mt-1 text-xs text-surface-500">Paste code and click &quot;Review Code&quot; to start</p>
               </div>
             )}
           </div>

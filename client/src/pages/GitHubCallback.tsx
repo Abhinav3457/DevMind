@@ -36,12 +36,12 @@ export function GitHubCallback() {
   }, [searchParams]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-950">
-      <div className="w-full max-w-md rounded-xl border border-surface-800 bg-surface-900 p-8 text-center shadow-2xl">
+    <div className="flex min-h-screen items-center justify-center bg-surface-950">
+      <div className="w-full max-w-md rounded-xl border border-surface-700 bg-surface-900 p-8 text-center shadow-2xl">
         {status === 'processing' && (
           <>
             <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-primary-500/30 border-t-primary-500" />
-            <h2 className="text-lg font-semibold text-gray-100">{message}</h2>
+            <h2 className="text-lg font-semibold text-surface-100">{message}</h2>
           </>
         )}
         {status === 'success' && (
@@ -51,8 +51,8 @@ export function GitHubCallback() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <h2 className="text-lg font-semibold text-gray-100">Success!</h2>
-            <p className="mt-2 text-sm text-gray-400">{message}</p>
+            <h2 className="text-lg font-semibold text-surface-100">Success!</h2>
+            <p className="mt-2 text-sm text-surface-300">{message}</p>
           </>
         )}
         {status === 'error' && (
@@ -62,11 +62,11 @@ export function GitHubCallback() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </div>
-            <h2 className="text-lg font-semibold text-gray-100">Connection Failed</h2>
-            <p className="mt-2 text-sm text-gray-400">{message}</p>
+            <h2 className="text-lg font-semibold text-surface-100">Connection Failed</h2>
+            <p className="mt-2 text-sm text-surface-300">{message}</p>
             <button
               onClick={() => window.close()}
-              className="mt-4 rounded-lg bg-gray-800 px-4 py-2 text-sm text-gray-200 transition-all hover:bg-gray-700"
+              className="mt-4 rounded-lg bg-surface-800 px-4 py-2 text-sm text-surface-200 transition-all hover:bg-surface-700"
             >
               Close Window
             </button>

@@ -60,8 +60,8 @@ interface Activity {
 const ROLE_BADGES: Record<WorkspaceRole, { label: string; color: string }> = {
   owner: { label: 'Owner', color: 'bg-amber-500/10 text-amber-400' },
   admin: { label: 'Admin', color: 'bg-blue-500/10 text-blue-400' },
-  member: { label: 'Member', color: 'bg-surface-800 text-gray-400' },
-  guest: { label: 'Guest', color: 'bg-surface-800 text-gray-500' },
+  member: { label: 'Member', color: 'bg-surface-800 text-surface-300' },
+  guest: { label: 'Guest', color: 'bg-surface-800 text-surface-400' },
 };
 
 const ROLES_FOR_SELECT = ['admin', 'member', 'guest'] as const;
@@ -244,8 +244,8 @@ export function WorkspaceDetailPage() {
   if (!workspace) {
     return (
       <div className="flex h-[60vh] flex-col items-center justify-center gap-4">
-        <Users className="h-12 w-12 text-gray-700" />
-        <p className="text-gray-400">Workspace not found</p>
+        <Users className="h-12 w-12 text-surface-600" />
+        <p className="text-surface-300">Workspace not found</p>
         <button onClick={() => navigate('/workspace')} className="text-sm text-primary-400 hover:underline">Go back</button>
       </div>
     );
@@ -261,30 +261,30 @@ export function WorkspaceDetailPage() {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
       <div className="flex items-center gap-4">
-        <button onClick={() => navigate('/workspace')} className="flex h-9 w-9 items-center justify-center rounded-lg border border-surface-800 text-gray-500 transition-all hover:bg-surface-800 hover:text-gray-300">
+        <button onClick={() => navigate('/workspace')} className="flex h-9 w-9 items-center justify-center rounded-lg border border-surface-700 text-surface-400 transition-all hover:bg-surface-800 hover:text-surface-200">
           <ArrowLeft className="h-4 w-4" />
         </button>
         <div className="flex-1">
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-gray-100">{workspace.name}</h1>
+            <h1 className="text-2xl font-bold text-surface-100">{workspace.name}</h1>
             <span className={'rounded-full px-2.5 py-0.5 text-xs font-medium ' + ROLE_BADGES[workspace.userRole].color}>
               {ROLE_BADGES[workspace.userRole].label}
             </span>
           </div>
           {workspace.description && (
-            <p className="mt-0.5 text-sm text-gray-500">{workspace.description}</p>
+            <p className="mt-0.5 text-sm text-surface-400">{workspace.description}</p>
           )}
         </div>
       </div>
 
-      <div className="flex gap-1 rounded-xl border border-surface-800 bg-surface-900/50 p-1 backdrop-blur-sm">
+      <div className="flex gap-1 rounded-xl border border-surface-700 bg-surface-900/50 p-1 backdrop-blur-sm">
         {tabs.map((tab) => (
           <button key={tab.key} onClick={() => setActiveTab(tab.key)}
             className={
               'flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all ' +
               (activeTab === tab.key
                 ? 'bg-primary-500/15 text-primary-400 shadow-sm'
-                : 'text-gray-500 hover:text-gray-300')
+                : 'text-surface-400 hover:text-surface-200')
             }
           >
             <tab.icon className="h-4 w-4" />
@@ -293,32 +293,32 @@ export function WorkspaceDetailPage() {
         ))}
       </div>
 
-      <div className="rounded-xl border border-surface-800 bg-surface-900/50 p-6 backdrop-blur-sm">
+      <div className="rounded-xl border border-surface-700 bg-surface-900/50 p-6 backdrop-blur-sm">
         {activeTab === 'overview' && (
           <div className="space-y-6">
             <div className="grid gap-4 sm:grid-cols-3">
-              <div className="rounded-lg border border-surface-800 bg-surface-800/30 p-4">
-                <p className="text-xs text-gray-500">Plan</p>
-                <p className="mt-1 text-lg font-semibold text-gray-200 capitalize">{workspace.plan}</p>
+              <div className="rounded-lg border border-surface-700 bg-surface-800/30 p-4">
+                <p className="text-xs text-surface-400">Plan</p>
+                <p className="mt-1 text-lg font-semibold text-surface-200 capitalize">{workspace.plan}</p>
               </div>
-              <div className="rounded-lg border border-surface-800 bg-surface-800/30 p-4">
-                <p className="text-xs text-gray-500">Members</p>
-                <p className="mt-1 text-lg font-semibold text-gray-200">{workspace.memberCount}</p>
+              <div className="rounded-lg border border-surface-700 bg-surface-800/30 p-4">
+                <p className="text-xs text-surface-400">Members</p>
+                <p className="mt-1 text-lg font-semibold text-surface-200">{workspace.memberCount}</p>
               </div>
-              <div className="rounded-lg border border-surface-800 bg-surface-800/30 p-4">
-                <p className="text-xs text-gray-500">Created</p>
-                <p className="mt-1 text-lg font-semibold text-gray-200">{new Date(workspace.createdAt).toLocaleDateString()}</p>
+              <div className="rounded-lg border border-surface-700 bg-surface-800/30 p-4">
+                <p className="text-xs text-surface-400">Created</p>
+                <p className="mt-1 text-lg font-semibold text-surface-200">{new Date(workspace.createdAt).toLocaleDateString()}</p>
               </div>
             </div>
             <div>
-              <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-300">
-                <Activity className="h-4 w-4 text-gray-500" />
+              <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-surface-200">
+                <Activity className="h-4 w-4 text-surface-400" />
                 Recent Activity
               </h3>
               {activities.length === 0 ? (
                 <div className="flex flex-col items-center py-8 text-center">
-                  <Clock className="mb-2 h-6 w-6 text-gray-700" />
-                  <p className="text-sm text-gray-500">No recent activity</p>
+                  <Clock className="mb-2 h-6 w-6 text-surface-600" />
+                  <p className="text-sm text-surface-400">No recent activity</p>
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -327,8 +327,8 @@ export function WorkspaceDetailPage() {
                       <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary-500/10">
                         <Users className="h-3.5 w-3.5 text-primary-400" />
                       </div>
-                      <p className="flex-1 text-sm text-gray-400">{a.description} joined the workspace</p>
-                      <span className="text-xs text-gray-600">{new Date(a.timestamp).toLocaleDateString()}</span>
+                      <p className="flex-1 text-sm text-surface-300">{a.description} joined the workspace</p>
+                      <span className="text-xs text-surface-500">{new Date(a.timestamp).toLocaleDateString()}</span>
                     </div>
                   ))}
                 </div>
@@ -340,16 +340,16 @@ export function WorkspaceDetailPage() {
         {activeTab === 'repos' && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-300">
-                <GitBranch className="h-4 w-4 text-gray-500" />
+              <h3 className="flex items-center gap-2 text-sm font-semibold text-surface-200">
+                <GitBranch className="h-4 w-4 text-surface-400" />
                 Linked Repositories ({repos.length})
               </h3>
             </div>
             {repos.length === 0 ? (
               <div className="flex flex-col items-center py-12 text-center">
-                <GitBranch className="mb-3 h-8 w-8 text-gray-700" />
-                <p className="text-sm text-gray-500">No repositories linked to this workspace</p>
-                <p className="mt-1 text-xs text-gray-600">
+                <GitBranch className="mb-3 h-8 w-8 text-surface-600" />
+                <p className="text-sm text-surface-400">No repositories linked to this workspace</p>
+                <p className="mt-1 text-xs text-surface-500">
                   Go to{' '}
                   <button onClick={() => navigate('/github')} className="text-primary-400 hover:underline">
                     GitHub
@@ -362,16 +362,16 @@ export function WorkspaceDetailPage() {
                 {repos.map((repo) => {
                   const status = repo.indexStatus || 'not_indexed';
                   return (
-                    <div key={repo.id} className="flex items-center justify-between rounded-lg border border-surface-800 bg-surface-900/30 px-4 py-3 transition-all hover:border-surface-700">
+                    <div key={repo.id} className="flex items-center justify-between rounded-lg border border-surface-700 bg-surface-900/30 px-4 py-3 transition-all hover:border-surface-600">
                       <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <GitBranch className="h-4 w-4 flex-shrink-0 text-gray-500" />
+                        <GitBranch className="h-4 w-4 flex-shrink-0 text-surface-400" />
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium text-gray-200 truncate">{repo.fullName}</p>
+                          <p className="text-sm font-medium text-surface-200 truncate">{repo.fullName}</p>
                           <div className="flex items-center gap-2 mt-0.5">
                             {repo.language && (
-                              <span className="text-[10px] text-gray-500">{repo.language}</span>
+                              <span className="text-[10px] text-surface-400">{repo.language}</span>
                             )}
-                            <span className="text-[10px] text-gray-600">
+                            <span className="text-[10px] text-surface-500">
                               {repo.stars} ★ {repo.forks} 🍴
                             </span>
                           </div>
@@ -383,7 +383,7 @@ export function WorkspaceDetailPage() {
                           (status === 'completed' ? 'bg-emerald-500/10 text-emerald-400' :
                            status === 'processing' || status === 'pending' ? 'bg-blue-500/10 text-blue-400' :
                            status === 'failed' ? 'bg-red-500/10 text-red-400' :
-                           'bg-surface-800 text-gray-500')
+                           'bg-surface-800 text-surface-400')
                         }>
                           {status === 'completed' ? repo.indexedFiles + ' files' :
                            status === 'processing' ? 'Processing...' :
@@ -393,14 +393,14 @@ export function WorkspaceDetailPage() {
                         </span>
                         <button
                           onClick={() => setRemoveRepo({ id: repo.id, name: repo.fullName })}
-                          className="flex h-7 w-7 items-center justify-center rounded-lg text-gray-500 transition-all hover:bg-red-500/10 hover:text-red-400"
+                          className="flex h-7 w-7 items-center justify-center rounded-lg text-surface-400 transition-all hover:bg-red-500/10 hover:text-red-400"
                           title="Remove repository"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
                         {repo.url && (
                           <a href={repo.url} target="_blank" rel="noopener noreferrer"
-                            className="flex h-7 w-7 items-center justify-center rounded-lg text-gray-500 transition-all hover:bg-surface-800 hover:text-gray-300"
+                            className="flex h-7 w-7 items-center justify-center rounded-lg text-surface-400 transition-all hover:bg-surface-800 hover:text-surface-200"
                           >
                             <ExternalLink className="h-3.5 w-3.5" />
                           </a>
@@ -417,21 +417,21 @@ export function WorkspaceDetailPage() {
         {activeTab === 'members' && (
           <div className="space-y-6">
             {canManage && (
-              <div className="rounded-lg border border-surface-800 bg-surface-800/30 p-4">
-                <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-300">
-                  <UserPlus className="h-4 w-4 text-gray-500" />
+              <div className="rounded-lg border border-surface-700 bg-surface-800/30 p-4">
+                <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-surface-200">
+                  <UserPlus className="h-4 w-4 text-surface-400" />
                   Invite Member
                 </h3>
                 <div className="flex flex-col gap-3 sm:flex-row">
                   <div className="relative flex-1">
-                    <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+                    <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
                     <input type="email" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)}
                       placeholder="user@example.com"
-                      className="w-full rounded-lg border border-surface-700 bg-surface-800 py-2.5 pl-10 pr-4 text-sm text-gray-100 placeholder-gray-600 focus:border-primary-500/50 focus:outline-none"
+                      className="w-full rounded-lg border border-surface-600 bg-surface-800 py-2.5 pl-10 pr-4 text-sm text-surface-100 placeholder-surface-500 focus:border-primary-500/50 focus:outline-none"
                     />
                   </div>
                   <select value={inviteRole} onChange={e => setInviteRole(e.target.value as WorkspaceRole)}
-                    className="rounded-lg border border-surface-700 bg-surface-800 px-3 py-2.5 text-sm text-gray-400 focus:border-primary-500/50 focus:outline-none"
+                    className="rounded-lg border border-surface-600 bg-surface-800 px-3 py-2.5 text-sm text-surface-300 focus:border-primary-500/50 focus:outline-none"
                   >
                     <option value="member">Member</option>
                     <option value="admin">Admin</option>
@@ -450,28 +450,28 @@ export function WorkspaceDetailPage() {
             <div className="space-y-2">
               {members.length === 0 ? (
                 <div className="flex flex-col items-center py-8 text-center">
-                  <Users className="mb-2 h-6 w-6 text-gray-700" />
-                  <p className="text-sm text-gray-500">No members found</p>
+                  <Users className="mb-2 h-6 w-6 text-surface-600" />
+                  <p className="text-sm text-surface-400">No members found</p>
                 </div>
               ) : (
                 members.map((member) => (
-                  <div key={member.id} className="flex items-center gap-4 rounded-lg border border-surface-800 bg-surface-900/30 px-4 py-3 transition-all hover:border-surface-700">
+                  <div key={member.id} className="flex items-center gap-4 rounded-lg border border-surface-700 bg-surface-900/30 px-4 py-3 transition-all hover:border-surface-600">
                     <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-xs font-medium text-white">
                       {member.name.charAt(0).toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-200 truncate">{member.name}</p>
-                      <p className="text-xs text-gray-500 truncate">{member.email}</p>
+                      <p className="text-sm font-medium text-surface-200 truncate">{member.name}</p>
+                      <p className="text-xs text-surface-400 truncate">{member.email}</p>
                     </div>
                     {canManage && member.role !== 'owner' ? (
                       <div className="flex items-center gap-2">
                         <select value={member.role} onChange={e => handleRoleChange(member.userId, e.target.value as WorkspaceRole)}
-                          className="rounded-lg border border-surface-700 bg-surface-800 px-2.5 py-1.5 text-xs text-gray-400 focus:border-primary-500/50 focus:outline-none"
+                          className="rounded-lg border border-surface-600 bg-surface-800 px-2.5 py-1.5 text-xs text-surface-300 focus:border-primary-500/50 focus:outline-none"
                         >
                           {ROLES_FOR_SELECT.map(r => <option key={r} value={r}>{r.charAt(0).toUpperCase() + r.slice(1)}</option>)}
                         </select>
                         <button onClick={() => setRemoveTarget({ id: member.userId, name: member.name })}
-                          className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 transition-all hover:bg-red-500/10 hover:text-red-400"
+                          className="flex h-8 w-8 items-center justify-center rounded-lg text-surface-400 transition-all hover:bg-red-500/10 hover:text-red-400"
                         >
                           <UserMinus className="h-4 w-4" />
                         </button>
@@ -489,12 +489,12 @@ export function WorkspaceDetailPage() {
             {removeTarget && (
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setRemoveTarget(null)}>
                 <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }}
-                  className="w-full max-w-sm rounded-xl border border-surface-800 bg-surface-900 p-6 shadow-2xl" onClick={e => e.stopPropagation()}
+                  className="w-full max-w-sm rounded-xl border border-surface-700 bg-surface-900 p-6 shadow-2xl" onClick={e => e.stopPropagation()}
                 >
-                  <h3 className="text-lg font-semibold text-gray-200">Remove Member?</h3>
-                  <p className="mt-2 text-sm text-gray-400">Are you sure you want to remove <strong>{removeTarget.name}</strong> from this workspace?</p>
+                  <h3 className="text-lg font-semibold text-surface-200">Remove Member?</h3>
+                  <p className="mt-2 text-sm text-surface-300">Are you sure you want to remove <strong>{removeTarget.name}</strong> from this workspace?</p>
                   <div className="mt-5 flex justify-end gap-3">
-                    <button onClick={() => setRemoveTarget(null)} className="rounded-lg border border-surface-700 px-4 py-2 text-sm text-gray-400 hover:bg-surface-800">Cancel</button>
+                    <button onClick={() => setRemoveTarget(null)} className="rounded-lg border border-surface-600 px-4 py-2 text-sm text-surface-300 hover:bg-surface-800">Cancel</button>
                     <button onClick={handleRemoveMember} className="flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700">
                       <UserMinus className="h-4 w-4" />
                       Remove
@@ -509,22 +509,22 @@ export function WorkspaceDetailPage() {
         {activeTab === 'settings' && (
           <div className="max-w-2xl space-y-8">
             <div>
-              <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-gray-300">
-                <Edit3 className="h-4 w-4 text-gray-500" />
+              <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-surface-200">
+                <Edit3 className="h-4 w-4 text-surface-400" />
                 General Settings
               </h3>
               {isEditing ? (
                 <div className="space-y-4">
                   <div>
-                    <label className="mb-1.5 block text-sm text-gray-400">Workspace Name</label>
+                    <label className="mb-1.5 block text-sm text-surface-300">Workspace Name</label>
                     <input type="text" value={editName} onChange={e => setEditName(e.target.value)}
-                      className="w-full rounded-lg border border-surface-700 bg-surface-800 px-3 py-2.5 text-sm text-gray-100 focus:border-primary-500/50 focus:outline-none"
+                      className="w-full rounded-lg border border-surface-600 bg-surface-800 px-3 py-2.5 text-sm text-surface-100 focus:border-primary-500/50 focus:outline-none"
                     />
                   </div>
                   <div>
-                    <label className="mb-1.5 block text-sm text-gray-400">Description</label>
+                    <label className="mb-1.5 block text-sm text-surface-300">Description</label>
                     <textarea value={editDesc} onChange={e => setEditDesc(e.target.value)} rows={3}
-                      className="w-full resize-none rounded-lg border border-surface-700 bg-surface-800 px-3 py-2.5 text-sm text-gray-100 focus:border-primary-500/50 focus:outline-none"
+                      className="w-full resize-none rounded-lg border border-surface-600 bg-surface-800 px-3 py-2.5 text-sm text-surface-100 focus:border-primary-500/50 focus:outline-none"
                       placeholder="Workspace description..."
                     />
                   </div>
@@ -536,7 +536,7 @@ export function WorkspaceDetailPage() {
                       {saving ? 'Saving...' : 'Save Changes'}
                     </button>
                     <button onClick={() => { setIsEditing(false); setEditName(workspace.name); setEditDesc(workspace.description); }}
-                      className="rounded-lg border border-surface-700 px-4 py-2 text-sm text-gray-400 transition-all hover:bg-surface-800"
+                      className="rounded-lg border border-surface-600 px-4 py-2 text-sm text-surface-300 transition-all hover:bg-surface-800"
                     >
                       Cancel
                     </button>
@@ -544,23 +544,23 @@ export function WorkspaceDetailPage() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <div className="rounded-lg border border-surface-800 bg-surface-800/30 p-4">
-                    <p className="text-xs text-gray-500">Name</p>
-                    <p className="mt-1 text-sm text-gray-200">{workspace.name}</p>
+                  <div className="rounded-lg border border-surface-700 bg-surface-800/30 p-4">
+                    <p className="text-xs text-surface-400">Name</p>
+                    <p className="mt-1 text-sm text-surface-200">{workspace.name}</p>
                   </div>
-                  <div className="rounded-lg border border-surface-800 bg-surface-800/30 p-4">
-                    <p className="text-xs text-gray-500">Slug</p>
-                    <p className="mt-1 text-sm text-gray-200">{workspace.slug}</p>
+                  <div className="rounded-lg border border-surface-700 bg-surface-800/30 p-4">
+                    <p className="text-xs text-surface-400">Slug</p>
+                    <p className="mt-1 text-sm text-surface-200">{workspace.slug}</p>
                   </div>
                   {workspace.description && (
-                    <div className="rounded-lg border border-surface-800 bg-surface-800/30 p-4">
-                      <p className="text-xs text-gray-500">Description</p>
-                      <p className="mt-1 text-sm text-gray-200">{workspace.description}</p>
+                    <div className="rounded-lg border border-surface-700 bg-surface-800/30 p-4">
+                      <p className="text-xs text-surface-400">Description</p>
+                      <p className="mt-1 text-sm text-surface-200">{workspace.description}</p>
                     </div>
                   )}
                   {canManage && (
                     <button onClick={() => setIsEditing(true)}
-                      className="flex items-center gap-2 rounded-lg border border-surface-700 px-4 py-2 text-sm text-gray-400 transition-all hover:bg-surface-800 hover:text-gray-200"
+                      className="flex items-center gap-2 rounded-lg border border-surface-600 px-4 py-2 text-sm text-surface-300 transition-all hover:bg-surface-800 hover:text-surface-100"
                     >
                       <Edit3 className="h-4 w-4" />
                       Edit Workspace
@@ -597,12 +597,12 @@ export function WorkspaceDetailPage() {
             {showArchiveConfirm && (
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setShowArchiveConfirm(false)}>
                 <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }}
-                  className="w-full max-w-sm rounded-xl border border-surface-800 bg-surface-900 p-6 shadow-2xl" onClick={e => e.stopPropagation()}
+                  className="w-full max-w-sm rounded-xl border border-surface-700 bg-surface-900 p-6 shadow-2xl" onClick={e => e.stopPropagation()}
                 >
-                  <h3 className="text-lg font-semibold text-gray-200">Archive Workspace?</h3>
-                  <p className="mt-2 text-sm text-gray-400">The workspace will be hidden. You can unarchive it later.</p>
+                  <h3 className="text-lg font-semibold text-surface-200">Archive Workspace?</h3>
+                  <p className="mt-2 text-sm text-surface-300">The workspace will be hidden. You can unarchive it later.</p>
                   <div className="mt-5 flex justify-end gap-3">
-                    <button onClick={() => setShowArchiveConfirm(false)} className="rounded-lg border border-surface-700 px-4 py-2 text-sm text-gray-400 hover:bg-surface-800">Cancel</button>
+                    <button onClick={() => setShowArchiveConfirm(false)} className="rounded-lg border border-surface-600 px-4 py-2 text-sm text-surface-300 hover:bg-surface-800">Cancel</button>
                     <button onClick={handleArchive} disabled={archiving} className="flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-50">
                       {archiving && <Loader2 className="h-4 w-4 animate-spin" />}
                       Archive
@@ -615,15 +615,15 @@ export function WorkspaceDetailPage() {
             {removeRepo && (
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setRemoveRepo(null)}>
                 <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }}
-                  className="w-full max-w-sm rounded-xl border border-surface-800 bg-surface-900 p-6 shadow-2xl" onClick={e => e.stopPropagation()}
+                  className="w-full max-w-sm rounded-xl border border-surface-700 bg-surface-900 p-6 shadow-2xl" onClick={e => e.stopPropagation()}
                 >
                   <h3 className="text-lg font-semibold text-red-400">Remove Repository?</h3>
-                  <p className="mt-2 text-sm text-gray-400">
+                  <p className="mt-2 text-sm text-surface-300">
                     This will permanently remove <strong>{removeRepo.name}</strong> and all its indexed data (files, chunks, reports).
                   </p>
                   <div className="mt-5 flex justify-end gap-3">
                     <button onClick={() => setRemoveRepo(null)}
-                      className="rounded-lg border border-surface-700 px-4 py-2 text-sm text-gray-400 hover:bg-surface-800"
+                      className="rounded-lg border border-surface-600 px-4 py-2 text-sm text-surface-300 hover:bg-surface-800"
                     >
                       Cancel
                     </button>
@@ -641,12 +641,12 @@ export function WorkspaceDetailPage() {
             {showDeleteConfirm && (
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setShowDeleteConfirm(false)}>
                 <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }}
-                  className="w-full max-w-sm rounded-xl border border-surface-800 bg-surface-900 p-6 shadow-2xl" onClick={e => e.stopPropagation()}
+                  className="w-full max-w-sm rounded-xl border border-surface-700 bg-surface-900 p-6 shadow-2xl" onClick={e => e.stopPropagation()}
                 >
                   <h3 className="text-lg font-semibold text-red-400">Delete Workspace?</h3>
-                  <p className="mt-2 text-sm text-gray-400">This will permanently delete the workspace and all associated data.</p>
+                  <p className="mt-2 text-sm text-surface-300">This will permanently delete the workspace and all associated data.</p>
                   <div className="mt-5 flex justify-end gap-3">
-                    <button onClick={() => setShowDeleteConfirm(false)} className="rounded-lg border border-surface-700 px-4 py-2 text-sm text-gray-400 hover:bg-surface-800">Cancel</button>
+                    <button onClick={() => setShowDeleteConfirm(false)} className="rounded-lg border border-surface-600 px-4 py-2 text-sm text-surface-300 hover:bg-surface-800">Cancel</button>
                     <button onClick={handleDelete} disabled={deleting} className="flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50">
                       {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                       {deleting ? 'Deleting...' : 'Delete Permanently'}

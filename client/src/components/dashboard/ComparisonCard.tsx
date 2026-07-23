@@ -66,7 +66,7 @@ export function ComparisonCard({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay, ease: [0.25, 0.46, 0.45, 0.94] }}
-      className={`rounded-2xl border border-gray-800/50 bg-gradient-to-br from-gray-900/80 to-gray-950/80 p-5 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300 ${className}`}
+      className={`rounded-2xl border border-surface-700/50 bg-gradient-to-br from-surface-900/80 to-surface-950/80 p-5 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-300 ${className}`}
     >
       {/* Header */}
       <div className="flex items-center gap-2 mb-5">
@@ -75,7 +75,7 @@ export function ComparisonCard({
             {icon}
           </div>
         )}
-        <h3 className="text-sm font-semibold text-gray-200">{title}</h3>
+        <h3 className="text-sm font-semibold text-surface-200">{title}</h3>
       </div>
 
       {/* Metrics */}
@@ -83,8 +83,8 @@ export function ComparisonCard({
         {metrics.map((metric, index) => {
           const { percent, trend } = getChange(metric.currentValue, metric.previousValue);
           const TrendIcon = trend === 'up' ? TrendingUp : trend === 'down' ? TrendingDown : Equal;
-          const trendColor = trend === 'up' ? 'text-emerald-400' : trend === 'down' ? 'text-rose-400' : 'text-gray-500';
-          const trendBg = trend === 'up' ? 'bg-emerald-500/10' : trend === 'down' ? 'bg-rose-500/10' : 'bg-gray-500/10';
+          const trendColor = trend === 'up' ? 'text-emerald-400' : trend === 'down' ? 'text-rose-400' : 'text-surface-400';
+          const trendBg = trend === 'up' ? 'bg-emerald-500/10' : trend === 'down' ? 'bg-rose-500/10' : 'bg-surface-500/10';
 
           return (
             <motion.div
@@ -92,10 +92,10 @@ export function ComparisonCard({
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: delay + 0.1 + index * 0.08 }}
-              className="group rounded-xl border border-gray-800/30 bg-gray-900/30 p-4 transition-all hover:border-gray-700/50 hover:bg-gray-900/50"
+              className="group rounded-xl border border-surface-700/30 bg-surface-900/30 p-4 transition-all hover:border-surface-600/50 hover:bg-surface-900/50"
             >
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">{metric.label}</span>
+                <span className="text-xs font-medium text-surface-400 uppercase tracking-wider">{metric.label}</span>
                 <div className={`flex items-center gap-1 rounded-full px-2 py-0.5 ${trendBg}`}>
                   <TrendIcon className={`h-3 w-3 ${trendColor}`} />
                   <span className={`text-[10px] font-semibold ${trendColor}`}>
@@ -105,7 +105,7 @@ export function ComparisonCard({
               </div>
 
               <div className="flex items-baseline gap-3">
-                <span className="text-2xl font-bold text-gray-100">
+                <span className="text-2xl font-bold text-surface-100">
                   {metric.prefix}
                   <AnimatedCounter
                     value={metric.currentValue}
@@ -115,20 +115,20 @@ export function ComparisonCard({
                   />
                   {metric.suffix}
                 </span>
-                <span className="text-xs text-gray-600">
+                <span className="text-xs text-surface-500">
                   vs {formatMetricValue(metric.previousValue, metric.format)} {metric.suffix}
                 </span>
               </div>
 
               {/* Mini sparkline bar */}
-              <div className="mt-3 h-1.5 rounded-full bg-gray-800/50 overflow-hidden">
+              <div className="mt-3 h-1.5 rounded-full bg-surface-700/50 overflow-hidden">
                 <motion.div
                   className={`h-full rounded-full ${
                     trend === 'up'
                       ? 'bg-gradient-to-r from-emerald-500 to-emerald-400'
                       : trend === 'down'
                         ? 'bg-gradient-to-r from-rose-500 to-rose-400'
-                        : 'bg-gradient-to-r from-gray-500 to-gray-400'
+                        : 'bg-gradient-to-r from-surface-400 to-surface-300'
                   }`}
                   initial={{ width: 0 }}
                   animate={{
