@@ -5,7 +5,7 @@ import { sendSuccess, sendCreated, ApiError } from '../utils/apiResponse';
 const COOKIE_OPTIONS = {
   httpOnly: true,
   secure: process.env.NODE_ENV === 'production',
-  sameSite: process.env.NODE_ENV === 'production' ? 'strict' as const : 'lax' as const,
+  sameSite: process.env.NODE_ENV === 'production' ? 'lax' as const : 'lax' as const,
   maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
   path: '/api/v1/auth',
 } as const;

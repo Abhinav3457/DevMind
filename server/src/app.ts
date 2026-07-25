@@ -16,10 +16,13 @@ configureCloudinary();
 
 const app: Express = express();
 
+// Normalize CORS origin — remove trailing slash to prevent CORS mismatch
+const corsOrigin = (process.env.CLIENT_URL || 'http://localhost:5173').replace(/\/+$/, '');
+
 // Security middleware
 app.use(helmet());
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  origin: corsOrigin,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
