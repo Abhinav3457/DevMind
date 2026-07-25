@@ -24,9 +24,9 @@ services:
       - key: PORT
         value: "10000"
       - key: CLIENT_URL
-        sync: false # Will set after frontend is deployed
+        sync: false # Set to frontend URL after deploy
       - key: SOCKET_CORS_ORIGIN
-        sync: false # Will set after frontend is deployed
+        sync: false # Set to frontend URL after deploy
 
       # ──────────────────────────────
       # MongoDB (use MongoDB Atlas)
@@ -87,3 +87,18 @@ services:
         sync: false
       - key: GITHUB_CLIENT_SECRET
         sync: false
+
+  # Frontend Static Site
+  - type: web
+    name: devmind-ai-frontend
+    runtime: static
+    repo: https://github.com/Abhinav3457/DevMind
+    region: oregon
+    branch: main
+    rootDir: client
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
+
+    envVars:
+      - key: VITE_API_URL
+        value: https://devmind-backend-26uw.onrender.com/api/v1
