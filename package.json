@@ -11,7 +11,7 @@
     "build:client": "cd client && npm run build",
     "build:server": "cd server && npm run build",
     "start": "cd server && node dist/index.js",
-    "install:all": "npm install && cd client && npm install && cd ../server && npm install",
+    "install:all": "npm install --include=dev && cd client && npm install && cd ../server && npm install --include=dev",
     "render-start": "node server/dist/index.js",
     "lint": "concurrently \"cd client && npm run lint\" \"cd server && npm run lint\"",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,css,md}\"",
