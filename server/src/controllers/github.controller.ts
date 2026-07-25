@@ -1,12 +1,17 @@
 import { Request, Response } from 'express';
 import { gitHubService } from '../services/github.service';
+import { gitHubOAuthService } from '../github/oauth.service';
 import ImportedRepository from '../models/ImportedRepository';
 import IndexReport from '../models/IndexReport';
+import { env } from '../config/environment';
 import { sendSuccess } from '../utils/apiResponse';
 
 export class GitHubController {
   async getAuthorizationUrl(req: Request, res: Response): Promise<void> {
-    const { url } = await gitHubService.getAuthorizationUrl(req.user!.userId);
+    // Use backend callback URL so SPA routing on frontend is not needed
+    const backendUrl = `${req.protocol}://${req.get('host')}`;
+    const callbackUrl = `${backendUrl}/api/v1/github/callback`;
+    const { url } = await gitHubService.getAuthorizationUrl(req.user!.userId, callbackUrl);
     sendSuccess(res, { statusCode: 200, message: 'GitHub authorization URL generated', data: { url } });
   }
 
@@ -14,6 +19,27 @@ export class GitHubController {
     const { code, state } = req.body;
     const result = await gitHubService.handleOAuthCallback(req.user!.userId, code, state);
     sendSuccess(res, { statusCode: 200, message: 'GitHub account connected successfully', data: result });
+  }
+
+  async handleDirectOAuthCallback(req: Request, res: Response): Promise<void> {
+    const { code, state } = req.query;
+
+    if (!code || !state) {
+      return res.redirect(`${env.CLIENT_URL}/github?error=missing_params`);
+    }
+
+    const userId = gitHubOAuthService.getUserIdFromState(state as string);
+    if (!userId) {
+      return res.redirect(`${env.CLIENT_URL}/github?error=invalid_or_expired_state`);
+    }
+
+    try {
+      await gitHubService.handleOAuthCallback(userId, code as string, state as string);
+      return res.redirect(`${env.CLIENT_URL}/github?github_status=success`);
+    } catch (err) {
+      const message = encodeURIComponent((err as Error).message);
+      return res.redirect(`${env.CLIENT_URL}/github?github_status=error&message=${message}`);
+    }
   }
 
   async disconnect(req: Request, res: Response): Promise<void> {

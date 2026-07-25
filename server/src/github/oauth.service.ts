@@ -22,17 +22,25 @@ export class GitHubOAuthService {
     setInterval(() => this.cleanupExpiredStates(), CLEANUP_INTERVAL_MS);
   }
 
-  getAuthorizationUrl(userId: string): { url: string; state: string } {
+  getAuthorizationUrl(userId: string, callbackUrl?: string): { url: string; state: string } {
     const state = crypto.randomBytes(32).toString('hex');
     this.pendingStates.set(state, { userId, expiresAt: Date.now() + STATE_TTL_MS });
 
+    const redirectUri = callbackUrl || `${env.CLIENT_URL}/auth/github/callback`;
+
     const params = new URLSearchParams({
       client_id: env.GITHUB_CLIENT_ID,
-      redirect_uri: `${env.CLIENT_URL}/auth/github/callback`,
+      redirect_uri: redirectUri,
       scope: 'repo,user:email,read:org',
       state,
     });
     return { url: `https://github.com/login/oauth/authorize?${params.toString()}`, state };
+  }
+
+  getUserIdFromState(state: string): string | null {
+    const stored = this.pendingStates.get(state);
+    if (!stored || stored.expiresAt < Date.now()) return null;
+    return stored.userId;
   }
 
   async handleCallback(code: string): Promise<{ accessToken: string; login: string }> {

@@ -12,6 +12,10 @@ import {
 
 const router = Router();
 
+// ─── Direct OAuth Callback (unauthenticated – uses state param to identify user) ───
+// This must come BEFORE the authenticate middleware since GitHub redirects here directly
+router.get('/callback', asyncHandler(gitHubController.handleDirectOAuthCallback));
+
 router.use(authenticate);
 
 // ─── OAuth ──────────────────────────────────────────────────────
