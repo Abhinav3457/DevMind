@@ -3,6 +3,9 @@ import GitHubAccount, { IGitHubAccount } from '../models/GitHubAccount';
 import { env } from '../config/environment';
 import logger from '../utils/logger';
 
+// Mongoose duplicate-key error code
+const MONGO_DUPLICATE_KEY = 11000;
+
 interface PendingState {
   userId: string;
   expiresAt: number;
@@ -81,24 +84,55 @@ export class GitHubOAuthService {
     const user = userRes.data;
     const primaryEmail = emailsRes.data.find((e: { primary: boolean }) => e.primary)?.email || '';
 
-    const existing = await GitHubAccount.findOneAndUpdate(
-      { userId },
-      {
-        githubId: user.id,
-        login: user.login,
-        name: user.name || user.login,
-        email: primaryEmail,
-        avatarUrl: user.avatar_url,
-        accessToken,
-        scopes: ['repo', 'user:email', 'read:org'],
-        isConnected: true,
-        rateLimitRemaining: 5000,
-      },
-      { upsert: true, new: true },
-    );
+    let existing: IGitHubAccount | null = null;
+    try {
+      existing = await GitHubAccount.findOneAndUpdate(
+        { userId },
+        {
+          githubId: user.id,
+          login: user.login,
+          name: user.name || user.login,
+          email: primaryEmail,
+          avatarUrl: user.avatar_url,
+          accessToken,
+          scopes: ['repo', 'user:email', 'read:org'],
+          isConnected: true,
+          rateLimitRemaining: 5000,
+        },
+        { upsert: true, new: true },
+      );
+    } catch (err: unknown) {
+      const mongoErr = err as { code?: unknown };
+      // E11000 — duplicate key (e.g. GitHub account already connected to this or another user)
+      if (mongoErr.code === MONGO_DUPLICATE_KEY) {
+        logger.warn(`GitHub OAuth: duplicate key on connect, looking up by githubId ${user.id}`);
+        // Find existing by githubId and re-assign to current user
+        existing = await GitHubAccount.findOneAndUpdate(
+          { githubId: user.id },
+          {
+            userId,
+            login: user.login,
+            name: user.name || user.login,
+            email: primaryEmail,
+            avatarUrl: user.avatar_url,
+            accessToken,
+            scopes: ['repo', 'user:email', 'read:org'],
+            isConnected: true,
+            rateLimitRemaining: 5000,
+          },
+          { new: true },
+        );
+        if (!existing) {
+          throw new Error('Failed to connect GitHub account — duplicate key conflict could not be resolved.');
+        }
+      } else {
+        throw err;
+      }
+    }
 
     logger.info(`GitHub account connected for user ${userId}: ${login}`);
-    return existing;
+    // Both code paths guarantee `existing` is non-null at this point
+    return existing!;
   }
 
   async disconnectAccount(userId: string): Promise<void> {

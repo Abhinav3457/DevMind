@@ -38,9 +38,26 @@
     @apply border-surface-700;
   }
 
+  /* Default textarea/input/select foreground for theme */
+  input, textarea, select {
+    color: var(--surface-200);
+    background-color: var(--surface-800);
+  }
+
+  input::placeholder, textarea::placeholder {
+    color: var(--surface-500);
+  }
+
   body {
     @apply bg-surface-950 text-surface-100;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    min-height: 100vh;
+  }
+
+  /* Ensure root container fills viewport */
+  #root {
+    min-height: 100vh;
+    background-color: var(--surface-950);
   }
 
   ::-webkit-scrollbar {
@@ -82,6 +99,22 @@
 }
 
 @layer components {
+  /* Dark theme select options (native OS dropdowns) */
+  select option {
+    background-color: var(--surface-800);
+    color: var(--surface-200);
+  }
+
+  /* Theme-aware toast styling */
+  .theme-toast {
+    background: var(--surface-800) !important;
+    color: var(--surface-100) !important;
+    border: 1px solid var(--surface-600) !important;
+    font-size: 0.875rem;
+    border-radius: 0.75rem;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+  }
+
   .glass-panel {
     @apply bg-surface-900/80 backdrop-blur-xl border border-surface-700/50 rounded-xl;
   }
@@ -100,5 +133,165 @@
 
   .input-field {
     @apply w-full bg-surface-800 border border-surface-700 rounded-lg px-4 py-2.5 text-surface-100 placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200;
+  }
+}
+
+/* ── Highlight.js Syntax Colors ─────────────────────────── */
+.hljs {
+  display: block;
+  overflow-x: auto;
+  color: #e2e8f0;
+}
+
+.light .hljs {
+  color: #1e293b;
+}
+
+/* Keywords */
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-literal,
+.hljs-section,
+.hljs-link {
+  color: #c084fc;
+}
+
+/* Strings */
+.hljs-string,
+.hljs-title,
+.hljs-name,
+.hljs-type,
+.hljs-attribute,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-built_in,
+.hljs-addition,
+.hljs-variable,
+.hljs-template-tag,
+.hljs-template-variable {
+  color: #34d399;
+}
+
+/* Comments */
+.hljs-comment,
+.hljs-quote,
+.hljs-deletion,
+.hljs-meta {
+  color: #64748b;
+  font-style: italic;
+}
+
+/* Numbers */
+.hljs-number,
+.hljs-regexp,
+.hljs-literal {
+  color: #fbbf24;
+}
+
+/* Functions */
+.hljs-function .hljs-title,
+.hljs-class .hljs-title {
+  color: #60a5fa;
+}
+
+/* Tags */
+.hljs-tag {
+  color: #f472b6;
+}
+
+.hljs-tag .hljs-name {
+  color: #f472b6;
+}
+
+.hljs-tag .hljs-attr {
+  color: #93c5fd;
+}
+
+/* Attributes */
+.hljs-attr {
+  color: #93c5fd;
+}
+
+/* Punctuation */
+.hljs-punctuation {
+  color: #94a3b8;
+}
+
+/* Params / Doctags */
+.hljs-params {
+  color: #e2e8f0;
+}
+
+@layer components {
+  /* Inline code */
+  .inline-code {
+    background-color: var(--surface-800);
+    padding: 0.125rem 0.375rem;
+    border-radius: 0.375rem;
+    font-size: 13px;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    border: 1px solid color-mix(in srgb, var(--surface-600) 50%, transparent);
+    color: var(--surface-100);
+  }
+
+  /* Table Styles */
+  .markdown-content table th {
+    @apply px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider;
+    background-color: var(--surface-800);
+    color: var(--surface-300);
+  }
+
+  .markdown-content table td {
+    @apply px-4 py-2.5 text-sm;
+    color: var(--surface-300);
+    border-top: 1px solid color-mix(in srgb, var(--surface-700) 50%, transparent);
+  }
+
+  .markdown-content table tr:hover td {
+    background-color: color-mix(in srgb, var(--surface-800) 30%, transparent);
+  }
+
+  /* List Styles */
+  .markdown-content li::marker {
+    color: var(--surface-500);
+  }
+
+  .markdown-content ol li::marker {
+    color: var(--surface-400);
+    font-weight: 500;
+  }
+
+  /* Image Styles */
+  .markdown-content img {
+    @apply rounded-xl my-4 max-w-full;
+    border: 1px solid color-mix(in srgb, var(--surface-700) 50%, transparent);
+  }
+
+  /* Definition Lists */
+  .markdown-content dt {
+    font-weight: 600;
+    color: var(--surface-100);
+    margin-top: 1rem;
+  }
+
+  .markdown-content dd {
+    margin-left: 1rem;
+    font-size: 0.875rem;
+    color: var(--surface-300);
+  }
+
+  /* Keyboard Shortcuts */
+  .markdown-content kbd {
+    @apply rounded-md px-1.5 py-0.5 text-xs font-mono;
+    background-color: var(--surface-800);
+    border: 1px solid var(--surface-600);
+    color: var(--surface-200);
+  }
+
+  /* Task List (checkboxes) */
+  .markdown-content input[type="checkbox"] {
+    @apply mr-2 rounded;
+    border-color: var(--surface-600);
+    background-color: var(--surface-800);
   }
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import apiClient from '../api/axios';
 import toast from 'react-hot-toast';
@@ -7,8 +7,13 @@ export function GitHubCallback() {
   const [searchParams] = useSearchParams();
   const [status, setStatus] = useState<'processing' | 'success' | 'error'>('processing');
   const [message, setMessage] = useState('Completing GitHub authorization...');
+  // Prevent double execution caused by React StrictMode (mounts twice in dev)
+  const submittedRef = useRef(false);
 
   useEffect(() => {
+    if (submittedRef.current) return;
+    submittedRef.current = true;
+
     const handleCallback = async () => {
       const code = searchParams.get('code');
       const state = searchParams.get('state');

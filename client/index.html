@@ -1,6 +1,22 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <script>
+      // Apply theme BEFORE any rendering to prevent flash of wrong colors
+      (function() {
+        var theme = 'dark';
+        try {
+          var stored = localStorage.getItem('theme');
+          if (stored === 'light' || stored === 'dark') theme = stored;
+        } catch(e) {}
+        if (theme === 'light') {
+          document.documentElement.classList.add('light');
+          document.documentElement.style.backgroundColor = '#f8fafc';
+        } else {
+          document.documentElement.style.backgroundColor = '#020617';
+        }
+      })();
+    </script>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -10,7 +26,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <title>DevMind AI</title>
   </head>
-  <body class="bg-surface-950 text-white antialiased">
+  <body class="bg-surface-950 antialiased">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

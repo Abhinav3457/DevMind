@@ -19,36 +19,56 @@ export interface AIGenerateParams {
   maxTokens?: number;
 }
 
+// Groq models with large context windows
+const GROQ_MODELS = ['mixtral-8x7b-32768', 'llama-3.1-8b-instant'];
+
 export async function generateFromAI(params: AIGenerateParams): Promise<string> {
   const { systemInstruction, prompt, temperature = 0.3, maxTokens = 4096 } = params;
 
-  // Try Groq first if API key is configured
-  if (env.GROQ_API_KEY) {
-    try {
-      logger.info('AI: Using Groq (model: llama-3.3-70b-versatile)');
-      const client = getGroqClient();
-      const response = await client.chat.completions.create({
-        model: 'llama-3.3-70b-versatile',
-        messages: [
-          { role: 'system', content: systemInstruction },
-          { role: 'user', content: prompt },
-        ],
-        temperature,
-        max_tokens: maxTokens,
-      });
-      const content = response.choices[0]?.message?.content || '';
-      if (content) {
-        logger.info('AI: Groq response received (' + content.length + ' chars)');
-        return content;
-      }
-      logger.warn('AI: Groq returned empty response, falling back to Gemini');
-    } catch (groqError: unknown) {
-      const errMsg = groqError instanceof Error ? groqError.message : String(groqError);
-      logger.warn('AI: Groq failed (' + errMsg.slice(0, 100) + '), falling back to Gemini');
-    }
+  // Check if any AI provider is configured
+  if (!env.GROQ_API_KEY && !env.GEMINI_API_KEY) {
+    throw new Error('No AI service configured. Set GEMINI_API_KEY or GROQ_API_KEY in your .env file.');
   }
 
-  // Fall back to Gemini
+  // Try Groq first if API key is configured
+  if (env.GROQ_API_KEY) {
+    const client = getGroqClient();
+    // Try each Groq model in order until one works
+    for (const model of GROQ_MODELS) {
+      try {
+        logger.info('AI: Using Groq (model: ' + model + ')');
+        const response = await client.chat.completions.create({
+          model,
+          messages: [
+            { role: 'system', content: systemInstruction },
+            { role: 'user', content: prompt },
+          ],
+          temperature,
+          max_tokens: Math.min(maxTokens, 2048),
+        });
+        const content = response.choices[0]?.message?.content || '';
+        if (content) {
+          logger.info('AI: Groq response received (' + content.length + ' chars)');
+          return content;
+        }
+      } catch (groqError: unknown) {
+        const errMsg = groqError instanceof Error ? groqError.message : String(groqError);
+        logger.warn('AI: Groq model ' + model + ' failed (' + errMsg.slice(0, 120) + ')');
+        // Continue to next model
+      }
+    }
+    // All Groq models failed
+    if (!env.GEMINI_API_KEY) {
+      throw new Error('Groq failed with all available models. Try asking a more specific question or configure GEMINI_API_KEY as a fallback.');
+    }
+    logger.warn('AI: All Groq models failed, falling back to Gemini');
+  }
+
+  // Only try Gemini if API key is configured
+  if (!env.GEMINI_API_KEY) {
+    throw new Error('All AI providers failed. Configure GEMINI_API_KEY for a fallback, or check your GROQ_API_KEY.');
+  }
+
   logger.info('AI: Using Gemini (model: gemini-2.0-flash)');
   const model = getGeminiModel('gemini-2.0-flash');
   const result = await model.generateContent({

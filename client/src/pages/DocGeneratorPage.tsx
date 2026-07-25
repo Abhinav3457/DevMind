@@ -1,17 +1,20 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { FileText, Download, Loader2, Sparkles, FileCode } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import { FileText, Download, Loader2, Sparkles, BookOpen, ListTree, Layout, Globe, Shield, Truck, Users, FileJson } from 'lucide-react';
 import apiClient from '../api/axios';
 import toast from 'react-hot-toast';
+import { MarkdownRenderer } from '../components/ui/MarkdownRenderer';
 
 const docTypes = [
-  { value: 'readme', label: 'README.md', icon: FileText },
-  { value: 'installation', label: 'Installation Guide', icon: FileCode },
-  { value: 'architecture', label: 'Architecture Overview', icon: FileCode },
-  { value: 'api-docs', label: 'API Documentation', icon: FileCode },
-  { value: 'deployment', label: 'Deployment Guide', icon: FileCode },
+  { value: 'readme', label: 'README.md', icon: BookOpen },
+  { value: 'installation', label: 'Installation', icon: Download },
+  { value: 'architecture', label: 'Architecture', icon: Layout },
+  { value: 'api-docs', label: 'API Docs', icon: Globe },
+  { value: 'deployment', label: 'Deployment', icon: Truck },
+  { value: 'folder-structure', label: 'Structure', icon: ListTree },
+  { value: 'env-vars', label: 'Environment', icon: FileJson },
+  { value: 'contributing', label: 'Contributing', icon: Users },
+  { value: 'license', label: 'License', icon: Shield },
 ];
 
 export function DocGeneratorPage() {
@@ -94,8 +97,8 @@ export function DocGeneratorPage() {
           </div>
           <div className="h-[400px] overflow-y-auto rounded-xl border border-surface-700 bg-surface-900/50 p-4 backdrop-blur-sm">
             {documentation ? (
-              <div className="prose prose-theme prose-sm max-w-none">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>{documentation}</ReactMarkdown>
+              <div className="max-w-none">
+                <MarkdownRenderer content={documentation} />
               </div>
             ) : (
               <div className="flex h-full flex-col items-center justify-center text-center">

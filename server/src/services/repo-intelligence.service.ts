@@ -120,6 +120,12 @@ export class RepoIntelligenceService {
       if (errMsg.includes('429') || errMsg.includes('quota') || errMsg.includes('Too Many Requests')) {
         throw new ApiError(429, 'AI service quota exceeded. Please wait a moment and try again.');
       }
+      if (errMsg.includes('413') || errMsg.includes('Request too large') || errMsg.includes('too large')) {
+        throw new ApiError(413, 'The context is too large for the AI model. Try asking a more specific question to reduce the context size.');
+      }
+      if (errMsg.includes('403') || errMsg.includes('Forbidden') || errMsg.includes('not enabled') || errMsg.includes('API key')) {
+        throw new ApiError(403, 'AI service authentication failed. Check that your GEMINI_API_KEY or GROQ_API_KEY in the .env file is valid and the API is enabled in your Google Cloud / Groq console.');
+      }
       logger.error('RepoIntelligence: AI generation failed', aiError);
       throw new ApiError(500, 'AI service is temporarily unavailable. Please try again later.');
     }

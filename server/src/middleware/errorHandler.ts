@@ -22,6 +22,9 @@ export function globalErrorHandler(
   if (error instanceof ApiError) {
     statusCode = error.statusCode;
     message = error.message;
+  } else {
+    // Use the actual error message for unknown errors instead of generic 'Internal Server Error'
+    message = error.message || 'Internal Server Error';
   }
 
   // Handle Mongoose validation errors

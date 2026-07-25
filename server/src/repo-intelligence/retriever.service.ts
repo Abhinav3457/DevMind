@@ -3,8 +3,10 @@ import IndexedFile from '../models/IndexedFile';
 import IndexedChunk from '../models/IndexedChunk';
 import { QuestionType } from './classifier.service';
 
-const MAX_CHUNKS = 15;
-const MAX_FILES = 10;
+const MAX_CHUNKS = 4;
+const MAX_FILES = 3;
+const MAX_CHUNK_CONTENT_LENGTH = 800;
+const MAX_TOTAL_CONTENT_LENGTH = 3000;
 
 export interface RetrievedContext {
   reportSummary: string;
@@ -43,9 +45,9 @@ export class ContextRetrieverService {
     }
 
     const base: RetrievedContext = {
-      reportSummary: report.summary || '',
-      techStack: JSON.stringify(report.techStack, null, 2),
-      folderStructure: JSON.stringify(report.folderStructure, null, 2),
+      reportSummary: (report.summary || '').slice(0, 500),
+      techStack: JSON.stringify(report.techStack).slice(0, 500),
+      folderStructure: JSON.stringify(report.folderStructure).slice(0, 500),
       fileCount: report.fileCount,
       relevantFiles: [],
       relevantChunks: [],
@@ -309,8 +311,8 @@ export class ContextRetrieverService {
       language: f.language,
       functions: f.functions.map((fn) => fn.name + ':' + fn.startLine + '-' + fn.endLine).join(', '),
       classes: f.classes.map((cls) => cls.name + ':' + cls.startLine + '-' + cls.endLine).join(', '),
-      imports: f.imports.slice(0, 20).join(', '),
-      dependencies: f.dependencies.slice(0, 10).join(', '),
+      imports: f.imports.slice(0, 5).join(', '),
+      dependencies: f.dependencies.slice(0, 3).join(', '),
     }));
   }
 
@@ -324,14 +326,25 @@ export class ContextRetrieverService {
 
     const filePathMap = new Map(files.map((f) => [f._id.toString(), f.path]));
 
-    return chunks.map((c) => ({
+    const truncated = chunks.map((c) => ({
       filePath: filePathMap.get(c.fileId.toString()) || 'unknown',
-      content: c.content,
+      content: c.content.length > MAX_CHUNK_CONTENT_LENGTH
+        ? c.content.slice(0, MAX_CHUNK_CONTENT_LENGTH) + '\n// ... [truncated]'
+        : c.content,
       startLine: c.startLine,
       endLine: c.endLine,
       type: c.type,
       tokenCount: c.tokenCount,
     }));
+
+    // If total content still exceeds limit, keep only the most relevant chunks
+    let totalLen = truncated.reduce((sum, c) => sum + c.content.length, 0);
+    while (totalLen > MAX_TOTAL_CONTENT_LENGTH && truncated.length > 1) {
+      const removed = truncated.pop()!;
+      totalLen -= removed.content.length;
+    }
+
+    return truncated;
   }
 }
 

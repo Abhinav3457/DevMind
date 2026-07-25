@@ -15,8 +15,7 @@ interface StatCardProps {
   onClick?: () => void;
 }
 
-const colorMap: Record<string, { 
-  bg: string; 
+const colorMap: Record<string, {    bg: string; 
   border: string; 
   icon: string; 
   text: string;
@@ -25,64 +24,64 @@ const colorMap: Record<string, {
   ring: string;
 }> = {
   blue: { 
-    bg: 'bg-blue-500/5', 
+    bg: 'bg-blue-500/10', 
     border: 'border-blue-500/20 hover:border-blue-500/40', 
     icon: 'text-blue-400', 
-    text: 'text-blue-100',
+    text: 'text-surface-100',
     gradient: 'from-blue-500/20 via-blue-500/5 to-transparent',
     glow: 'shadow-blue-500/10',
     ring: 'ring-blue-500/30'
   },
   green: { 
-    bg: 'bg-emerald-500/5', 
+    bg: 'bg-emerald-500/10', 
     border: 'border-emerald-500/20 hover:border-emerald-500/40', 
     icon: 'text-emerald-400', 
-    text: 'text-emerald-100',
+    text: 'text-surface-100',
     gradient: 'from-emerald-500/20 via-emerald-500/5 to-transparent',
     glow: 'shadow-emerald-500/10',
     ring: 'ring-emerald-500/30'
   },
   purple: { 
-    bg: 'bg-purple-500/5', 
+    bg: 'bg-purple-500/10', 
     border: 'border-purple-500/20 hover:border-purple-500/40', 
     icon: 'text-purple-400', 
-    text: 'text-purple-100',
+    text: 'text-surface-100',
     gradient: 'from-purple-500/20 via-purple-500/5 to-transparent',
     glow: 'shadow-purple-500/10',
     ring: 'ring-purple-500/30'
   },
   amber: { 
-    bg: 'bg-amber-500/5', 
+    bg: 'bg-amber-500/10', 
     border: 'border-amber-500/20 hover:border-amber-500/40', 
     icon: 'text-amber-400', 
-    text: 'text-amber-100',
+    text: 'text-surface-100',
     gradient: 'from-amber-500/20 via-amber-500/5 to-transparent',
     glow: 'shadow-amber-500/10',
     ring: 'ring-amber-500/30'
   },
   rose: { 
-    bg: 'bg-rose-500/5', 
+    bg: 'bg-rose-500/10', 
     border: 'border-rose-500/20 hover:border-rose-500/40', 
     icon: 'text-rose-400', 
-    text: 'text-rose-100',
+    text: 'text-surface-100',
     gradient: 'from-rose-500/20 via-rose-500/5 to-transparent',
     glow: 'shadow-rose-500/10',
     ring: 'ring-rose-500/30'
   },
   cyan: { 
-    bg: 'bg-cyan-500/5', 
+    bg: 'bg-cyan-500/10', 
     border: 'border-cyan-500/20 hover:border-cyan-500/40', 
     icon: 'text-cyan-400', 
-    text: 'text-cyan-100',
+    text: 'text-surface-100',
     gradient: 'from-cyan-500/20 via-cyan-500/5 to-transparent',
     glow: 'shadow-cyan-500/10',
     ring: 'ring-cyan-500/30'
   },
   indigo: { 
-    bg: 'bg-indigo-500/5', 
+    bg: 'bg-indigo-500/10', 
     border: 'border-indigo-500/20 hover:border-indigo-500/40', 
     icon: 'text-indigo-400', 
-    text: 'text-indigo-100',
+    text: 'text-surface-100',
     gradient: 'from-indigo-500/20 via-indigo-500/5 to-transparent',
     glow: 'shadow-indigo-500/10',
     ring: 'ring-indigo-500/30'
@@ -184,8 +183,8 @@ export function StatCard({
       </div>
 
       {/* Decorative elements */}
-      <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-white/[0.02] transition-transform duration-500 group-hover:scale-150" />
-      <div className="absolute -bottom-4 -left-4 h-16 w-16 rounded-full bg-white/[0.02]" />
+      <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-surface-50/[0.02] transition-transform duration-500 group-hover:scale-150" />
+      <div className="absolute -bottom-4 -left-4 h-16 w-16 rounded-full bg-surface-50/[0.02]" />
     </motion.div>
   );
 }
