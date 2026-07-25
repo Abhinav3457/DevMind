@@ -1,17 +1,17 @@
-# DevMind AI - Render Deployment Configuration
+# DevMind AI - Backend API Deployment
 # Docs: https://render.com/docs/infrastructure-as-code
 
 services:
-  # Backend web service (also serves the built frontend in production)
   - type: web
-    name: devmind-ai
+    name: devmind-ai-api
     runtime: node
     repo: https://github.com/Abhinav3457/DevMind
-    region: oregon # Options: oregon (US), frankfurt (EU), singapore (Asia)
+    region: oregon
     plan: free
     branch: main
-    buildCommand: npm run install:all && npm run build
-    startCommand: npm run render-start
+    rootDir: server
+    buildCommand: npm install --include=dev && npm run build
+    startCommand: npm start
     healthCheckPath: /api/v1/health
     numInstances: 1
 
@@ -22,17 +22,17 @@ services:
       - key: NODE_ENV
         value: production
       - key: PORT
-        value: "10000" # Render assigns this dynamically
+        value: "10000"
       - key: CLIENT_URL
-        value: https://devmind-ai.onrender.com
+        sync: false # Will set after frontend is deployed
       - key: SOCKET_CORS_ORIGIN
-        value: https://devmind-ai.onrender.com
+        sync: false # Will set after frontend is deployed
 
       # ──────────────────────────────
       # MongoDB (use MongoDB Atlas)
       # ──────────────────────────────
       - key: MONGODB_URI
-        sync: false # Set this in Render dashboard
+        sync: false
 
       # ──────────────────────────────
       # JWT Authentication

@@ -82,26 +82,10 @@ app.use('/uploads', express.static(path.join(process.cwd(), 'src', 'uploads')));
 // API routes
 app.use('/api/v1', apiRoutes);
 
-// Serve built frontend in production
-if (process.env.NODE_ENV === 'production') {
-  const clientDistPath = path.join(__dirname, '..', '..', 'client', 'dist');
-  app.use(express.static(clientDistPath));
-
-  // SPA fallback — serve index.html for all non-API GET routes
-  app.get('*', (_req: Request, res: Response) => {
-    res.sendFile(path.join(clientDistPath, 'index.html'));
-  });
-
-  // 404 for non-GET requests in production
-  app.all('*', (_req: Request, _res: Response, next: NextFunction) => {
-    next(new ApiError(404, 'Route not found'));
-  });
-} else {
-  // 404 handler for development
-  app.all('*', (_req: Request, _res: Response, next: NextFunction) => {
-    next(new ApiError(404, 'Route not found'));
-  });
-}
+// 404 handler for unknown routes
+app.all('*', (_req: Request, _res: Response, next: NextFunction) => {
+  next(new ApiError(404, 'Route not found'));
+});
 
 // Global error handler
 app.use(globalErrorHandler);
