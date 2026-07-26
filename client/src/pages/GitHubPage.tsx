@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Github, GitBranch, Globe, Lock, Loader2, ExternalLink, Search, RefreshCw, Database, FolderOpen, Trash2, LogOut } from 'lucide-react';
 import apiClient from '../api/axios';
@@ -18,7 +19,14 @@ interface ImportedRepo {
   indexedAt?: string;
 }
 
+const OAUTH_ERRORS: Record<string, string> = {
+  missing_params: 'Missing authorization parameters from GitHub. Please try again.',
+  invalid_or_expired_state: 'Your GitHub authorization session expired or is invalid. Please try connecting again.',
+  access_denied: 'You denied the GitHub authorization request.',
+};
+
 export function GitHubPage() {
+  const [searchParams] = useSearchParams();
   const [connected, setConnected] = useState(false);
   const [githubUser, setGithubUser] = useState<string | null>(null);
   const [repos, setRepos] = useState<{ id: string; name: string; fullName: string; description: string; private: boolean; language: string; url: string }[]>([]);
@@ -35,7 +43,34 @@ export function GitHubPage() {
   const [showRemoveConfirm, setShowRemoveConfirm] = useState<string | null>(null);
   const [disconnecting, setDisconnecting] = useState(false);
 
-  useEffect(() => { checkConnection(); fetchWorkspaces(); 
+  // Track whether we've processed URL params to avoid showing errors on re-renders
+  const processedParams = useRef(false);
+
+  useEffect(() => {
+    // Read OAuth result from URL params (set by handleDirectOAuthCallback redirect)
+    if (!processedParams.current) {
+      const error = searchParams.get('error');
+      const githubStatus = searchParams.get('github_status');
+      const errorMsg = searchParams.get('message');
+
+      if (error && OAUTH_ERRORS[error]) {
+        toast.error(OAUTH_ERRORS[error]);
+      } else if (error) {
+        toast.error('GitHub authorization failed. Please try again.');
+      }
+
+      if (githubStatus === 'success') {
+        toast.success('GitHub account connected successfully!');
+      } else if (githubStatus === 'error' && errorMsg) {
+        const decoded = decodeURIComponent(errorMsg);
+        toast.error(decoded);
+      }
+
+      processedParams.current = true;
+    }
+
+    checkConnection();
+    fetchWorkspaces(); 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

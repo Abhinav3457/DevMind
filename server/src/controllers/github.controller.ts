@@ -8,10 +8,12 @@ import { sendSuccess } from '../utils/apiResponse';
 
 export class GitHubController {
   async getAuthorizationUrl(req: Request, res: Response): Promise<void> {
-    // Use configured callback URL (env var) or fall back to dynamic construction
+    // Use configured callback URL (env var) or fall back to frontend callback route
+    // Frontend callback is more reliable: CLIENT_URL is already configured, and
+    // the frontend handles the OAuth redirect by posting code+state to the backend.
     const callbackUrl =
       env.GITHUB_CALLBACK_URL ||
-      `${req.protocol}://${req.get('host')}/api/v1/github/callback`;
+      `${env.CLIENT_URL}/auth/github/callback`;
     const { url } = await gitHubService.getAuthorizationUrl(req.user!.userId, callbackUrl);
     sendSuccess(res, { statusCode: 200, message: 'GitHub authorization URL generated', data: { url } });
   }
@@ -29,7 +31,7 @@ export class GitHubController {
       return res.redirect(`${env.CLIENT_URL}/github?error=missing_params`);
     }
 
-    const userId = gitHubOAuthService.getUserIdFromState(state as string);
+    const userId = await gitHubOAuthService.getUserIdFromState(state as string);
     if (!userId) {
       return res.redirect(`${env.CLIENT_URL}/github?error=invalid_or_expired_state`);
     }

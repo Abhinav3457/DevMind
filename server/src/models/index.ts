@@ -22,3 +22,5 @@ export { default as Message } from './Message';
 export type { IMessage } from './Message';
 export { default as Notification } from './Notification';
 export type { INotification } from './Notification';
+export { default as OAuthState } from './OAuthState';
+export type { IOAuthState } from './OAuthState';
