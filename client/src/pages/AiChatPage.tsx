@@ -525,7 +525,7 @@ export function AiChatPage() {
                   }`}
                 >
                   <MessageSquare className="h-3 sm:h-3.5 w-3 sm:w-3.5" />
-                  <span className="hidden xs:inline">General</span>
+                  <span className="hidden sm:inline">General</span>
                 </button>
                 <button onClick={() => setMode('repo')}
                   className={`flex items-center gap-1 rounded-md px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium transition-all whitespace-nowrap ${
@@ -533,7 +533,7 @@ export function AiChatPage() {
                   }`}
                 >
                   <BookOpen className="h-3 sm:h-3.5 w-3 sm:w-3.5" />
-                  <span className="hidden xs:inline">Repo</span>
+                  <span className="hidden sm:inline">Repo</span>
                 </button>
               </div>
 
@@ -552,7 +552,7 @@ export function AiChatPage() {
             {statusBanner()}
 
             {messages.length <= 1 && !loading && (
-              <div className="mb-3 sm:mb-4 grid grid-cols-1 xs:grid-cols-2 gap-1.5 sm:gap-2">
+              <div className="mb-3 sm:mb-4 grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-2">
                 {suggestions.map((s) => (
                   <button key={s} onClick={() => setInput(s)}
                     className="rounded-lg border border-surface-700 bg-surface-800/50 px-2.5 sm:px-3 py-2 text-left text-[10px] sm:text-xs text-surface-400 transition-all hover:border-primary-500/30 hover:text-surface-200 truncate"
@@ -622,7 +622,7 @@ export function AiChatPage() {
               className="flex items-center gap-1 sm:gap-2 rounded-xl bg-primary-600 px-3 sm:px-5 py-2.5 sm:py-3 text-xs sm:text-sm font-medium text-white transition-all hover:bg-primary-700 disabled:opacity-50 flex-shrink-0"
             >
               {loading ? <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" /> : <Send className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
-              <span className="hidden xs:inline">Send</span>
+              <span className="hidden sm:inline">Send</span>
             </button>
           </div>
         </div>
