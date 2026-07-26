@@ -1,5 +1,9 @@
 import crypto from 'crypto';
 import GitHubAccount, { IGitHubAccount } from '../models/GitHubAccount';
+import ImportedRepository from '../models/ImportedRepository';
+import IndexReport from '../models/IndexReport';
+import IndexedFile from '../models/IndexedFile';
+import IndexedChunk from '../models/IndexedChunk';
 import OAuthState from '../models/OAuthState';
 import { env } from '../config/environment';
 import logger from '../utils/logger';
@@ -111,10 +115,34 @@ export class GitHubOAuthService {
   }
 
   async disconnectAccount(userId: string): Promise<void> {
+    // Set account as disconnected
     await GitHubAccount.findOneAndUpdate(
       { userId },
       { isConnected: false, accessToken: '' },
     );
+
+    // Clean up all imported repos and their indexed data
+    const repos = await ImportedRepository.find({ userId }).select('_id').lean();
+    const repoIds = repos.map((r) => r._id);
+
+    if (repoIds.length > 0) {
+      const reports = await IndexReport.find({ repositoryId: { $in: repoIds }, userId }).select('_id').lean();
+      const reportIds = reports.map((r) => r._id);
+
+      await Promise.all([
+        ImportedRepository.deleteMany({ userId }),
+        IndexReport.deleteMany({ repositoryId: { $in: repoIds }, userId }),
+        ...(reportIds.length > 0
+          ? [
+              IndexedFile.deleteMany({ reportId: { $in: reportIds } }),
+              IndexedChunk.deleteMany({ reportId: { $in: reportIds } }),
+            ]
+          : []),
+      ]);
+
+      logger.info(`Cleaned up ${repoIds.length} repos and ${reportIds.length} index reports for user ${userId}`);
+    }
+
     logger.info(`GitHub account disconnected for user ${userId}`);
   }
 
