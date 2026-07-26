@@ -8,9 +8,10 @@ import { sendSuccess } from '../utils/apiResponse';
 
 export class GitHubController {
   async getAuthorizationUrl(req: Request, res: Response): Promise<void> {
-    // Use backend callback URL so SPA routing on frontend is not needed
-    const backendUrl = `${req.protocol}://${req.get('host')}`;
-    const callbackUrl = `${backendUrl}/api/v1/github/callback`;
+    // Use configured callback URL (env var) or fall back to dynamic construction
+    const callbackUrl =
+      env.GITHUB_CALLBACK_URL ||
+      `${req.protocol}://${req.get('host')}/api/v1/github/callback`;
     const { url } = await gitHubService.getAuthorizationUrl(req.user!.userId, callbackUrl);
     sendSuccess(res, { statusCode: 200, message: 'GitHub authorization URL generated', data: { url } });
   }

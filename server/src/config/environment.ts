@@ -23,6 +23,7 @@ interface Environment {
   GITHUB_TOKEN: string;
   GITHUB_CLIENT_ID: string;
   GITHUB_CLIENT_SECRET: string;
+  GITHUB_CALLBACK_URL: string;
   SOCKET_CORS_ORIGIN: string;
 }
 
@@ -60,5 +61,6 @@ export const env: Environment = {
   GITHUB_TOKEN: getOptionalEnvVar('GITHUB_TOKEN', ''),
   GITHUB_CLIENT_ID: getOptionalEnvVar('GITHUB_CLIENT_ID', ''),
   GITHUB_CLIENT_SECRET: getOptionalEnvVar('GITHUB_CLIENT_SECRET', ''),
+  GITHUB_CALLBACK_URL: getOptionalEnvVar('GITHUB_CALLBACK_URL', ''),
   SOCKET_CORS_ORIGIN: getOptionalEnvVar('SOCKET_CORS_ORIGIN', 'http://localhost:5173'),
 };

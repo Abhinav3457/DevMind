@@ -87,6 +87,8 @@ services:
         sync: false
       - key: GITHUB_CLIENT_SECRET
         sync: false
+      - key: GITHUB_CALLBACK_URL
+        sync: false # Must match exactly what's registered in GitHub OAuth App settings
 
   # Frontend Static Site
   - type: web
