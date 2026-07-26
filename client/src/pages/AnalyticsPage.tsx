@@ -28,7 +28,7 @@ import { StatCard } from '../components/dashboard/StatCard';
 import { LanguageChart } from '../components/dashboard/LanguageChart';
 import { HealthScore } from '../components/dashboard/HealthScore';
 import { InteractiveBarChart } from '../components/dashboard/InteractiveBarChart';
-import { AreaChart } from '../components/dashboard/AreaChart';
+
 import { DateRangePicker, DateRange } from '../components/dashboard/DateRangePicker';
 import { InsightsPanel, Insight } from '../components/dashboard/InsightsPanel';
 import { ComparisonCard } from '../components/dashboard/ComparisonCard';
@@ -319,12 +319,6 @@ export function AnalyticsPage() {
     label: l.language, value: l.lines, tooltip: `${l.language}: ${l.lines.toLocaleString()} lines`,
   }));
 
-  const trendData = [
-    { label: 'Mon', value: 1200 }, { label: 'Tue', value: 1900 }, { label: 'Wed', value: 1600 },
-    { label: 'Thu', value: 2100 }, { label: 'Fri', value: 1800 }, { label: 'Sat', value: 900 },
-    { label: 'Sun', value: 1300 },
-  ];
-
   const openDrillDown = (title: string, metrics: DrillDownMetric[], chart?: React.ReactNode) => {
     setDrillDown({ open: true, title, metrics, chart });
   };
@@ -531,37 +525,12 @@ export function AnalyticsPage() {
                 <p className="text-xs text-surface-400 mt-1">Estimated total lines across all indexed repositories</p>
               </div>
               {locBarData.length > 0 && (
-                <div className="mb-5 sm:mb-6">
+                <div>
                   <InteractiveBarChart data={locBarData} height={180}
                     onBarClick={(item) => openDrillDown(item.label, [
                       { label: 'Lines', value: item.value.toLocaleString(), color: 'text-blue-400' },
                       { label: 'Language', value: item.label, color: 'text-surface-200' },
                     ])} />
-                </div>
-              )}
-              {linesOfCode.byLanguage.length > 0 && (
-                <div className="space-y-3">
-                  {linesOfCode.byLanguage.slice(0, 8).map((lang, index) => {
-                    const maxLines = Math.max(...linesOfCode.byLanguage.map((l) => l.lines), 1);
-                    const percent = Math.round((lang.lines / maxLines) * 100);
-                    const barColor = lang.language === 'typescript' || lang.language === 'tsx' ? 'from-blue-500 to-blue-400'
-                      : lang.language === 'javascript' || lang.language === 'jsx' ? 'from-amber-500 to-yellow-400'
-                      : lang.language === 'python' ? 'from-emerald-500 to-emerald-400'
-                      : lang.language === 'html' ? 'from-orange-500 to-orange-400'
-                      : lang.language === 'css' || lang.language === 'scss' ? 'from-purple-500 to-purple-400'
-                      : 'from-surface-400 to-surface-300';
-                    return (
-                      <motion.div key={lang.language} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5 + index * 0.05 }}>
-                        <div className="mb-1.5 flex items-center justify-between">
-                          <span className="text-sm font-medium text-surface-200">{lang.language}</span>
-                          <span className="text-xs text-surface-400">{lang.lines.toLocaleString()} lines</span>
-                        </div>
-                        <div className="h-2 rounded-full bg-surface-700/50 overflow-hidden">
-                          <motion.div className={`h-full rounded-full bg-gradient-to-r ${barColor}`} initial={{ width: 0 }} animate={{ width: percent + '%' }} transition={{ duration: 1, delay: 0.6 + index * 0.05 }} />
-                        </div>
-                      </motion.div>
-                    );
-                  })}
                 </div>
               )}
             </motion.div>
@@ -571,17 +540,6 @@ export function AnalyticsPage() {
               <div className="flex items-center gap-2 mb-4 sm:mb-5">
                 <div className="h-8 w-8 rounded-lg bg-amber-500/10 flex items-center justify-center shrink-0"><TrendingUp className="h-4 w-4 text-amber-400" /></div>
                 <h2 className="text-sm font-semibold text-surface-200">Activity Summary</h2>
-              </div>
-              <div className="mb-5 sm:mb-6">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs font-medium text-surface-400 uppercase tracking-wider">Weekly Trend</span>
-                  <span className="text-[10px] text-surface-500">Last 7 days</span>
-                </div>
-                <AreaChart data={trendData} height={140} showDots={true} color="rgb(251, 191, 36)"
-                  onPointClick={(point) => openDrillDown(point.label, [
-                    { label: 'Activity', value: point.value.toLocaleString(), color: 'text-amber-400' },
-                    { label: 'Day', value: point.label, color: 'text-surface-200' },
-                  ])} />
               </div>
               <div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2">
                 <motion.div whileHover={{ scale: 1.02 }} className="group rounded-xl border border-blue-500/20 bg-gradient-to-br from-blue-500/10 to-blue-500/5 p-4 sm:p-5 transition-all hover:border-blue-500/40">

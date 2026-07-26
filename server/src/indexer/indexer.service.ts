@@ -1,3 +1,7 @@
+import os from 'os';
+import path from 'path';
+import fs from 'fs/promises';
+import crypto from 'crypto';
 import { fileReaderService } from './file-reader.service';
 import { codeParserService } from './code-parser.service';
 import { chunkerService } from './chunker.service';
@@ -5,13 +9,17 @@ import { analyzerService } from './analyzer.service';
 import IndexReport from '../models/IndexReport';
 import IndexedFile from '../models/IndexedFile';
 import IndexedChunk from '../models/IndexedChunk';
+import ImportedRepository from '../models/ImportedRepository';
+import GitHubAccount from '../models/GitHubAccount';
 import logger from '../utils/logger';
+import { ApiError } from '../utils/apiResponse';
+import AdmZip from 'adm-zip';
 
 export class IndexerService {
   async indexRepository(
     userId: string,
     repositoryId: string,
-    repoDir: string,
+    repoDir?: string,
   ): Promise<{ reportId: string; summary: string }> {
     const startTime = Date.now();
 
@@ -22,7 +30,15 @@ export class IndexerService {
       startedAt: new Date(),
     });
 
+    let tempDir: string | null = null;
+
     try {
+      // If no local path is given, clone the repo from GitHub
+      if (!repoDir) {
+        repoDir = await this.cloneFromGitHub(userId, repositoryId);
+        tempDir = repoDir;
+      }
+
       const files = await fileReaderService.readDirectory(repoDir);
 
       if (files.length === 0) {
@@ -91,7 +107,84 @@ export class IndexerService {
       await report.save();
       logger.error('Indexer: Indexing failed - ' + message);
       throw error;
+    } finally {
+      // Clean up temp directory if we cloned from GitHub
+      if (tempDir) {
+        fs.rm(tempDir, { recursive: true, force: true }).catch((err) =>
+          logger.error('Indexer: Failed to clean up temp directory - ' + err),
+        );
+      }
     }
+  }
+
+  /**
+   * Download a repository from GitHub as a zipball, extract it to a temp directory,
+   * and return the path to the extracted repo contents.
+   */
+  private async cloneFromGitHub(userId: string, repositoryId: string): Promise<string> {
+    // Look up the imported repository metadata
+    const importedRepo = await ImportedRepository.findOne({ _id: repositoryId, userId });
+    if (!importedRepo) {
+      throw new ApiError(404, 'Imported repository not found. Please import it from GitHub first.');
+    }
+
+    // Look up the user's GitHub account to get an access token
+    const gitHubAccount = await GitHubAccount.findOne({ userId, isConnected: true });
+    if (!gitHubAccount) {
+      throw new ApiError(400, 'GitHub account not connected. Please connect your GitHub account first.');
+    }
+
+    const [owner, repo] = importedRepo.fullName.split('/');
+    if (!owner || !repo) {
+      throw new ApiError(400, 'Invalid repository name: ' + importedRepo.fullName);
+    }
+
+    const branch = importedRepo.defaultBranch || 'main';
+    const archiveUrl = `https://api.github.com/repos/${owner}/${repo}/zipball/${branch}`;
+
+    logger.info(`Indexer: Downloading ${importedRepo.fullName} (${branch}) from GitHub...`);
+
+    // Download the zipball from GitHub using the user's access token
+    const response = await fetch(archiveUrl, {
+      headers: {
+        Authorization: `Bearer ${gitHubAccount.accessToken}`,
+        Accept: 'application/vnd.github.v3+json',
+        'User-Agent': 'DevMindAI',
+      },
+    });
+
+    if (!response.ok) {
+      throw new ApiError(
+        response.status,
+        `Failed to download repository from GitHub: ${response.statusText}`,
+      );
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    // Extract to a temp directory
+    const tempRoot = path.join(os.tmpdir(), 'devmind-index-' + crypto.randomBytes(8).toString('hex'));
+    await fs.mkdir(tempRoot, { recursive: true });
+
+    const zip = new AdmZip(buffer);
+    zip.extractAllTo(tempRoot, true);
+
+    // GitHub wraps archives in a folder like "owner-repo-branch/" — find the actual root
+    const entries = await fs.readdir(tempRoot);
+    const rootFolder = entries.find((e) => {
+      // The inner folder from GitHub zipball is typically "<owner>-<repo>-<sha>/"
+      return e.startsWith(owner + '-' + repo) || e.startsWith(owner + '_' + repo);
+    });
+
+    if (!rootFolder) {
+      // If we can't find the expected folder, the repo files might be at the root
+      return tempRoot;
+    }
+
+    const repoContentDir = path.join(tempRoot, rootFolder);
+    logger.info(`Indexer: Extracted ${importedRepo.fullName} to ${repoContentDir}`);
+    return repoContentDir;
   }
 
   async getReport(reportId: string, userId: string): Promise<import('../models/IndexReport').IIndexReport | null> {

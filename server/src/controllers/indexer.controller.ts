@@ -1,25 +1,16 @@
 import { Request, Response } from 'express';
-import path from 'path';
 import { indexerService } from '../indexer/indexer.service';
-import { sendSuccess, sendCreated, ApiError } from '../utils/apiResponse';
-import { env } from '../config/environment';
+import { sendSuccess, sendCreated } from '../utils/apiResponse';
 
 export class IndexerController {
   async indexRepository(req: Request, res: Response): Promise<void> {
     const { repoDir } = req.body;
     const { repositoryId } = req.params;
 
-    // Security: Prevent path traversal by resolving and validating the path
-    const resolvedDir = path.resolve(repoDir);
-    const allowedBase = path.resolve(process.cwd(), 'uploads');
-    if (!resolvedDir.startsWith(allowedBase) && env.NODE_ENV === 'production') {
-      throw new ApiError(400, 'Invalid repository directory path');
-    }
-
     const result = await indexerService.indexRepository(
       req.user!.userId,
       repositoryId,
-      resolvedDir,
+      repoDir,
     );
     sendCreated(res, { message: 'Repository indexing started', data: result });
   }

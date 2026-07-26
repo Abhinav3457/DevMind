@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Github, GitBranch, Globe, Lock, Loader2, ExternalLink, Search, RefreshCw, Database, FolderOpen, Trash2, LogOut } from 'lucide-react';
+import { Github, GitBranch, Globe, Lock, Loader2, ExternalLink, Search, RefreshCw, Database, Trash2, LogOut } from 'lucide-react';
 import apiClient from '../api/axios';
 import toast from 'react-hot-toast';
 
@@ -37,7 +37,6 @@ export function GitHubPage() {
   const [workspaces, setWorkspaces] = useState<{ id: string; name: string }[]>([]);
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>('');
   const [indexModal, setIndexModal] = useState<{ open: boolean; repoName: string; repoId: string } | null>(null);
-  const [indexDir, setIndexDir] = useState('');
   const [indexing, setIndexing] = useState(false);
   const [removing, setRemoving] = useState<string | null>(null);
   const [showRemoveConfirm, setShowRemoveConfirm] = useState<string | null>(null);
@@ -160,7 +159,7 @@ export function GitHubPage() {
       const body: Record<string, string> = { owner, repo };
       if (selectedWorkspaceId) body.workspaceId = selectedWorkspaceId;
       await apiClient.post('/github/repos/import', body);
-      toast.success('Repository imported! You can now index it by providing the local path.');
+      toast.success('Repository imported! You can now index it from anywhere.');
       fetchImportedRepos();
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } } };
@@ -183,16 +182,12 @@ export function GitHubPage() {
   };
 
   const handleIndex = async () => {
-    if (!indexModal || !indexDir.trim()) {
-      toast.error('Please provide the local directory path');
-      return;
-    }
+    if (!indexModal) return;
     setIndexing(true);
     try {
-      await apiClient.post('/indexer/repos/' + indexModal.repoId + '/index', { repoDir: indexDir.trim() });
+      await apiClient.post('/indexer/repos/' + indexModal.repoId + '/index', {});
       toast.success('Repository is being indexed! This may take a few moments.');
       setIndexModal(null);
-      setIndexDir('');
       fetchImportedRepos();
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } } };
@@ -393,45 +388,29 @@ export function GitHubPage() {
 
       {/* Index Modal */}
       {indexModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => { setIndexModal(null); setIndexDir(''); }}>
-          <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="w-full max-w-lg rounded-xl border border-surface-700 bg-surface-900 p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => { setIndexModal(null); }}>
+          <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="w-full max-w-md rounded-xl border border-surface-700 bg-surface-900 p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="flex items-center gap-3">
               <Database className="h-5 w-5 text-emerald-400" />
               <h2 className="text-lg font-semibold text-surface-200">Index Repository</h2>
             </div>
-            <p className="mt-2 text-sm text-surface-300">
-              Provide the <strong>local directory path</strong> to <span className="font-medium text-surface-100">{indexModal.repoName}</span>
+            <p className="mt-3 text-sm text-surface-300">
+              The repository <span className="font-medium text-surface-100">{indexModal.repoName}</span> will be downloaded from GitHub and indexed. This may take a few moments depending on the repository size.
             </p>
-            <p className="mt-1 text-xs text-surface-400">
-              Example: <code className="rounded bg-surface-800 px-1.5 py-0.5 text-surface-300">C:/Users/You/projects/my-repo</code>
-            </p>
-            <div className="mt-4">
-              <label className="mb-1.5 block text-sm font-medium text-surface-200">Local Directory Path</label>
-              <div className="relative">
-                <FolderOpen className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
-                <input
-                  type="text"
-                  value={indexDir}
-                  onChange={e => setIndexDir(e.target.value)}
-                  placeholder="C:/Users/You/projects/my-repo"
-                  className="w-full rounded-lg border border-surface-600 bg-surface-800 py-2.5 pl-10 pr-4 text-sm text-surface-100 placeholder-surface-500 focus:border-emerald-500/50 focus:outline-none"
-                />
-              </div>
-            </div>
             <div className="mt-5 flex justify-end gap-3">
               <button
-                onClick={() => { setIndexModal(null); setIndexDir(''); }}
+                onClick={() => { setIndexModal(null); }}
                 className="rounded-lg border border-surface-600 px-4 py-2 text-sm text-surface-300 transition-all hover:bg-surface-800"
               >
                 Cancel
               </button>
               <button
                 onClick={handleIndex}
-                disabled={indexing || !indexDir.trim()}
+                disabled={indexing}
                 className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-emerald-700 disabled:opacity-50"
               >
                 {indexing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Database className="h-4 w-4" />}
-                {indexing ? 'Indexing...' : 'Start Indexing'}
+                {indexing ? 'Downloading & Indexing...' : 'Start Indexing'}
               </button>
             </div>
           </motion.div>
