@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Send, Loader2, Bot, User, AlertCircle, Database, RefreshCw,
-  ExternalLink, MessageSquare, BookOpen, Plus, Trash2, Clock, ChevronLeft, ChevronRight,
+  ExternalLink, MessageSquare, BookOpen, Plus, Trash2, Clock, ChevronLeft,
 } from 'lucide-react';
 import apiClient from '../api/axios';
 import { useNavigate } from 'react-router-dom';
@@ -75,7 +75,7 @@ export function AiChatPage() {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [loadingSessions, setLoadingSessions] = useState(true);
-  const [showSidebar, setShowSidebar] = useState(true);
+  const [showSidebar, setShowSidebar] = useState(false);
 
   // Scroll to bottom on new messages
   useEffect(() => {
@@ -103,6 +103,8 @@ export function AiChatPage() {
       fetchReports();
     }
   }, [mode]);
+
+
 
   const loadSessions = async () => {
     setLoadingSessions(true);
@@ -219,7 +221,6 @@ export function AiChatPage() {
 
       const body: Record<string, unknown> = { message: userMessage, history: recentHistory };
 
-      // Create or use existing session
       if (!activeChatId) {
         const chatId = await ensureSession();
         if (chatId) body.chatId = chatId;
@@ -232,7 +233,6 @@ export function AiChatPage() {
 
       setMessages((prev) => [...prev, { role: 'assistant', content: answer, timestamp: new Date() }]);
 
-      // Reload sessions to get updated title
       loadSessions();
     } catch (err: unknown) {
       const axiosErr = err as AxiosError<{ message?: string }>;
@@ -275,33 +275,32 @@ export function AiChatPage() {
     if (mode !== 'repo') return null;
     if (indexStatus.loading) {
       return (
-        <div className="mb-4 flex items-center gap-2 rounded-lg border border-surface-700 bg-surface-800/50 px-4 py-2">
-          <Loader2 className="h-4 w-4 animate-spin text-surface-400" />
-          <span className="text-xs text-surface-400">Checking indexing status...</span>
+        <div className="mb-3 sm:mb-4 flex items-center gap-2 rounded-lg border border-surface-700 bg-surface-800/50 px-3 sm:px-4 py-2">
+          <Loader2 className="h-4 w-4 animate-spin text-surface-400 flex-shrink-0" />
+          <span className="text-xs text-surface-400 truncate">Checking indexing status...</span>
         </div>
       );
     }
     if (indexStatus.hasReport) {
       return (
-        <div className="mb-4 flex items-center gap-2 rounded-lg border border-emerald-700/50 bg-emerald-900/20 px-4 py-2">
-          <Database className="h-4 w-4 text-emerald-400" />
-          <span className="text-xs text-emerald-400">
-            Repository indexed{indexStatus.fileCount ? ` (${indexStatus.fileCount} files analyzed)` : ''} — ready!
+        <div className="mb-3 sm:mb-4 flex items-center gap-2 rounded-lg border border-emerald-700/50 bg-emerald-900/20 px-3 sm:px-4 py-2">
+          <Database className="h-4 w-4 text-emerald-400 flex-shrink-0" />
+          <span className="text-xs text-emerald-400 truncate">
+            Repository indexed{indexStatus.fileCount ? ` (${indexStatus.fileCount} files)` : ''} — ready!
           </span>
-          <RefreshCw className="ml-auto h-3.5 w-3.5 cursor-pointer text-surface-500 hover:text-surface-300" onClick={checkIndexStatus} />
+          <RefreshCw className="ml-auto h-3.5 w-3.5 flex-shrink-0 cursor-pointer text-surface-500 hover:text-surface-300" onClick={checkIndexStatus} />
         </div>
       );
     }
     if (indexStatus.status === 'no_index') {
       return (
-        <div className="mb-4 flex items-center gap-2 rounded-lg border border-amber-700/50 bg-amber-900/20 px-4 py-2">
+        <div className="mb-3 sm:mb-4 flex items-center gap-2 rounded-lg border border-amber-700/50 bg-amber-900/20 px-3 sm:px-4 py-2">
           <AlertCircle className="h-4 w-4 flex-shrink-0 text-amber-400" />
           <span className="text-xs text-amber-300">
             No repository has been indexed.{' '}
-            <button onClick={() => navigate('/github')} className="inline-flex items-center gap-1 font-medium text-primary-400 underline hover:text-primary-300">
+            <button onClick={() => navigate('/github')} className="inline-flex items-center gap-1 font-medium text-primary-400 underline hover:text-primary-300 whitespace-nowrap">
               GitHub <ExternalLink className="h-3 w-3" />
-            </button>{' '}
-            to import and index a repository first.
+            </button>
           </span>
         </div>
       );
@@ -319,214 +318,313 @@ export function AiChatPage() {
     return d.toLocaleDateString();
   };
 
+  // ── Animation Variants ────────────────────────────────────────
+
+  const chatSidebarVariants = {
+    closed: {
+      x: '-100%',
+      opacity: 0,
+      transition: {
+        type: 'spring' as const,
+        stiffness: 300,
+        damping: 35,
+        mass: 1,
+      },
+    },
+    open: {
+      x: 0,
+      opacity: 1,
+      transition: {
+        type: 'spring' as const,
+        stiffness: 400,
+        damping: 30,
+        mass: 0.8,
+        staggerChildren: 0.03,
+        delayChildren: 0.08,
+      },
+    },
+  };
+
+  const sessionItemVariants = {
+    closed: { opacity: 0, x: -15 },
+    open: {
+      opacity: 1,
+      x: 0,
+      transition: { type: 'spring' as const, stiffness: 300, damping: 24 },
+    },
+  };
+
+  const chatOverlayVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { duration: 0.25, ease: 'easeOut' } },
+    exit: { opacity: 0, transition: { duration: 0.2, ease: 'easeIn' } },
+  };
+
+  const toggleSidebar = () => {
+    setShowSidebar(!showSidebar);
+  };
+
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex h-[calc(100vh-8rem)] gap-4">
-      {/* ── Sidebar ──────────────────────────────────────── */}
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col h-[calc(100vh-10rem)] sm:h-[calc(100vh-12rem)] lg:h-[calc(100vh-8rem)]">
+      {/* Mobile sidebar overlay */}
       <AnimatePresence>
         {showSidebar && (
           <motion.div
-            initial={{ width: 0, opacity: 0 }}
-            animate={{ width: 260, opacity: 1 }}
-            exit={{ width: 0, opacity: 0 }}
-            className="flex-shrink-0 overflow-hidden"
-          >
-            <div className="flex h-full w-[260px] flex-col rounded-xl border border-surface-700 bg-surface-900/50 backdrop-blur-sm">
-              {/* Sidebar Header */}
-              <div className="flex items-center justify-between border-b border-surface-700/50 p-3">
-                <h2 className="text-xs font-semibold text-surface-400 uppercase tracking-wider">Chats</h2>
-                <button
-                  onClick={createNewChat}
-                  className="flex items-center gap-1 rounded-lg bg-primary-600 px-2.5 py-1.5 text-[11px] font-medium text-white transition-all hover:bg-primary-700"
-                >
-                  <Plus className="h-3 w-3" />
-                  New
-                </button>
-              </div>
-
-              {/* Session List */}
-              <div className="flex-1 overflow-y-auto p-2 space-y-1">
-                {loadingSessions ? (
-                  <div className="flex justify-center py-8">
-                    <Loader2 className="h-4 w-4 animate-spin text-surface-500" />
-                  </div>
-                ) : sessions.length === 0 ? (
-                  <p className="px-2 py-8 text-center text-xs text-surface-500">No chats yet.<br />Start a new conversation!</p>
-                ) : (
-                  sessions.map((session) => (
-                    <div
-                      key={session._id}
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => loadChatMessages(session._id)}
-                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); loadChatMessages(session._id); } }}
-                      className={`w-full rounded-lg p-2.5 text-left transition-all group cursor-pointer ${
-                        activeChatId === session._id
-                          ? 'bg-primary-600/10 border border-primary-500/30'
-                          : 'hover:bg-surface-800/50 border border-transparent'
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0 flex-1">
-                          <p className={`truncate text-sm font-medium ${
-                            activeChatId === session._id ? 'text-primary-300' : 'text-surface-200'
-                          }`}>
-                            {session.title || 'New Chat'}
-                          </p>
-                          {session.lastMessage && (
-                            <p className="mt-0.5 truncate text-[11px] text-surface-500">
-                              {session.lastMessage.slice(0, 80)}
-                            </p>
-                          )}
-                          <p className="mt-1 flex items-center gap-1 text-[10px] text-surface-600">
-                            <Clock className="h-3 w-3" />
-                            {formatDate(session.updatedAt || session.createdAt)}
-                          </p>
-                        </div>
-                        <button
-                          onClick={(e) => deleteChat(session._id, e)}
-                          className="mt-0.5 flex-shrink-0 rounded-md p-1 text-surface-600 opacity-0 transition-all hover:bg-red-500/10 hover:text-red-400 group-hover:opacity-100"
-                          title="Delete chat"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </motion.div>
+            key="chat-overlay"
+            variants={chatOverlayVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
+            onClick={() => setShowSidebar(false)}
+          />
         )}
       </AnimatePresence>
 
-      {/* ── Main Chat Area ────────────────────────────────── */}
-      <div className="flex flex-1 flex-col">
-        {/* Header */}
-        <div className="mb-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setShowSidebar(!showSidebar)}
-              className="rounded-lg border border-surface-700 bg-surface-800 p-2 text-surface-400 transition-all hover:bg-surface-700 hover:text-surface-200"
-              title={showSidebar ? 'Hide sidebar' : 'Show sidebar'}
+      <div className="flex flex-1 gap-3 sm:gap-4 min-h-0">
+        {/* Sidebar */}
+        <AnimatePresence>
+          {showSidebar && (
+            <motion.aside
+              key="chat-sidebar"
+              variants={chatSidebarVariants}
+              initial="closed"
+              animate="open"
+              exit="closed"
+              className="flex-shrink-0 overflow-hidden lg:relative lg:z-auto fixed left-0 top-0 z-50 h-full pt-14 lg:pt-0"
             >
-              {showSidebar ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-            </button>
-            <div>
-              <h1 className="text-2xl font-bold text-surface-100">AI Assistant</h1>
-              <p className="mt-1 text-sm text-surface-400">
-                {mode === 'general' ? 'Your personal coding assistant' : 'Ask questions about your codebase'}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            {/* Mode Toggle */}
-            <div className="flex rounded-lg border border-surface-700 bg-surface-800 p-0.5">
-              <button onClick={() => setMode('general')}
-                className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
-                  mode === 'general' ? 'bg-primary-600 text-white shadow-sm' : 'text-surface-400 hover:text-surface-200'
-                }`}
-              >
-                <MessageSquare className="h-3.5 w-3.5" />
-                General
-              </button>
-              <button onClick={() => setMode('repo')}
-                className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
-                  mode === 'repo' ? 'bg-primary-600 text-white shadow-sm' : 'text-surface-400 hover:text-surface-200'
-                }`}
-              >
-                <BookOpen className="h-3.5 w-3.5" />
-                Repo
-              </button>
-            </div>
-
-            {mode === 'repo' && reports.length > 0 && (
-              <select value={selectedReportId} onChange={(e) => setSelectedReportId(e.target.value)}
-                className="rounded-lg border border-surface-700 bg-surface-800 px-3 py-1.5 text-xs text-surface-300 focus:border-primary-500/50 focus:outline-none max-w-[180px]"
-              >
-                {reports.map((r) => <option key={r.id} value={r.id}>{r.repoName} ({r.fileCount}f)</option>)}
-              </select>
-            )}
-          </div>
-        </div>
-
-        {/* Chat Area */}
-        <div className="flex-1 overflow-y-auto rounded-xl border border-surface-700 bg-surface-900/50 p-4 backdrop-blur-sm">
-          {statusBanner()}
-
-          {messages.length <= 1 && (
-            <div className="mb-4 grid grid-cols-2 gap-2">
-              {suggestions.map((s) => (
-                <button key={s} onClick={() => setInput(s)}
-                  className="rounded-lg border border-surface-700 bg-surface-800/50 px-3 py-2 text-left text-xs text-surface-400 transition-all hover:border-primary-500/30 hover:text-surface-200"
-                >{s}</button>
-              ))}
-            </div>
-          )}
-
-          <div className="space-y-4">
-            <AnimatePresence initial={false}>
-              {messages.map((msg, i) => (
-                <motion.div
-                  key={`${i}-${msg.timestamp.getTime()}`}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className={'flex gap-3 ' + (msg.role === 'user' ? 'justify-end' : 'justify-start')}
-                >
-                  {msg.role === 'assistant' && (
-                    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-purple-600">
-                      <Bot className="h-4 w-4 text-white" />
-                    </div>
-                  )}
-                  <div
-                    className={'max-w-[80%] rounded-xl px-4 py-3 ' +
-                      (msg.role === 'user' ? 'bg-primary-600/20 text-surface-100' : 'bg-surface-800/80 text-surface-200')}
+              <div className="flex h-full w-[240px] flex-col rounded-none lg:rounded-xl border-0 lg:border border-surface-700 bg-surface-900/95 lg:bg-surface-900/50 backdrop-blur-xl lg:backdrop-blur-sm shadow-2xl shadow-black/40">
+                {/* Sidebar Header */}
+                <div className="flex items-center justify-between border-b border-surface-700/50 p-2.5 sm:p-3">
+                  <motion.h2
+                    initial={false}
+                    className="text-[10px] sm:text-xs font-semibold text-surface-400 uppercase tracking-wider"
                   >
-                    {msg.role === 'assistant' ? (
-                      <div className="max-w-none">
-                        <MarkdownRenderer content={msg.content} />
-                      </div>
-                    ) : (
-                      <p className="text-sm">{msg.content}</p>
-                    )}
-                    <p className="mt-1 text-right text-[10px] text-surface-500">
-                      {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </p>
+                    Chats
+                  </motion.h2>
+                  <div className="flex items-center gap-1">
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={createNewChat}
+                      className="flex items-center gap-1 rounded-lg bg-primary-600 px-2 sm:px-2.5 py-1.5 text-[10px] sm:text-[11px] font-medium text-white transition-all hover:bg-primary-700"
+                    >
+                      <Plus className="h-3 w-3" />
+                      <span className="hidden sm:inline">New</span>
+                    </motion.button>
+                    <button
+                      onClick={() => setShowSidebar(false)}
+                      className="rounded-lg p-1.5 text-surface-400 hover:bg-surface-800 lg:hidden transition-colors"
+                      aria-label="Close sidebar"
+                    >
+                      <motion.div
+                        animate={{ rotate: 180 }}
+                        transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </motion.div>
+                    </button>
                   </div>
-                  {msg.role === 'user' && (
-                    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-surface-700">
-                      <User className="h-4 w-4 text-surface-400" />
-                    </div>
-                  )}
-                </motion.div>
-              ))}
-            </AnimatePresence>
-            {loading && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-2 text-sm text-surface-400">
-                <Loader2 className="h-4 w-4 animate-spin" /> Thinking...
-              </motion.div>
-            )}
-            <div ref={messagesEndRef} />
-          </div>
-        </div>
+                </div>
 
-        {/* Input */}
-        <div className="mt-4 flex gap-2">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-            placeholder={mode === 'general' ? 'Ask a coding question...' : indexStatus.hasReport ? 'Ask a question about your code...' : 'Index a repo first...'}
-            className="flex-1 rounded-xl border border-surface-700 bg-surface-900 px-4 py-3 text-sm text-surface-100 placeholder-surface-500 focus:border-primary-500/50 focus:outline-none"
-          />
-          <button onClick={handleSend} disabled={loading || !input.trim()}
-            className="flex items-center gap-2 rounded-xl bg-primary-600 px-5 py-3 text-sm font-medium text-white transition-all hover:bg-primary-700 disabled:opacity-50"
-          >
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            Send
-          </button>
+                {/* Session List */}
+                <div className="flex-1 overflow-y-auto p-1.5 sm:p-2 space-y-1">
+                  {loadingSessions ? (
+                    <div className="flex justify-center py-8">
+                      <Loader2 className="h-4 w-4 animate-spin text-surface-500" />
+                    </div>
+                  ) : sessions.length === 0 ? (
+                    <motion.p
+                      variants={sessionItemVariants}
+                      className="px-2 py-8 text-center text-[10px] sm:text-xs text-surface-500"
+                    >
+                      No chats yet.<br />Start a new conversation!
+                    </motion.p>
+                  ) : (
+                    sessions.map((session) => (
+                      <motion.div
+                        key={session._id}
+                        variants={sessionItemVariants}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => { loadChatMessages(session._id); if (window.innerWidth < 1024) setShowSidebar(false); }}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); loadChatMessages(session._id); if (window.innerWidth < 1024) setShowSidebar(false); }}}
+                        className={`w-full rounded-lg p-2 sm:p-2.5 text-left transition-all group cursor-pointer ${
+                          activeChatId === session._id
+                            ? 'bg-primary-600/10 border border-primary-500/30'
+                            : 'hover:bg-surface-800/50 border border-transparent'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-1 sm:gap-2">
+                          <div className="min-w-0 flex-1">
+                            <p className={`truncate text-xs sm:text-sm font-medium ${
+                              activeChatId === session._id ? 'text-primary-300' : 'text-surface-200'
+                            }`}>
+                              {session.title || 'New Chat'}
+                            </p>
+                            {session.lastMessage && (
+                              <p className="mt-0.5 truncate text-[10px] sm:text-[11px] text-surface-500">
+                                {session.lastMessage.slice(0, 60)}
+                              </p>
+                            )}
+                            <p className="mt-1 flex items-center gap-1 text-[9px] sm:text-[10px] text-surface-600">
+                              <Clock className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+                              {formatDate(session.updatedAt || session.createdAt)}
+                            </p>
+                          </div>
+                          <button
+                            onClick={(e) => deleteChat(session._id, e)}
+                            className="mt-0.5 flex-shrink-0 rounded-md p-1 text-surface-600 opacity-0 transition-all hover:bg-red-500/10 hover:text-red-400 group-hover:opacity-100"
+                            title="Delete chat"
+                          >
+                            <Trash2 className="h-3 sm:h-3.5 w-3 sm:w-3.5" />
+                          </button>
+                        </div>
+                      </motion.div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </motion.aside>
+          )}
+        </AnimatePresence>
+
+        {/* ── Main Chat Area ────────────────────────────────── */}
+        <div className="flex flex-1 flex-col min-w-0">
+          {/* Header */}
+          <div className="mb-2 sm:mb-3 lg:mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                onClick={toggleSidebar}
+                className="rounded-lg border border-surface-700 bg-surface-800 p-1.5 sm:p-2 text-surface-400 transition-all hover:bg-surface-700 hover:text-surface-200 flex-shrink-0"
+                title={showSidebar ? 'Hide sidebar' : 'Show sidebar'}
+                aria-label={showSidebar ? 'Hide sidebar' : 'Show sidebar'}
+              >
+                <motion.div
+                  animate={{ rotate: showSidebar ? 0 : 180 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                >
+                  <ChevronLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                </motion.div>
+              </motion.button>
+              <div className="min-w-0">
+                <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-surface-100 truncate">AI Assistant</h1>
+                <p className="text-[10px] sm:text-xs lg:text-sm text-surface-400 truncate">
+                  {mode === 'general' ? 'Your personal coding assistant' : 'Ask questions about your codebase'}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+              {/* Mode Toggle */}
+              <div className="flex rounded-lg border border-surface-700 bg-surface-800 p-0.5">
+                <button onClick={() => setMode('general')}
+                  className={`flex items-center gap-1 rounded-md px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium transition-all whitespace-nowrap ${
+                    mode === 'general' ? 'bg-primary-600 text-white shadow-sm' : 'text-surface-400 hover:text-surface-200'
+                  }`}
+                >
+                  <MessageSquare className="h-3 sm:h-3.5 w-3 sm:w-3.5" />
+                  <span className="hidden xs:inline">General</span>
+                </button>
+                <button onClick={() => setMode('repo')}
+                  className={`flex items-center gap-1 rounded-md px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium transition-all whitespace-nowrap ${
+                    mode === 'repo' ? 'bg-primary-600 text-white shadow-sm' : 'text-surface-400 hover:text-surface-200'
+                  }`}
+                >
+                  <BookOpen className="h-3 sm:h-3.5 w-3 sm:w-3.5" />
+                  <span className="hidden xs:inline">Repo</span>
+                </button>
+              </div>
+
+              {mode === 'repo' && reports.length > 0 && (
+                <select value={selectedReportId} onChange={(e) => setSelectedReportId(e.target.value)}
+                  className="rounded-lg border border-surface-700 bg-surface-800 px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs text-surface-300 focus:border-primary-500/50 focus:outline-none max-w-[120px] sm:max-w-[180px] truncate"
+                >
+                  {reports.map((r) => <option key={r.id} value={r.id} className="truncate">{r.repoName} ({r.fileCount}f)</option>)}
+                </select>
+              )}
+            </div>
+          </div>
+
+          {/* Chat Area */}
+          <div className="flex-1 overflow-y-auto rounded-xl border border-surface-700 bg-surface-900/50 p-3 sm:p-4 backdrop-blur-sm">
+            {statusBanner()}
+
+            {messages.length <= 1 && !loading && (
+              <div className="mb-3 sm:mb-4 grid grid-cols-1 xs:grid-cols-2 gap-1.5 sm:gap-2">
+                {suggestions.map((s) => (
+                  <button key={s} onClick={() => setInput(s)}
+                    className="rounded-lg border border-surface-700 bg-surface-800/50 px-2.5 sm:px-3 py-2 text-left text-[10px] sm:text-xs text-surface-400 transition-all hover:border-primary-500/30 hover:text-surface-200 truncate"
+                  >{s}</button>
+                ))}
+              </div>
+            )}
+
+            <div className="space-y-3 sm:space-y-4">
+              <AnimatePresence initial={false}>
+                {messages.map((msg, i) => (
+                  <motion.div
+                    key={`${i}-${msg.timestamp.getTime()}`}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className={'flex gap-2 sm:gap-3 ' + (msg.role === 'user' ? 'justify-end' : 'justify-start')}
+                  >
+                    {msg.role === 'assistant' && (
+                      <div className="flex h-7 w-7 sm:h-8 sm:w-8 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-purple-600">
+                        <Bot className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-white" />
+                      </div>
+                    )}
+                    <div
+                      className={'max-w-[85%] sm:max-w-[75%] lg:max-w-[70%] rounded-xl px-3 sm:px-4 py-2 sm:py-3 ' +
+                        (msg.role === 'user' ? 'bg-primary-600/20 text-surface-100' : 'bg-surface-800/80 text-surface-200')}
+                    >
+                      {msg.role === 'assistant' ? (
+                        <div className="max-w-none text-xs sm:text-sm">
+                          <MarkdownRenderer content={msg.content} />
+                        </div>
+                      ) : (
+                        <p className="text-xs sm:text-sm whitespace-pre-wrap break-words">{msg.content}</p>
+                      )}
+                      <p className="mt-1 text-right text-[9px] sm:text-[10px] text-surface-500">
+                        {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
+                    {msg.role === 'user' && (
+                      <div className="flex h-7 w-7 sm:h-8 sm:w-8 flex-shrink-0 items-center justify-center rounded-lg bg-surface-700">
+                        <User className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-surface-400" />
+                      </div>
+                    )}
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+              {loading && (
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-2 text-xs sm:text-sm text-surface-400">
+                  <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" /> Thinking...
+                </motion.div>
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+          </div>
+
+          {/* Input */}
+          <div className="mt-2 sm:mt-3 lg:mt-4 flex gap-2">
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSend())}
+              placeholder={mode === 'general' ? 'Ask a coding question...' : indexStatus.hasReport ? 'Ask about your code...' : 'Index a repo first...'}
+              className="flex-1 min-w-0 rounded-xl border border-surface-700 bg-surface-900 px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm text-surface-100 placeholder-surface-500 focus:border-primary-500/50 focus:outline-none"
+            />
+            <button onClick={handleSend} disabled={loading || !input.trim()}
+              className="flex items-center gap-1 sm:gap-2 rounded-xl bg-primary-600 px-3 sm:px-5 py-2.5 sm:py-3 text-xs sm:text-sm font-medium text-white transition-all hover:bg-primary-700 disabled:opacity-50 flex-shrink-0"
+            >
+              {loading ? <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" /> : <Send className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
+              <span className="hidden xs:inline">Send</span>
+            </button>
+          </div>
         </div>
       </div>
     </motion.div>

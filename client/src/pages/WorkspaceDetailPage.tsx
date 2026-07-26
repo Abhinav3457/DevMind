@@ -259,35 +259,35 @@ export function WorkspaceDetailPage() {
   ];
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-      <div className="flex items-center gap-4">
-        <button onClick={() => navigate('/workspace')} className="flex h-9 w-9 items-center justify-center rounded-lg border border-surface-700 text-surface-400 transition-all hover:bg-surface-800 hover:text-surface-200">
-          <ArrowLeft className="h-4 w-4" />
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4 sm:space-y-6">
+      <div className="flex items-start sm:items-center gap-3 sm:gap-4">
+        <button onClick={() => navigate('/workspace')} className="flex h-8 w-8 sm:h-9 sm:w-9 flex-shrink-0 items-center justify-center rounded-lg border border-surface-700 text-surface-400 transition-all hover:bg-surface-800 hover:text-surface-200">
+          <ArrowLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
         </button>
-        <div className="flex-1">
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-surface-100">{workspace.name}</h1>
-            <span className={'rounded-full px-2.5 py-0.5 text-xs font-medium ' + ROLE_BADGES[workspace.userRole].color}>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+            <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-surface-100 truncate">{workspace.name}</h1>
+            <span className={'rounded-full px-2 sm:px-2.5 py-0.5 text-[10px] sm:text-xs font-medium flex-shrink-0 ' + ROLE_BADGES[workspace.userRole].color}>
               {ROLE_BADGES[workspace.userRole].label}
             </span>
           </div>
           {workspace.description && (
-            <p className="mt-0.5 text-sm text-surface-400">{workspace.description}</p>
+            <p className="mt-0.5 text-xs sm:text-sm text-surface-400 truncate">{workspace.description}</p>
           )}
         </div>
       </div>
 
-      <div className="flex gap-1 rounded-xl border border-surface-700 bg-surface-900/50 p-1 backdrop-blur-sm">
+      <div className="flex gap-1 rounded-xl border border-surface-700 bg-surface-900/50 p-1 backdrop-blur-sm overflow-x-auto">
         {tabs.map((tab) => (
           <button key={tab.key} onClick={() => setActiveTab(tab.key)}
             className={
-              'flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all ' +
+              'flex flex-1 items-center justify-center gap-1 sm:gap-2 rounded-lg px-2 sm:px-4 py-2 sm:py-2.5 text-[10px] sm:text-sm font-medium transition-all whitespace-nowrap ' +
               (activeTab === tab.key
                 ? 'bg-primary-500/15 text-primary-400 shadow-sm'
                 : 'text-surface-400 hover:text-surface-200')
             }
           >
-            <tab.icon className="h-4 w-4" />
+            <tab.icon className="h-3 w-3 sm:h-4 sm:w-4" />
             {tab.label}
           </button>
         ))}
@@ -338,18 +338,18 @@ export function WorkspaceDetailPage() {
         )}
 
         {activeTab === 'repos' && (
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="flex items-center gap-2 text-sm font-semibold text-surface-200">
-                <GitBranch className="h-4 w-4 text-surface-400" />
+              <h3 className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-surface-200">
+                <GitBranch className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-surface-400" />
                 Linked Repositories ({repos.length})
               </h3>
             </div>
             {repos.length === 0 ? (
-              <div className="flex flex-col items-center py-12 text-center">
-                <GitBranch className="mb-3 h-8 w-8 text-surface-600" />
-                <p className="text-sm text-surface-400">No repositories linked to this workspace</p>
-                <p className="mt-1 text-xs text-surface-500">
+              <div className="flex flex-col items-center py-8 sm:py-12 text-center">
+                <GitBranch className="mb-3 h-7 w-7 sm:h-8 sm:w-8 text-surface-600" />
+                <p className="text-xs sm:text-sm text-surface-400">No repositories linked to this workspace</p>
+                <p className="mt-1 text-[10px] sm:text-xs text-surface-500">
                   Go to{' '}
                   <button onClick={() => navigate('/github')} className="text-primary-400 hover:underline">
                     GitHub
@@ -358,28 +358,25 @@ export function WorkspaceDetailPage() {
                 </p>
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-1.5 sm:space-y-2">
                 {repos.map((repo) => {
                   const status = repo.indexStatus || 'not_indexed';
                   return (
-                    <div key={repo.id} className="flex items-center justify-between rounded-lg border border-surface-700 bg-surface-900/30 px-4 py-3 transition-all hover:border-surface-600">
-                      <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <GitBranch className="h-4 w-4 flex-shrink-0 text-surface-400" />
+                    <div key={repo.id} className="flex flex-col xs:flex-row xs:items-center justify-between gap-2 rounded-lg border border-surface-700 bg-surface-900/30 px-3 sm:px-4 py-2.5 sm:py-3 transition-all hover:border-surface-600">
+                      <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                        <GitBranch className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0 text-surface-400" />
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium text-surface-200 truncate">{repo.fullName}</p>
-                          <div className="flex items-center gap-2 mt-0.5">
+                          <p className="text-xs sm:text-sm font-medium text-surface-200 truncate">{repo.fullName}</p>
+                          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                             {repo.language && (
-                              <span className="text-[10px] text-surface-400">{repo.language}</span>
+                              <span className="text-[9px] sm:text-[10px] text-surface-400">{repo.language}</span>
                             )}
-                            <span className="text-[10px] text-surface-500">
-                              {repo.stars} ★ {repo.forks} 🍴
-                            </span>
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3 flex-shrink-0">
+                      <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 ml-5 xs:ml-0">
                         <span className={
-                          'rounded-full px-2 py-0.5 text-[10px] font-medium ' +
+                          'rounded-full px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[10px] font-medium whitespace-nowrap ' +
                           (status === 'completed' ? 'bg-emerald-500/10 text-emerald-400' :
                            status === 'processing' || status === 'pending' ? 'bg-blue-500/10 text-blue-400' :
                            status === 'failed' ? 'bg-red-500/10 text-red-400' :
@@ -393,16 +390,16 @@ export function WorkspaceDetailPage() {
                         </span>
                         <button
                           onClick={() => setRemoveRepo({ id: repo.id, name: repo.fullName })}
-                          className="flex h-7 w-7 items-center justify-center rounded-lg text-surface-400 transition-all hover:bg-red-500/10 hover:text-red-400"
+                          className="flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-lg text-surface-400 transition-all hover:bg-red-500/10 hover:text-red-400"
                           title="Remove repository"
                         >
-                          <Trash2 className="h-3.5 w-3.5" />
+                          <Trash2 className="h-3 sm:h-3.5 w-3 sm:w-3.5" />
                         </button>
                         {repo.url && (
                           <a href={repo.url} target="_blank" rel="noopener noreferrer"
-                            className="flex h-7 w-7 items-center justify-center rounded-lg text-surface-400 transition-all hover:bg-surface-800 hover:text-surface-200"
+                            className="flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-lg text-surface-400 transition-all hover:bg-surface-800 hover:text-surface-200"
                           >
-                            <ExternalLink className="h-3.5 w-3.5" />
+                            <ExternalLink className="h-3 sm:h-3.5 w-3 sm:w-3.5" />
                           </a>
                         )}
                       </div>
@@ -417,67 +414,67 @@ export function WorkspaceDetailPage() {
         {activeTab === 'members' && (
           <div className="space-y-6">
             {canManage && (
-              <div className="rounded-lg border border-surface-700 bg-surface-800/30 p-4">
-                <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-surface-200">
-                  <UserPlus className="h-4 w-4 text-surface-400" />
+              <div className="rounded-lg border border-surface-700 bg-surface-800/30 p-3 sm:p-4">
+                <h3 className="mb-3 flex items-center gap-2 text-xs sm:text-sm font-semibold text-surface-200">
+                  <UserPlus className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-surface-400" />
                   Invite Member
                 </h3>
-                <div className="flex flex-col gap-3 sm:flex-row">
+                <div className="flex flex-col xs:flex-row gap-2 sm:gap-3">
                   <div className="relative flex-1">
-                    <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
+                    <Mail className="absolute left-3 top-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 -translate-y-1/2 text-surface-400" />
                     <input type="email" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)}
                       placeholder="user@example.com"
-                      className="w-full rounded-lg border border-surface-600 bg-surface-800 py-2.5 pl-10 pr-4 text-sm text-surface-100 placeholder-surface-500 focus:border-primary-500/50 focus:outline-none"
+                      className="w-full rounded-lg border border-surface-600 bg-surface-800 py-2 sm:py-2.5 pl-9 sm:pl-10 pr-3 sm:pr-4 text-xs sm:text-sm text-surface-100 placeholder-surface-500 focus:border-primary-500/50 focus:outline-none"
                     />
                   </div>
                   <select value={inviteRole} onChange={e => setInviteRole(e.target.value as WorkspaceRole)}
-                    className="rounded-lg border border-surface-600 bg-surface-800 px-3 py-2.5 text-sm text-surface-300 focus:border-primary-500/50 focus:outline-none"
+                    className="rounded-lg border border-surface-600 bg-surface-800 px-2 sm:px-3 py-2 sm:py-2.5 text-xs sm:text-sm text-surface-300 focus:border-primary-500/50 focus:outline-none"
                   >
                     <option value="member">Member</option>
                     <option value="admin">Admin</option>
                     <option value="guest">Guest</option>
                   </select>
                   <button onClick={handleInvite} disabled={inviting || !inviteEmail.trim()}
-                    className="flex items-center gap-2 rounded-lg bg-primary-600 px-5 py-2.5 text-sm font-medium text-white transition-all hover:bg-primary-700 disabled:opacity-50"
+                    className="flex items-center justify-center gap-2 rounded-lg bg-primary-600 px-4 sm:px-5 py-2 sm:py-2.5 text-xs sm:text-sm font-medium text-white transition-all hover:bg-primary-700 disabled:opacity-50"
                   >
-                    {inviting ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
+                    {inviting ? <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" /> : <UserPlus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
                     {inviting ? 'Inviting...' : 'Invite'}
                   </button>
                 </div>
               </div>
             )}
 
-            <div className="space-y-2">
+            <div className="space-y-1.5 sm:space-y-2">
               {members.length === 0 ? (
                 <div className="flex flex-col items-center py-8 text-center">
                   <Users className="mb-2 h-6 w-6 text-surface-600" />
-                  <p className="text-sm text-surface-400">No members found</p>
+                  <p className="text-xs sm:text-sm text-surface-400">No members found</p>
                 </div>
               ) : (
                 members.map((member) => (
-                  <div key={member.id} className="flex items-center gap-4 rounded-lg border border-surface-700 bg-surface-900/30 px-4 py-3 transition-all hover:border-surface-600">
-                    <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-xs font-medium text-white">
+                  <div key={member.id} className="flex items-center gap-2 sm:gap-4 rounded-lg border border-surface-700 bg-surface-900/30 px-3 sm:px-4 py-2.5 sm:py-3 transition-all hover:border-surface-600">
+                    <div className="flex h-8 w-8 sm:h-9 sm:w-9 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-[10px] sm:text-xs font-medium text-white">
                       {member.name.charAt(0).toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-surface-200 truncate">{member.name}</p>
-                      <p className="text-xs text-surface-400 truncate">{member.email}</p>
+                      <p className="text-xs sm:text-sm font-medium text-surface-200 truncate">{member.name}</p>
+                      <p className="text-[10px] sm:text-xs text-surface-400 truncate">{member.email}</p>
                     </div>
                     {canManage && member.role !== 'owner' ? (
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
                         <select value={member.role} onChange={e => handleRoleChange(member.userId, e.target.value as WorkspaceRole)}
-                          className="rounded-lg border border-surface-600 bg-surface-800 px-2.5 py-1.5 text-xs text-surface-300 focus:border-primary-500/50 focus:outline-none"
+                          className="rounded-lg border border-surface-600 bg-surface-800 px-1.5 sm:px-2.5 py-1 sm:py-1.5 text-[10px] sm:text-xs text-surface-300 focus:border-primary-500/50 focus:outline-none"
                         >
                           {ROLES_FOR_SELECT.map(r => <option key={r} value={r}>{r.charAt(0).toUpperCase() + r.slice(1)}</option>)}
                         </select>
                         <button onClick={() => setRemoveTarget({ id: member.userId, name: member.name })}
-                          className="flex h-8 w-8 items-center justify-center rounded-lg text-surface-400 transition-all hover:bg-red-500/10 hover:text-red-400"
+                          className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-lg text-surface-400 transition-all hover:bg-red-500/10 hover:text-red-400"
                         >
-                          <UserMinus className="h-4 w-4" />
+                          <UserMinus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                         </button>
                       </div>
                     ) : (
-                      <span className={'rounded-full px-2.5 py-0.5 text-xs font-medium ' + ROLE_BADGES[member.role].color}>
+                      <span className={'rounded-full px-1.5 sm:px-2.5 py-0.5 text-[9px] sm:text-xs font-medium flex-shrink-0 ' + ROLE_BADGES[member.role].color}>
                         {ROLE_BADGES[member.role].label}
                       </span>
                     )}

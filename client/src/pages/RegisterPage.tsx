@@ -105,12 +105,12 @@ export function RegisterPage() {
               <Code2 className="h-8 w-8 text-white" />
             </div>
           </motion.div>
-          <h1 className="text-3xl font-bold text-surface-100">Create Account</h1>
-          <p className="mt-2 text-sm text-surface-400">Join DevMind AI and start building</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-surface-100">Create Account</h1>
+          <p className="mt-1 sm:mt-2 text-xs sm:text-sm text-surface-400">Join DevMind AI and start building</p>
         </div>
 
         {/* Register Form */}
-        <div className="rounded-2xl border border-surface-700 bg-surface-800/50 p-8 backdrop-blur-xl">
+        <div className="rounded-xl sm:rounded-2xl border border-surface-700 bg-surface-800/50 p-5 sm:p-8 backdrop-blur-xl">
           {serverError && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}

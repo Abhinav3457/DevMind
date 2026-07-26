@@ -115,7 +115,7 @@ export function StatCard({
       transition={{ duration: 0.5, delay, ease: [0.25, 0.46, 0.45, 0.94] }}
       whileHover={{ scale: 1.02, y: -2 }}
       onClick={onClick}
-      className={`group relative overflow-hidden rounded-2xl border ${colors.border} bg-gradient-to-br from-surface-900/80 to-surface-950/80 p-5 shadow-lg backdrop-blur-xl transition-all duration-300 ${onClick ? 'cursor-pointer' : ''}`}
+      className={`group relative overflow-hidden rounded-xl sm:rounded-2xl border ${colors.border} bg-gradient-to-br from-surface-900/80 to-surface-950/80 p-3 sm:p-5 shadow-lg backdrop-blur-xl transition-all duration-300 ${onClick ? 'cursor-pointer' : ''}`}
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
       onKeyDown={onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } } : undefined}
@@ -127,9 +127,9 @@ export function StatCard({
       {/* Content */}
       <div className="relative z-10">
         <div className="flex items-start justify-between">
-          <div className="space-y-3">
-            <p className="text-xs font-semibold uppercase tracking-wider text-surface-400">{title}</p>
-            <p className={`text-3xl font-bold tracking-tight ${colors.text}`}>
+          <div className="space-y-1 sm:space-y-3">
+            <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-surface-400">{title}</p>
+            <p className={`text-xl sm:text-3xl font-bold tracking-tight ${colors.text}`}>
               {isNumber ? (
                 <AnimatedCounter value={value} delay={delay} />
               ) : (
@@ -140,8 +140,8 @@ export function StatCard({
               <p className="text-xs text-surface-400">{subtitle}</p>
             )}
           </div>
-          <div className={`rounded-xl p-3 ${colors.bg} ring-1 ${colors.ring} transition-all duration-300 group-hover:scale-110 group-hover:ring-2`}>
-            <Icon className={`h-5 w-5 ${colors.icon}`} />
+          <div className={`rounded-lg sm:rounded-xl p-2 sm:p-3 ${colors.bg} ring-1 ${colors.ring} transition-all duration-300 group-hover:scale-110 group-hover:ring-2`}>
+            <Icon className={`h-4 w-4 sm:h-5 sm:w-5 ${colors.icon}`} />
           </div>
         </div>
         

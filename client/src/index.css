@@ -52,17 +52,30 @@
     @apply bg-surface-950 text-surface-100;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     min-height: 100vh;
+    min-height: 100dvh;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
 
   /* Ensure root container fills viewport */
   #root {
     min-height: 100vh;
+    min-height: 100dvh;
     background-color: var(--surface-950);
   }
 
   ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
+  }
+
+  /* Thinner scrollbar on mobile */
+  @media (max-width: 768px) {
+    ::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
   }
 
   ::-webkit-scrollbar-track {
@@ -75,6 +88,38 @@
 
   ::-webkit-scrollbar-thumb:hover {
     @apply bg-surface-500;
+  }
+
+  /* Responsive font sizes */
+  html {
+    font-size: 16px;
+  }
+
+  @media (max-width: 480px) {
+    html {
+      font-size: 14px;
+    }
+  }
+
+  /* Prevent horizontal overflow */
+  img, video, svg {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* Better tap targets on mobile */
+  @media (hover: none) and (pointer: coarse) {
+    button, a, select, input[type="button"], input[type="submit"] {
+      min-height: 44px;
+    }
+  }
+
+  /* Safe area for modern mobile devices */
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .safe-top {
+    padding-top: env(safe-area-inset-top, 0px);
   }
 
   /* Theme-aware prose for markdown rendering */

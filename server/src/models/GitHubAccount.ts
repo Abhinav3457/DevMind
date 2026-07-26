@@ -21,7 +21,7 @@ export interface IGitHubAccount extends Document {
 const gitHubAccountSchema = new Schema<IGitHubAccount>(
   {
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, unique: true },
-    githubId: { type: Number, required: true, unique: true },
+    githubId: { type: Number, required: true },
     login: { type: String, required: true, trim: true },
     name: { type: String, default: '' },
     email: { type: String, default: '' },
