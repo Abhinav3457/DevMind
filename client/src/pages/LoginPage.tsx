@@ -134,11 +134,10 @@ export function LoginPage() {
               )}
             </div>
 
-            {/* Forgot Password — feature coming in future update */}
             <div className="flex justify-end">
-              <span className="text-xs text-surface-500 cursor-not-allowed">
+              <Link to="/auth/forgot-password" className="text-xs text-blue-400 hover:text-blue-300 transition-colors">
                 Forgot password?
-              </span>
+              </Link>
             </div>
 
             {/* Submit */}

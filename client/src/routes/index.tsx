@@ -1,6 +1,9 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { LoginPage } from '../pages/LoginPage';
 import { RegisterPage } from '../pages/RegisterPage';
+import { ForgotPasswordPage } from '../pages/ForgotPasswordPage';
+import { ResetPasswordPage } from '../pages/ResetPasswordPage';
+import { VerifyEmailPage } from '../pages/VerifyEmailPage';
 import { DashboardPage } from '../pages/DashboardPage';
 import { WorkspacePage } from '../pages/WorkspacePage';
 import { WorkspaceDetailPage } from '../pages/WorkspaceDetailPage';
@@ -18,6 +21,9 @@ export function AppRoutes() {
     <Routes>
       <Route path="/auth/login" element={<LoginPage />} />
       <Route path="/auth/register" element={<RegisterPage />} />
+      <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/auth/reset-password/:token" element={<ResetPasswordPage />} />
+      <Route path="/auth/verify-email/:token" element={<VerifyEmailPage />} />
       <Route path="/auth/github/callback" element={<GitHubCallback />} />
       <Route element={<AuthGuard><AppLayout /></AuthGuard>}>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
