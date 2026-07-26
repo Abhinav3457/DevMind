@@ -88,7 +88,7 @@ services:
       - key: GITHUB_CLIENT_SECRET
         sync: false
       - key: GITHUB_CALLBACK_URL
-        sync: false # Must match exactly what's registered in GitHub OAuth App settings
+        sync: false # Optional: code defaults to CLIENT_URL/auth/github/callback if not set
 
   # Frontend Static Site
   - type: web
@@ -100,6 +100,7 @@ services:
     rootDir: client
     buildCommand: npm install && npm run build
     staticPublishPath: ./dist
+    # SPA routing: all routes serve index.html so React Router handles them
     routes:
       - type: rewrite
         source: /*
