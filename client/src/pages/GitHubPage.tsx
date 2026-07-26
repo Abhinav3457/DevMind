@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Github, GitBranch, Globe, Lock, Loader2, ExternalLink, Search, RefreshCw, Database, FolderOpen, Trash2 } from 'lucide-react';
+import { Github, GitBranch, Globe, Lock, Loader2, ExternalLink, Search, RefreshCw, Database, FolderOpen, Trash2, LogOut } from 'lucide-react';
 import apiClient from '../api/axios';
 import toast from 'react-hot-toast';
 
@@ -33,6 +33,7 @@ export function GitHubPage() {
   const [indexing, setIndexing] = useState(false);
   const [removing, setRemoving] = useState<string | null>(null);
   const [showRemoveConfirm, setShowRemoveConfirm] = useState<string | null>(null);
+  const [disconnecting, setDisconnecting] = useState(false);
 
   useEffect(() => { checkConnection(); fetchWorkspaces(); 
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -86,6 +87,22 @@ export function GitHubPage() {
       }, 500);
     } catch {
       toast.error('Failed to connect to GitHub');
+    }
+  };
+
+  const handleDisconnect = async () => {
+    setDisconnecting(true);
+    try {
+      await apiClient.post('/github/disconnect');
+      toast.success('GitHub account disconnected');
+      setConnected(false);
+      setGithubUser(null);
+      setRepos([]);
+      setImportedRepos([]);
+    } catch {
+      toast.error('Failed to disconnect GitHub account');
+    } finally {
+      setDisconnecting(false);
     }
   };
 
@@ -157,12 +174,22 @@ export function GitHubPage() {
           <h1 className="text-2xl font-bold text-surface-100">GitHub Integration</h1>
           <p className="mt-1 text-sm text-surface-400">Connect your GitHub account and import repositories</p>
         </div>
-        <button onClick={handleConnect} disabled={connected}
-          className={'flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all ' + (connected ? 'bg-emerald-500/10 text-emerald-400 cursor-default' : 'bg-surface-800 text-surface-200 hover:bg-surface-700')}
-        >
-          <Github className="h-4 w-4" />
-          {connected ? 'Connected as ' + githubUser : 'Connect GitHub'}
-        </button>
+        <div className="flex items-center gap-2">
+          {connected && (
+            <button onClick={handleDisconnect} disabled={disconnecting}
+              className="flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2.5 text-sm font-medium text-red-400 transition-all hover:bg-red-500/20 disabled:opacity-50"
+            >
+              {disconnecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
+              Disconnect
+            </button>
+          )}
+          <button onClick={handleConnect} disabled={connected}
+            className={'flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all ' + (connected ? 'bg-emerald-500/10 text-emerald-400 cursor-default' : 'bg-surface-800 text-surface-200 hover:bg-surface-700')}
+          >
+            <Github className="h-4 w-4" />
+            {connected ? 'Connected as ' + githubUser : 'Connect GitHub'}
+          </button>
+        </div>
       </div>
 
       {!connected ? (
