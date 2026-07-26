@@ -204,66 +204,66 @@ export function GitHubPage() {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-surface-100">GitHub Integration</h1>
-          <p className="mt-1 text-sm text-surface-400">Connect your GitHub account and import repositories</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-xl sm:text-2xl font-bold text-surface-100 truncate">GitHub Integration</h1>
+          <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-surface-400 truncate">Connect your GitHub account and import repositories</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
           {connected && (
             <button onClick={handleDisconnect} disabled={disconnecting}
-              className="flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2.5 text-sm font-medium text-red-400 transition-all hover:bg-red-500/20 disabled:opacity-50"
+              className="flex items-center gap-1.5 sm:gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-2.5 sm:px-3 py-2 sm:py-2.5 text-[11px] sm:text-sm font-medium text-red-400 transition-all hover:bg-red-500/20 disabled:opacity-50"
             >
-              {disconnecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
-              Disconnect
+              {disconnecting ? <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" /> : <LogOut className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
+              <span className="hidden sm:inline">Disconnect</span>
             </button>
           )}
           <button onClick={handleConnect} disabled={connected}
-            className={'flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all ' + (connected ? 'bg-emerald-500/10 text-emerald-400 cursor-default' : 'bg-surface-800 text-surface-200 hover:bg-surface-700')}
+            className={'flex items-center gap-1.5 sm:gap-2 rounded-lg px-3 sm:px-4 py-2 sm:py-2.5 text-[11px] sm:text-sm font-medium transition-all whitespace-nowrap ' + (connected ? 'bg-emerald-500/10 text-emerald-400 cursor-default' : 'bg-surface-800 text-surface-200 hover:bg-surface-700')}
           >
-            <Github className="h-4 w-4" />
-            {connected ? 'Connected as ' + githubUser : 'Connect GitHub'}
+            <Github className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            <span className="truncate max-w-[120px] sm:max-w-none">{connected ? 'Connected as ' + githubUser : 'Connect GitHub'}</span>
           </button>
         </div>
       </div>
 
       {!connected ? (
-        <div className="flex flex-col items-center py-16 text-center">
-          <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-surface-800">
-            <Github className="h-10 w-10 text-surface-400" />
+        <div className="flex flex-col items-center py-10 sm:py-16 text-center px-4">
+          <div className="mb-4 sm:mb-6 flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-xl sm:rounded-2xl bg-surface-800">
+            <Github className="h-8 w-8 sm:h-10 sm:w-10 text-surface-400" />
           </div>
-          <h2 className="text-xl font-semibold text-surface-200">Connect Your GitHub Account</h2>
-          <p className="mt-2 max-w-md text-sm text-surface-400">Connect your GitHub account to import public and private repositories, analyze code, and generate documentation.</p>
-          <button onClick={handleConnect} className="mt-6 flex items-center gap-2 rounded-xl bg-surface-800 px-6 py-3 text-sm font-medium text-surface-200 transition-all hover:bg-surface-700">
-            <Github className="h-5 w-5" />
+          <h2 className="text-lg sm:text-xl font-semibold text-surface-200">Connect Your GitHub Account</h2>
+          <p className="mt-1 sm:mt-2 max-w-xs sm:max-w-md text-xs sm:text-sm text-surface-400">Connect your GitHub account to import public and private repositories, analyze code, and generate documentation.</p>
+          <button onClick={handleConnect} className="mt-4 sm:mt-6 flex items-center gap-2 rounded-lg sm:rounded-xl bg-surface-800 px-5 sm:px-6 py-2.5 sm:py-3 text-xs sm:text-sm font-medium text-surface-200 transition-all hover:bg-surface-700">
+            <Github className="h-4 w-4 sm:h-5 sm:w-5" />
             Sign in with GitHub
           </button>
         </div>
       ) : (
         <>
-          <div className="flex items-center justify-between flex-wrap gap-3">
-            <div className="flex items-center gap-3">
-              <div className="relative max-w-md">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
-                <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search repositories..."
-                  className="w-full rounded-lg border border-surface-700 bg-surface-900 py-2.5 pl-10 pr-4 text-sm text-surface-100 placeholder-surface-500 focus:border-primary-500/50 focus:outline-none"
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
+              <div className="relative w-full sm:max-w-xs">
+                <Search className="absolute left-2.5 sm:left-3 top-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 -translate-y-1/2 text-surface-400" />
+                <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search repos..."
+                  className="w-full rounded-lg border border-surface-700 bg-surface-900 py-2 sm:py-2.5 pl-8 sm:pl-10 pr-3 sm:pr-4 text-xs sm:text-sm text-surface-100 placeholder-surface-500 focus:border-primary-500/50 focus:outline-none"
                 />
               </div>
               {workspaces.length > 0 && (
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-surface-400">Link to:</span>
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  <span className="text-[10px] sm:text-xs text-surface-400 whitespace-nowrap">Link to:</span>
                   <select value={selectedWorkspaceId} onChange={e => setSelectedWorkspaceId(e.target.value)}
-                    className="rounded-lg border border-surface-600 bg-surface-800 px-3 py-2 text-xs text-surface-300 focus:border-primary-500/50 focus:outline-none"
+                    className="rounded-lg border border-surface-600 bg-surface-800 px-2 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-xs text-surface-300 focus:border-primary-500/50 focus:outline-none max-w-[120px] sm:max-w-none truncate"
                   >
                     {workspaces.map((ws) => (
-                      <option key={ws.id} value={ws.id}>{ws.name}</option>
+                      <option key={ws.id} value={ws.id} className="truncate">{ws.name}</option>
                     ))}
                   </select>
                 </div>
               )}
             </div>
             <button onClick={handleFetchRepos} disabled={loading}
-              className="flex items-center gap-2 rounded-lg border border-surface-700 bg-surface-900 px-4 py-2.5 text-sm text-surface-300 transition-all hover:text-surface-100"
+              className="flex items-center gap-1.5 sm:gap-2 rounded-lg border border-surface-700 bg-surface-900 px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm text-surface-300 transition-all hover:text-surface-100 self-end sm:self-auto"
             >
               <RefreshCw className={'h-4 w-4 ' + (loading ? 'animate-spin' : '')} />
               Refresh

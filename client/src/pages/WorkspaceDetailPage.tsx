@@ -259,76 +259,75 @@ export function WorkspaceDetailPage() {
   ];
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4 sm:space-y-6">
-      <div className="flex items-start sm:items-center gap-3 sm:gap-4">
-        <button onClick={() => navigate('/workspace')} className="flex h-8 w-8 sm:h-9 sm:w-9 flex-shrink-0 items-center justify-center rounded-lg border border-surface-700 text-surface-400 transition-all hover:bg-surface-800 hover:text-surface-200">
-          <ArrowLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4 sm:space-y-6">        <div className="flex items-start sm:items-center gap-2 sm:gap-4">
+        <button onClick={() => navigate('/workspace')} className="flex h-7 w-7 sm:h-9 sm:w-9 flex-shrink-0 items-center justify-center rounded-lg border border-surface-700 text-surface-400 transition-all hover:bg-surface-800 hover:text-surface-200">
+          <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4" />
         </button>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-            <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-surface-100 truncate">{workspace.name}</h1>
-            <span className={'rounded-full px-2 sm:px-2.5 py-0.5 text-[10px] sm:text-xs font-medium flex-shrink-0 ' + ROLE_BADGES[workspace.userRole].color}>
+          <div className="flex items-center gap-1.5 sm:gap-3 flex-wrap">
+            <h1 className="text-base sm:text-xl lg:text-2xl font-bold text-surface-100 truncate">{workspace.name}</h1>
+            <span className={'rounded-full px-1.5 sm:px-2.5 py-0.5 text-[9px] sm:text-xs font-medium flex-shrink-0 ' + ROLE_BADGES[workspace.userRole].color}>
               {ROLE_BADGES[workspace.userRole].label}
             </span>
           </div>
           {workspace.description && (
-            <p className="mt-0.5 text-xs sm:text-sm text-surface-400 truncate">{workspace.description}</p>
+            <p className="mt-0.5 text-[11px] sm:text-sm text-surface-400 truncate">{workspace.description}</p>
           )}
         </div>
       </div>
 
-      <div className="flex gap-1 rounded-xl border border-surface-700 bg-surface-900/50 p-1 backdrop-blur-sm overflow-x-auto">
+      <div className="flex gap-1 rounded-xl border border-surface-700 bg-surface-900/50 p-1 backdrop-blur-sm overflow-x-auto scrollbar-thin">
         {tabs.map((tab) => (
           <button key={tab.key} onClick={() => setActiveTab(tab.key)}
             className={
-              'flex flex-1 items-center justify-center gap-1 sm:gap-2 rounded-lg px-2 sm:px-4 py-2 sm:py-2.5 text-[10px] sm:text-sm font-medium transition-all whitespace-nowrap ' +
+              'flex flex-1 items-center justify-center gap-1 sm:gap-2 rounded-lg px-1.5 sm:px-4 py-1.5 sm:py-2.5 text-[9px] sm:text-sm font-medium transition-all whitespace-nowrap ' +
               (activeTab === tab.key
                 ? 'bg-primary-500/15 text-primary-400 shadow-sm'
                 : 'text-surface-400 hover:text-surface-200')
             }
           >
-            <tab.icon className="h-3 w-3 sm:h-4 sm:w-4" />
-            {tab.label}
+            <tab.icon className="h-2.5 w-2.5 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">{tab.label}</span>
           </button>
         ))}
       </div>
 
-      <div className="rounded-xl border border-surface-700 bg-surface-900/50 p-6 backdrop-blur-sm">
+      <div className="rounded-xl border border-surface-700 bg-surface-900/50 p-3 sm:p-6 backdrop-blur-sm">
         {activeTab === 'overview' && (
-          <div className="space-y-6">
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="rounded-lg border border-surface-700 bg-surface-800/30 p-4">
-                <p className="text-xs text-surface-400">Plan</p>
-                <p className="mt-1 text-lg font-semibold text-surface-200 capitalize">{workspace.plan}</p>
+          <div className="space-y-4 sm:space-y-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
+              <div className="rounded-lg border border-surface-700 bg-surface-800/30 p-3 sm:p-4">
+                <p className="text-[10px] sm:text-xs text-surface-400">Plan</p>
+                <p className="mt-0.5 sm:mt-1 text-sm sm:text-lg font-semibold text-surface-200 capitalize">{workspace.plan}</p>
               </div>
-              <div className="rounded-lg border border-surface-700 bg-surface-800/30 p-4">
-                <p className="text-xs text-surface-400">Members</p>
-                <p className="mt-1 text-lg font-semibold text-surface-200">{workspace.memberCount}</p>
+              <div className="rounded-lg border border-surface-700 bg-surface-800/30 p-3 sm:p-4">
+                <p className="text-[10px] sm:text-xs text-surface-400">Members</p>
+                <p className="mt-0.5 sm:mt-1 text-sm sm:text-lg font-semibold text-surface-200">{workspace.memberCount}</p>
               </div>
-              <div className="rounded-lg border border-surface-700 bg-surface-800/30 p-4">
-                <p className="text-xs text-surface-400">Created</p>
-                <p className="mt-1 text-lg font-semibold text-surface-200">{new Date(workspace.createdAt).toLocaleDateString()}</p>
+              <div className="rounded-lg border border-surface-700 bg-surface-800/30 p-3 sm:p-4 col-span-2 sm:col-span-1">
+                <p className="text-[10px] sm:text-xs text-surface-400">Created</p>
+                <p className="mt-0.5 sm:mt-1 text-sm sm:text-lg font-semibold text-surface-200">{new Date(workspace.createdAt).toLocaleDateString()}</p>
               </div>
             </div>
             <div>
-              <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-surface-200">
-                <Activity className="h-4 w-4 text-surface-400" />
+              <h3 className="mb-2 sm:mb-3 flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-semibold text-surface-200">
+                <Activity className="h-3 w-3 sm:h-4 sm:w-4 text-surface-400" />
                 Recent Activity
               </h3>
               {activities.length === 0 ? (
-                <div className="flex flex-col items-center py-8 text-center">
-                  <Clock className="mb-2 h-6 w-6 text-surface-600" />
-                  <p className="text-sm text-surface-400">No recent activity</p>
+                <div className="flex flex-col items-center py-6 sm:py-8 text-center">
+                  <Clock className="mb-2 h-5 w-5 sm:h-6 sm:w-6 text-surface-600" />
+                  <p className="text-xs sm:text-sm text-surface-400">No recent activity</p>
                 </div>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-1.5 sm:space-y-2">
                   {activities.slice(0, 10).map((a, i) => (
-                    <div key={i} className="flex items-center gap-3 rounded-lg bg-surface-800/30 px-4 py-2.5">
-                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary-500/10">
-                        <Users className="h-3.5 w-3.5 text-primary-400" />
+                    <div key={i} className="flex items-center gap-2 sm:gap-3 rounded-lg bg-surface-800/30 px-3 sm:px-4 py-2 sm:py-2.5">
+                      <div className="flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-full bg-primary-500/10">
+                        <Users className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-primary-400" />
                       </div>
-                      <p className="flex-1 text-sm text-surface-300">{a.description} joined the workspace</p>
-                      <span className="text-xs text-surface-500">{new Date(a.timestamp).toLocaleDateString()}</span>
+                      <p className="flex-1 text-[11px] sm:text-sm text-surface-300 truncate">{a.description} joined the workspace</p>
+                      <span className="text-[10px] sm:text-xs text-surface-500 flex-shrink-0">{new Date(a.timestamp).toLocaleDateString()}</span>
                     </div>
                   ))}
                 </div>

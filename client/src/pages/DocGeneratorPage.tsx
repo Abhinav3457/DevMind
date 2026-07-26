@@ -52,50 +52,50 @@ export function DocGeneratorPage() {
   };
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4 sm:space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-surface-100">Documentation Generator</h1>
-        <p className="mt-1 text-sm text-surface-400">Generate professional project documentation using AI</p>
+        <h1 className="text-xl sm:text-2xl font-bold text-surface-100">Documentation Generator</h1>
+        <p className="mt-0.5 text-xs sm:text-sm text-surface-400">Generate professional project documentation using AI</p>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <div className="space-y-4">
+      <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
+        <div className="space-y-4 w-full lg:w-1/2">
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-surface-200">Document Type</label>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            <label className="mb-1.5 block text-xs sm:text-sm font-medium text-surface-200">Document Type</label>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 sm:gap-2">
               {docTypes.map(dt => (
                 <button key={dt.value} onClick={() => setDocType(dt.value)}
-                  className={'flex items-center gap-2 rounded-lg border px-3 py-2.5 text-xs font-medium transition-all ' + (docType === dt.value ? 'border-primary-500/50 bg-primary-500/10 text-primary-400' : 'border-surface-600 bg-surface-800/50 text-surface-400 hover:border-surface-500 hover:text-surface-200')}
-                ><dt.icon className="h-3.5 w-3.5" />{dt.label}</button>
+                  className={'flex items-center gap-1.5 sm:gap-2 rounded-lg border px-2 sm:px-3 py-2 sm:py-2.5 text-[10px] sm:text-xs font-medium transition-all ' + (docType === dt.value ? 'border-primary-500/50 bg-primary-500/10 text-primary-400' : 'border-surface-600 bg-surface-800/50 text-surface-400 hover:border-surface-500 hover:text-surface-200')}
+                ><dt.icon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />{dt.label}</button>
               ))}
             </div>
           </div>
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-surface-200">Project Context</label>
+            <label className="mb-1.5 block text-xs sm:text-sm font-medium text-surface-200">Project Context</label>
             <textarea
               value={context} onChange={e => setContext(e.target.value)}
               placeholder={'Describe your project:\n- Tech stack: React, Node.js, TypeScript\n- Key features: Authentication, API, Database\n- Structure: Monorepo with client/server'}
-              className="h-[300px] w-full resize-none rounded-xl border border-surface-700 bg-surface-900/50 p-4 text-sm text-surface-200 placeholder-surface-600 focus:border-primary-500/50 focus:outline-none"
+              className="h-[180px] sm:h-[250px] lg:h-[300px] w-full resize-none rounded-xl border border-surface-700 bg-surface-900/50 p-3 sm:p-4 text-xs sm:text-sm text-surface-200 placeholder-surface-600 focus:border-primary-500/50 focus:outline-none"
             />
           </div>
           <button onClick={handleGenerate} disabled={loading || !context.trim()}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 py-3 text-sm font-medium text-white shadow-lg shadow-blue-500/20 transition-all hover:from-blue-500 hover:to-purple-500 disabled:opacity-50"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 py-2.5 sm:py-3 text-xs sm:text-sm font-medium text-white shadow-lg shadow-blue-500/20 transition-all hover:from-blue-500 hover:to-purple-500 disabled:opacity-50"
           >
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            {loading ? <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" /> : <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
             {loading ? 'Generating...' : 'Generate Documentation'}
           </button>
         </div>
 
-        <div>
+        <div className="w-full lg:w-1/2">
           <div className="mb-3 flex items-center justify-between">
-            <label className="text-sm font-medium text-surface-200">Preview</label>
+            <label className="text-xs sm:text-sm font-medium text-surface-200">Preview</label>
             {documentation && (
               <button onClick={handleDownload}
-                className="flex items-center gap-1.5 rounded-lg border border-surface-600 bg-surface-800/50 px-3 py-1.5 text-xs text-surface-300 transition-all hover:text-surface-100"
-              ><Download className="h-3.5 w-3.5" /> Download</button>
+                className="flex items-center gap-1.5 rounded-lg border border-surface-600 bg-surface-800/50 px-2.5 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs text-surface-300 transition-all hover:text-surface-100"
+              ><Download className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Download</button>
             )}
           </div>
-          <div className="h-[400px] overflow-y-auto rounded-xl border border-surface-700 bg-surface-900/50 p-4 backdrop-blur-sm">
+          <div className="h-[250px] sm:h-[350px] lg:h-[400px] overflow-y-auto rounded-xl border border-surface-700 bg-surface-900/50 p-3 sm:p-4 backdrop-blur-sm">
             {documentation ? (
               <div className="max-w-none">
                 <MarkdownRenderer content={documentation} />

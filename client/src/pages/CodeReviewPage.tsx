@@ -118,28 +118,28 @@ export function CodeReviewPage() {
   ];
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-surface-100">AI Code Review</h1>
-          <p className="mt-1 text-sm text-surface-400">Get instant feedback on your code quality, security, and performance</p>
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-xl sm:text-2xl font-bold text-surface-100 truncate">AI Code Review</h1>
+          <p className="mt-0.5 text-xs sm:text-sm text-surface-400">Get instant feedback on your code quality, security, and performance</p>
         </div>
-        <div className="flex rounded-lg border border-surface-700 bg-surface-800 p-0.5">
+        <div className="flex rounded-lg border border-surface-700 bg-surface-800 p-0.5 self-start sm:self-auto">
           <button onClick={() => setMode('snippet')}
-            className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
+            className={`flex items-center gap-1 rounded-md px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium transition-all ${
               mode === 'snippet' ? 'bg-primary-600 text-white shadow-sm' : 'text-surface-400 hover:text-surface-200'
             }`}
-          ><Code2 className="h-3.5 w-3.5" /> Code</button>
+          ><Code2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Code</button>
           <button onClick={() => setMode('repo')}
-            className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
+            className={`flex items-center gap-1 rounded-md px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium transition-all ${
               mode === 'repo' ? 'bg-primary-600 text-white shadow-sm' : 'text-surface-400 hover:text-surface-200'
             }`}
-          ><BookOpen className="h-3.5 w-3.5" /> Repository</button>
+          ><BookOpen className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Repo</button>
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <div className="space-y-4">
+      <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
+        <div className="space-y-4 w-full lg:w-1/2">
           {mode === 'repo' && (
             <>
               {loadingReports ? (
@@ -201,13 +201,13 @@ export function CodeReviewPage() {
               <textarea
                 value={code} onChange={e => setCode(e.target.value)}
                 placeholder={'// Paste your code here for AI review\nfunction example() {\n  // ...\n}'}
-                className="h-[300px] w-full resize-none rounded-xl border border-surface-700 bg-surface-900/50 p-4 font-mono text-sm text-surface-200 placeholder-surface-600 focus:border-primary-500/50 focus:outline-none"
+                className="h-[180px] sm:h-[250px] lg:h-[300px] w-full resize-none rounded-xl border border-surface-700 bg-surface-900/50 p-3 sm:p-4 font-mono text-xs sm:text-sm text-surface-200 placeholder-surface-600 focus:border-primary-500/50 focus:outline-none"
               />
-              <div className="flex gap-2">
+              <div className="flex gap-1.5 sm:gap-2 flex-wrap">
                 {examples.map(ex => (
                   <button key={ex.label} onClick={() => setCode(ex.code)}
-                    className="rounded-lg border border-surface-600 bg-surface-800/50 px-3 py-1.5 text-xs text-surface-400 transition-all hover:border-primary-500/30 hover:text-surface-200"
-                  ><Code2 className="mr-1 inline h-3 w-3" />{ex.label}</button>
+                    className="rounded-lg border border-surface-600 bg-surface-800/50 px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs text-surface-400 transition-all hover:border-primary-500/30 hover:text-surface-200"
+                  ><Code2 className="mr-1 inline h-2.5 w-2.5 sm:h-3 sm:w-3" />{ex.label}</button>
                 ))}
               </div>
             </>
@@ -221,7 +221,7 @@ export function CodeReviewPage() {
           </button>
         </div>
 
-        <div>
+        <div className="w-full lg:w-1/2">
           <div className="flex items-center justify-between mb-3">
             <label className="text-sm font-medium text-surface-200">Review Results</label>
             {score !== null && (
@@ -233,7 +233,7 @@ export function CodeReviewPage() {
               }>Score: {score}/100</span>
             )}
           </div>
-          <div className="h-[400px] overflow-y-auto rounded-xl border border-surface-700 bg-surface-900/50 p-4 backdrop-blur-sm">
+          <div className="h-[250px] sm:h-[350px] lg:h-[400px] overflow-y-auto rounded-xl border border-surface-700 bg-surface-900/50 p-3 sm:p-4 backdrop-blur-sm">
             {review ? (
               <div className="max-w-none">
                 <MarkdownRenderer content={review} />
