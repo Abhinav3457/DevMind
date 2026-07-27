@@ -1,5 +1,7 @@
 import multer from 'multer';
 import path from 'path';
+import os from 'os';
+import crypto from 'crypto';
 import type { Request } from 'express';
 import { ApiError } from '../utils/apiResponse';
 
@@ -8,6 +10,7 @@ const ALLOWED_FILE_TYPES = [
   'image/png',
   'image/gif',
   'image/webp',
+  'image/svg+xml',
   'application/pdf',
   'text/plain',
   'text/html',
@@ -19,16 +22,16 @@ const ALLOWED_FILE_TYPES = [
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
-// Uploads directory — consistent in both dev (ts-node) and production (compiled)
-const UPLOADS_DIR = path.join(process.cwd(), 'src', 'uploads');
+// Use a temp directory that gets cleaned up after Cloudinary upload
+const TEMP_DIR = path.join(os.tmpdir(), 'devmind-uploads');
 
-// Local storage configuration
+// Temporary local storage — files are deleted after Cloudinary upload
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => {
-    cb(null, UPLOADS_DIR);
+    cb(null, TEMP_DIR);
   },
   filename: (_req, file, cb) => {
-    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+    const uniqueSuffix = `${Date.now()}-${crypto.randomBytes(8).toString('hex')}`;
     const ext = path.extname(file.originalname);
     cb(null, `${file.fieldname}-${uniqueSuffix}${ext}`);
   },
@@ -43,7 +46,7 @@ const fileFilter = (
   if (ALLOWED_FILE_TYPES.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new ApiError(400, `File type ${file.mimetype} is not allowed`));
+    cb(new ApiError(400, `File type ${file.mimetype} is not allowed. Allowed: ${ALLOWED_FILE_TYPES.join(', ')}`));
   }
 };
 
@@ -55,10 +58,10 @@ export const upload = multer({
   fileFilter,
 });
 
-// Single file upload
+// Single file upload (field name: 'file')
 export const uploadSingle = upload.single('file');
 
-// Multiple file upload
+// Multiple file upload (field name: 'files', max 5)
 export const uploadMultiple = upload.array('files', 5);
 
 // Upload fields
@@ -66,3 +69,5 @@ export const uploadFields = upload.fields([
   { name: 'avatar', maxCount: 1 },
   { name: 'attachments', maxCount: 5 },
 ]);
+
+export { TEMP_DIR };

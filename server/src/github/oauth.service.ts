@@ -12,7 +12,7 @@ const STATE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
 export class GitHubOAuthService {
 
-  getAuthorizationUrl(userId: string, callbackUrl?: string): { url: string; state: string } {
+  async getAuthorizationUrl(userId: string, callbackUrl?: string): Promise<{ url: string; state: string }> {
     const state = crypto.randomBytes(32).toString('hex');
 
     const redirectUri = callbackUrl || `${env.CLIENT_URL}/auth/github/callback`;
@@ -24,12 +24,17 @@ export class GitHubOAuthService {
       state,
     });
 
-    // Store state asynchronously — caller should await this
-    OAuthState.create({
-      state,
-      userId,
-      expiresAt: new Date(Date.now() + STATE_TTL_MS),
-    }).catch((err) => logger.error('Failed to store OAuth state:', err));
+    // Persist state BEFORE returning the URL — this is critical for CSRF protection
+    try {
+      await OAuthState.create({
+        state,
+        userId,
+        expiresAt: new Date(Date.now() + STATE_TTL_MS),
+      });
+    } catch (err) {
+      logger.error('Failed to store OAuth state:', err);
+      throw new Error('Failed to initialize GitHub authorization. Please try again.');
+    }
 
     return { url: `https://github.com/login/oauth/authorize?${params.toString()}`, state };
   }
@@ -45,6 +50,10 @@ export class GitHubOAuthService {
   }
 
   async handleCallback(code: string): Promise<{ accessToken: string; login: string }> {
+    if (!env.GITHUB_CLIENT_ID || !env.GITHUB_CLIENT_SECRET) {
+      throw new Error('GitHub OAuth is not configured. Missing GITHUB_CLIENT_ID or GITHUB_CLIENT_SECRET environment variables.');
+    }
+
     const tokenResponse = await fetch('https://github.com/login/oauth/access_token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
@@ -54,9 +63,10 @@ export class GitHubOAuthService {
         code,
       }),
     });
-    const tokenData = await tokenResponse.json() as { access_token?: string; error?: string };
+    const tokenData = await tokenResponse.json() as { access_token?: string; error?: string; error_description?: string };
     if (!tokenData.access_token) {
-      throw new Error(`GitHub OAuth error: ${tokenData.error || 'No access token received'}`);
+      const errorDesc = tokenData.error_description ? ` — ${tokenData.error_description}` : '';
+      throw new Error(`GitHub OAuth error: ${tokenData.error || 'No access token received'}${errorDesc}`);
     }
 
     const { Octokit } = await import('octokit');

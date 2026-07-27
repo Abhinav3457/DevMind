@@ -41,6 +41,13 @@ export function sendCreated(res: Response, options: { message: string; data?: un
   sendSuccess(res, { statusCode: 201, message: options.message, data: options.data });
 }
 
+export function sendError(res: Response, statusCode: number, message: string): void {
+  res.status(statusCode).json({
+    success: false,
+    message,
+  });
+}
+
 export function sendPaginated(
   res: Response,
   message: string,

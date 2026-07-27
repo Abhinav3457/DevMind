@@ -4,7 +4,8 @@ import { gitHubOAuthService } from '../github/oauth.service';
 import ImportedRepository from '../models/ImportedRepository';
 import IndexReport from '../models/IndexReport';
 import { env } from '../config/environment';
-import { sendSuccess } from '../utils/apiResponse';
+import { sendSuccess, sendError } from '../utils/apiResponse';
+import logger from '../utils/logger';
 
 export class GitHubController {
   async getAuthorizationUrl(req: Request, res: Response): Promise<void> {
@@ -20,8 +21,20 @@ export class GitHubController {
 
   async handleOAuthCallback(req: Request, res: Response): Promise<void> {
     const { code, state } = req.body;
-    const result = await gitHubService.handleOAuthCallback(req.user!.userId, code, state);
-    sendSuccess(res, { statusCode: 200, message: 'GitHub account connected successfully', data: result });
+
+    if (!env.GITHUB_CLIENT_ID || !env.GITHUB_CLIENT_SECRET) {
+      sendError(res, 500, 'GitHub OAuth is not configured. Please set GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET environment variables.');
+      return;
+    }
+
+    try {
+      const result = await gitHubService.handleOAuthCallback(req.user!.userId, code, state);
+      sendSuccess(res, { statusCode: 200, message: 'GitHub account connected successfully', data: result });
+    } catch (error) {
+      const message = (error as Error).message || 'Failed to connect GitHub account';
+      logger.error('GitHub OAuth callback error:', { message });
+      sendError(res, 500, message);
+    }
   }
 
   async handleDirectOAuthCallback(req: Request, res: Response): Promise<void> {
@@ -29,6 +42,10 @@ export class GitHubController {
 
     if (!code || !state) {
       return res.redirect(`${env.CLIENT_URL}/github?error=missing_params`);
+    }
+
+    if (!env.GITHUB_CLIENT_ID || !env.GITHUB_CLIENT_SECRET) {
+      return res.redirect(`${env.CLIENT_URL}/github?github_status=error&message=${encodeURIComponent('GitHub OAuth is not configured. Please set GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET environment variables.')}`);
     }
 
     const userId = await gitHubOAuthService.getUserIdFromState(state as string);
@@ -40,6 +57,7 @@ export class GitHubController {
       await gitHubService.handleOAuthCallback(userId, code as string, state as string);
       return res.redirect(`${env.CLIENT_URL}/github?github_status=success`);
     } catch (err) {
+      logger.error('GitHub OAuth direct callback error:', { message: (err as Error).message });
       const message = encodeURIComponent((err as Error).message);
       return res.redirect(`${env.CLIENT_URL}/github?github_status=error&message=${message}`);
     }

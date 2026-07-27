@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import Project from '../models/Project';
-import Workspace from '../models/Workspace';
+import WorkspaceMember from '../models/WorkspaceMember';
 import ImportedRepository from '../models/ImportedRepository';
 import IndexReport from '../models/IndexReport';
 import IndexedFile from '../models/IndexedFile';
@@ -86,7 +86,7 @@ export class AnalyticsService {
       activityScore,
     ] = await Promise.all([
       Project.countDocuments({ owner: userId, status: { $ne: 'deleted' } }),
-      Workspace.countDocuments({ ownerId: userId }),
+      WorkspaceMember.distinct('workspaceId', { userId }).then(ids => ids.length),
       reportId ? 1 : ImportedRepository.countDocuments({ userId }),
       IndexReport.countDocuments(reportFilter),
       // Use $in with pre-fetched IDs instead of $lookup + $unwind

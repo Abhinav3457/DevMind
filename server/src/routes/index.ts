@@ -10,6 +10,7 @@ import docGeneratorRoutes from './doc-generator.routes';
 import chatRoutes from './chat.routes';
 import analyticsRoutes from './analytics.routes';
 import healthRoutes from './health.routes';
+import uploadRoutes from './upload.routes';
 
 const router = Router();
 
@@ -18,6 +19,7 @@ router.use('/auth', authRoutes);
 router.use('/workspaces', workspaceRoutes);
 router.use('/projects', projectRoutes);
 router.use('/github', githubRoutes);
+router.use('/upload', uploadRoutes);
 router.use('/indexer', indexerRoutes);
 router.use('/ai/repo-intelligence', repoIntelligenceRoutes);
 router.use('/ai/code-review', codeReviewRoutes);

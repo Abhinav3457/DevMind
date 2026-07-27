@@ -4,9 +4,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, Code2, Brain, Bug, FileText,
   Github, BarChart3, LogOut, ChevronLeft,
-  Bell, Menu, X, Users, Sun, Moon,
+  Bell, Menu, X, Users, Sun, Moon, Loader2,
 } from 'lucide-react';
 import { useAuthStore, useUIStore } from '../../store';
+import { logout as logoutApi } from '../../services/auth';
 
 const navItems = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -29,10 +30,20 @@ export function AppLayout() {
     return () => { document.body.style.overflow = ''; };
   }, [mobileOpen]);
 
-  const handleLogout = () => {
-    localStorage.removeItem('accessToken');
-    clearUser();
-    navigate('/auth/login', { replace: true });
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    if (loggingOut) return;
+    setLoggingOut(true);
+    try {
+      await logoutApi();
+    } catch {
+      // Even if the API call fails, clear local state
+    } finally {
+      clearUser();
+      navigate('/auth/login', { replace: true });
+      setLoggingOut(false);
+    }
   };
 
   const toggleTheme = () => {
@@ -107,10 +118,11 @@ export function AppLayout() {
         <div className="border-t border-surface-700 p-2 sm:p-3 safe-bottom">
           <button
             onClick={() => { handleLogout(); setMobileOpen(false); }}
-            className="flex w-full items-center gap-3 rounded-lg px-2.5 sm:px-3 py-2.5 text-sm font-medium text-surface-400 transition-all hover:bg-red-500/10 hover:text-red-400"
+            className="flex w-full items-center gap-3 rounded-lg px-2.5 sm:px-3 py-2.5 text-sm font-medium text-surface-400 transition-all hover:bg-red-500/10 hover:text-red-400 disabled:opacity-50"
+            disabled={loggingOut}
           >
-            <LogOut className="h-5 w-5 flex-shrink-0" />
-            {sidebarOpen && <span>Sign Out</span>}
+            {loggingOut ? <Loader2 className="h-5 w-5 flex-shrink-0 animate-spin" /> : <LogOut className="h-5 w-5 flex-shrink-0" />}
+            {sidebarOpen && <span>{loggingOut ? 'Signing out...' : 'Sign Out'}</span>}
           </button>
         </div>
       </aside>

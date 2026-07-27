@@ -1,10 +1,42 @@
 import { Server as HttpServer } from 'http';
-import { Server as SocketServer } from 'socket.io';
+import { Server as SocketServer, Socket } from 'socket.io';
+import jwt from 'jsonwebtoken';
 import { env } from './environment';
 import { handleSocketEvents } from '../socket';
+import WorkspaceMember from '../models/WorkspaceMember';
 import logger from '../utils/logger';
 
 let io: SocketServer | null = null;
+
+interface JwtPayload {
+  userId: string;
+  email: string;
+  role: string;
+}
+
+/**
+ * Socket.io authentication middleware.
+ * Verifies JWT from the handshake auth token and attaches userId to the socket.
+ */
+function socketAuthMiddleware(socket: Socket, next: (err?: Error) => void): void {
+  const token = socket.handshake.auth?.token || socket.handshake.query?.token;
+
+  if (!token) {
+    logger.warn('Socket auth rejected: No token provided from ' + socket.id);
+    return next(new Error('Authentication required. No token provided.'));
+  }
+
+  try {
+    const decoded = jwt.verify(token as string, env.JWT_SECRET) as JwtPayload;
+    (socket as Socket & { userId: string }).data.userId = decoded.userId;
+    (socket as Socket & { userId: string }).data.email = decoded.email;
+    (socket as Socket & { userId: string }).data.role = decoded.role;
+    next();
+  } catch (error) {
+    logger.warn('Socket auth rejected: Invalid token from ' + socket.id);
+    next(new Error('Invalid or expired authentication token.'));
+  }
+}
 
 export function initializeSocket(httpServer: HttpServer): SocketServer {
   io = new SocketServer(httpServer, {
@@ -17,8 +49,13 @@ export function initializeSocket(httpServer: HttpServer): SocketServer {
     pingInterval: 25000,
   });
 
+  // Apply authentication middleware
+  io.use(socketAuthMiddleware);
+
   io.on('connection', (socket) => {
-    logger.info(`Client connected: ${socket.id}`);
+    const userId = (socket.data as Record<string, unknown>).userId as string;
+    logger.info('Socket connected: ' + socket.id + ' (user: ' + userId + ')');
+
     handleSocketEvents(io!, socket);
   });
 

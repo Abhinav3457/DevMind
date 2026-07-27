@@ -12,12 +12,6 @@ export function globalErrorHandler(
   let message = 'Internal Server Error';
   let errors: unknown = null;
 
-  // Log the error
-  logger.error('Error:', {
-    message: error.message,
-    stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
-  });
-
   // Handle known ApiError
   if (error instanceof ApiError) {
     statusCode = error.statusCode;
@@ -61,6 +55,19 @@ export function globalErrorHandler(
   if (error.name === 'TokenExpiredError') {
     statusCode = 401;
     message = 'Authentication token has expired';
+  }
+
+  // Log client errors (4xx) as warnings, server errors (5xx) as errors
+  if (statusCode >= 500) {
+    logger.error('Server Error:', {
+      message: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+    });
+  } else {
+    logger.warn('Client Error:', {
+      statusCode,
+      message: error.message,
+    });
   }
 
   res.status(statusCode).json({

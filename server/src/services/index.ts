@@ -6,3 +6,4 @@ export { codeReviewService, CodeReviewService } from './code-review.service';
 export { docGeneratorService, DocGeneratorService } from './doc-generator.service';
 export { analyticsService, AnalyticsService } from './analytics.service';
 export { projectService, ProjectService } from './project.service';
+export { uploadService, UploadService } from './upload.service';

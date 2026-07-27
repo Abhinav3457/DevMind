@@ -30,10 +30,11 @@ export function GitHubCallback() {
         setMessage('GitHub account connected successfully! You can close this window.');
         toast.success('GitHub connected!');
         setTimeout(() => window.close(), 1500);
-      } catch {
+      } catch (err: unknown) {
+        const serverMsg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
         setStatus('error');
-        setMessage('Failed to connect GitHub account. Please try again.');
-        toast.error('GitHub connection failed');
+        setMessage(serverMsg || 'Failed to connect GitHub account. Please check server logs.');
+        toast.error(serverMsg || 'GitHub connection failed');
       }
     };
 

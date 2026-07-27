@@ -5,9 +5,9 @@ import { sendSuccess, sendCreated, ApiError } from '../utils/apiResponse';
 const COOKIE_OPTIONS = {
   httpOnly: true,
   secure: process.env.NODE_ENV === 'production',
-  sameSite: process.env.NODE_ENV === 'production' ? 'lax' as const : 'lax' as const,
+  sameSite: 'lax' as const,
   maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-  path: '/api/v1/auth',
+  path: '/',
 } as const;
 
 export class AuthController {
@@ -42,7 +42,7 @@ export class AuthController {
   async logout(req: Request, res: Response): Promise<void> {
     await authService.logout(req.user!.userId);
 
-    res.clearCookie('refreshToken', { path: '/api/v1/auth' });
+    res.clearCookie('refreshToken', { path: '/' });
 
     sendSuccess(res, {
       statusCode: 200,
@@ -82,7 +82,7 @@ export class AuthController {
     const { currentPassword, newPassword } = req.body;
     await authService.changePassword(req.user!.userId, currentPassword, newPassword);
 
-    res.clearCookie('refreshToken', { path: '/api/v1/auth' });
+    res.clearCookie('refreshToken', { path: '/' });
 
     sendSuccess(res, {
       statusCode: 200,
