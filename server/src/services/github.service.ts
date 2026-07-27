@@ -202,6 +202,10 @@ export class GitHubService {
     logger.info(`Repository ${repo.fullName} and its index data deleted`);
   }
 
+  async forceDisconnectByGithubId(githubId: number): Promise<{ deleted: boolean; login?: string }> {
+    return gitHubOAuthService.forceDisconnectByGithubId(githubId);
+  }
+
   async syncRepository(userId: string, owner: string, repo: string): Promise<{ synced: boolean; branches: number }> {
     const metadata = await this.getRepoMetadata(userId, owner, repo);
     const branches = await this.listBranches(userId, owner, repo);

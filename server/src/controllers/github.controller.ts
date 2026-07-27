@@ -68,6 +68,28 @@ export class GitHubController {
     sendSuccess(res, { statusCode: 200, message: 'GitHub account disconnected successfully' });
   }
 
+  async forceDisconnect(req: Request, res: Response): Promise<void> {
+    const { githubId } = req.body;
+
+    if (!githubId || isNaN(Number(githubId))) {
+      sendError(res, 400, 'A valid githubId is required.');
+      return;
+    }
+
+    const result = await gitHubService.forceDisconnectByGithubId(Number(githubId));
+
+    if (!result.deleted) {
+      sendError(res, 404, `No GitHub account found with githubId: ${githubId}`);
+      return;
+    }
+
+    sendSuccess(res, {
+      statusCode: 200,
+      message: `GitHub account "${result.login}" (ID: ${githubId}) has been force-disconnected.`,
+      data: result,
+    });
+  }
+
   async getConnectionStatus(req: Request, res: Response): Promise<void> {
     const result = await gitHubService.getConnectionStatus(req.user!.userId);
     sendSuccess(res, { statusCode: 200, message: 'GitHub connection status retrieved', data: result });

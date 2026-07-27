@@ -23,6 +23,7 @@ router.use(authenticate);
 router.get('/auth/url', asyncHandler(gitHubController.getAuthorizationUrl));
 router.post('/auth/callback', validate({ body: oAuthCallbackSchema }), asyncHandler(gitHubController.handleOAuthCallback));
 router.post('/disconnect', asyncHandler(gitHubController.disconnect));
+router.post('/force-disconnect', asyncHandler(gitHubController.forceDisconnect));
 router.get('/status', asyncHandler(gitHubController.getConnectionStatus));
 
 // ─── Repositories ───────────────────────────────────────────────

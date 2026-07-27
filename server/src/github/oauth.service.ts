@@ -172,6 +172,25 @@ export class GitHubOAuthService {
     return GitHubAccount.findOne({ userId, isConnected: true });
   }
 
+  /**
+   * Force-disconnect a GitHub account by its GitHub numeric ID, regardless of which user owns it.
+   * Useful for cleaning up orphaned records or resolving "already connected to another user" errors.
+   */
+  async forceDisconnectByGithubId(githubId: number): Promise<{ deleted: boolean; login?: string }> {
+    const account = await GitHubAccount.findOne({ githubId }).lean();
+    if (!account) {
+      return { deleted: false };
+    }
+
+    // Clean up repos and indexed data for the user who owned this account
+    await this.disconnectAccount(account.userId.toString());
+
+    // Also hard-delete the record in case disconnectAccount only soft-disconnects
+    await GitHubAccount.deleteOne({ githubId });
+
+    logger.info(`Force-disconnected GitHub account ${account.login} (ID: ${githubId})`);
+    return { deleted: true, login: account.login };
+  }
 
 }
 
