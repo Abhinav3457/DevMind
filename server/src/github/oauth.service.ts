@@ -103,21 +103,33 @@ export class GitHubOAuthService {
     const user = userRes.data;
     const primaryEmail = emailsRes.data.find((e: { primary: boolean }) => e.primary)?.email || '';
 
+    // Check if this GitHub account is already connected to another user
+    const existingByGithubId = await GitHubAccount.findOne({ githubId: user.id, userId: { $ne: userId } }).lean();
+    if (existingByGithubId) {
+      throw new Error(
+        `GitHub account "${login}" (ID: ${user.id}) is already connected to another user. ` +
+        'Please disconnect it from that account first, or use a different GitHub account.',
+      );
+    }
+
+    // Upsert by userId to handle re-connection by the same user
     const existing = await GitHubAccount.findOneAndUpdate(
       { userId },
       {
-        userId,
-        githubId: user.id,
-        login: user.login,
-        name: user.name || user.login,
-        email: primaryEmail,
-        avatarUrl: user.avatar_url,
-        accessToken,
-        scopes: ['repo', 'user:email', 'read:org'],
-        isConnected: true,
-        rateLimitRemaining: 5000,
+        $set: {
+          userId,
+          githubId: user.id,
+          login: user.login,
+          name: user.name || user.login,
+          email: primaryEmail,
+          avatarUrl: user.avatar_url,
+          accessToken,
+          scopes: ['repo', 'user:email', 'read:org'],
+          isConnected: true,
+          rateLimitRemaining: 5000,
+        },
       },
-      { upsert: true, new: true },
+      { upsert: true, new: true, runValidators: true },
     );
 
     logger.info(`GitHub account connected for user ${userId}: ${login}`);
