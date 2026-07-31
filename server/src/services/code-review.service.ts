@@ -65,30 +65,56 @@ export class CodeReviewService {
     // 2. Duplicate code detection (local, no AI)
     const duplicateCode = await duplicateService.findDuplicates(reportId);
 
-    // 3. Fetch actual content from chunks for Gemini review
+    // 3. Fetch actual content from chunks for the AI review.
+    //    Chunks carry startLine/endLine metadata, so we reconstruct each file's
+    //    content line-by-line. This keeps the line numbers shown to the AI
+    //    identical to the real files (a naive join of disjoint chunks with
+    //    '\n\n' shifts every line and corrupts syntax context, causing
+    //    hallucinated issues and wrong line references).
+    // Cap the file count to MAX_REVIEW_FILES (10) so a generous chunk limit
+    // guarantees every selected file gets enough content for reconstruction.
     const chunks = await IndexedChunk.find({
       reportId,
       fileId: { $in: indexedFiles.map((f) => f._id) },
     })
-      .sort({ index: 1 })
-      .limit(200)
+      .sort({ fileId: 1, index: 1 })
+      .limit(2000)
       .lean();
 
-    const fileContentMap = new Map<string, string[]>();
+    const fileLineMap = new Map<string, Map<number, string>>();
     for (const chunk of chunks) {
       const fileId = chunk.fileId.toString();
-      if (!fileContentMap.has(fileId)) {
-        fileContentMap.set(fileId, []);
+      if (!fileLineMap.has(fileId)) {
+        fileLineMap.set(fileId, new Map());
       }
-      fileContentMap.get(fileId)!.push(chunk.content);
+      const lineMap = fileLineMap.get(fileId)!;
+      const chunkLines = chunk.content.split('\n');
+      for (let i = 0; i < chunkLines.length; i++) {
+        // Overlapping chunks write the same source lines, so last-write wins.
+        lineMap.set(chunk.startLine + i, chunkLines[i]!);
+      }
     }
 
     const filesWithContent = indexedFiles
-      .map((f) => ({
-        file: f,
-        content: (fileContentMap.get(f._id.toString()) || []).join('\n\n'),
-      }))
-      .filter((f) => f.content.length > 0);
+      .map((f) => {
+        const lineMap = fileLineMap.get(f._id.toString());
+        if (!lineMap || lineMap.size === 0) {
+          return { file: f, content: '' };
+        }
+        // Rebuild from line 1 so every line's position matches the real file.
+        // Lines with no chunk coverage become blank placeholders.
+        // Loop instead of Math.max(...keys) to stay safe on very large files.
+        let maxLine = 0;
+        for (const line of lineMap.keys()) {
+          if (line > maxLine) maxLine = line;
+        }
+        const lines: string[] = [];
+        for (let i = 1; i <= maxLine; i++) {
+          lines.push(lineMap.get(i) ?? '');
+        }
+        return { file: f, content: lines.join('\n') };
+      })
+      .filter((f) => f.content.trim().length > 0);
 
     // 4. Gemini code review
     let reviewResult: ReviewResult;

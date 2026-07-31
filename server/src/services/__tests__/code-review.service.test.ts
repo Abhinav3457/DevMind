@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { CodeReviewService } from '../code-review.service';
+import { reviewerService } from '../../code-review/reviewer.service';
 import { ApiError } from '../../utils/apiResponse';
 import IndexReport from '../../models/IndexReport';
 import IndexedFile from '../../models/IndexedFile';
@@ -42,6 +43,10 @@ describe('CodeReviewService', () => {
     vi.mocked(IndexedChunk.countDocuments).mockResolvedValue(0);
     vi.mocked(IndexedChunk.find).mockReturnValue(createQueryMock([]) as never);
     vi.mocked(IndexedFile.find).mockReturnValue(createQueryMock([]) as never);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
 
@@ -88,5 +93,51 @@ describe('CodeReviewService', () => {
     vi.mocked(IndexReport.findOne).mockResolvedValue({ status: 'completed' } as never);
     vi.mocked(IndexedFile.find).mockReturnValue(createQueryMock([]) as never);
     await expect(service.reviewRepository('rep-1', 'user-1', ['src/app.ts'])).rejects.toThrow('No files found');
+  });
+
+  it('should reconstruct file content with accurate line numbers from chunk start/end lines', async () => {
+    vi.mocked(IndexReport.findOne).mockResolvedValue({ status: 'completed' } as never);
+
+    const mockFiles = [
+      { _id: 'file-1', path: 'src/test.ts', functions: [], classes: [], imports: [], exports: [], dependencies: [], name: 'test.ts', language: 'typescript', size: 100 },
+    ];
+    vi.mocked(IndexedFile.find).mockReturnValue(createQueryMock(mockFiles) as never);
+
+    // Chunks start mid-file: lines 1-4 uncovered, line 5 is a section,
+    // lines 7-8 another section (line 6 uncovered).
+    const mockChunks = [
+      { _id: { toString: () => 'chunk-1' }, fileId: { toString: () => 'file-1' }, content: 'const five = 5;', startLine: 5, endLine: 5, index: 0, type: 'section', tokenCount: 1 },
+      { _id: { toString: () => 'chunk-2' }, fileId: { toString: () => 'file-1' }, content: 'const seven = 7;\nconst eight = 8;', startLine: 7, endLine: 8, index: 1, type: 'section', tokenCount: 1 },
+    ];
+    vi.mocked(IndexedChunk.find).mockReturnValue(createQueryMock(mockChunks) as never);
+
+    const reviewSpy = vi.spyOn(reviewerService, 'reviewFiles').mockResolvedValue({
+      score: 80,
+      summary: 'ok',
+      categories: {
+        bugs: { issues: [], score: 100, summary: '' },
+        security: { issues: [], score: 100, summary: '' },
+        performance: { issues: [], score: 100, summary: '' },
+        codeSmells: { issues: [], score: 100, summary: '' },
+        solidViolations: { issues: [], score: 100, summary: '' },
+      },
+      refactoringSuggestions: [],
+      fixedVersion: '',
+      totalIssues: 0,
+    });
+
+    await service.reviewRepository('rep-1', 'user-1');
+
+    expect(reviewSpy).toHaveBeenCalledTimes(1);
+    const filesArg = reviewSpy.mock.calls[0]![0];
+    expect(filesArg).toHaveLength(1);
+    // Blank placeholders keep every line aligned with the real file.
+    expect(filesArg[0]!.content.split('\n')).toEqual([
+      '', '', '', '',
+      'const five = 5;',
+      '',
+      'const seven = 7;',
+      'const eight = 8;',
+    ]);
   });
 });

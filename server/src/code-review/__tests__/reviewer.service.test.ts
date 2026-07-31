@@ -98,7 +98,8 @@ describe('ReviewerService', () => {
 
   it('should resolve "File: path, Line: N" locations', async () => {
     const result = await service.reviewFiles([
-      { file: createVirtualFile('sample.ts'), content: 'x' },
+      // Enough lines that "Line: 3" is within the visible range.
+      { file: createVirtualFile('sample.ts'), content: 'const a = 1;\nconst b = 2;\nconst c = 3;' },
     ]);
 
     const bug = result.categories.bugs.issues[0]!;
@@ -127,6 +128,161 @@ describe('ReviewerService', () => {
     expect(result.refactoringSuggestions.length).toBeGreaterThan(0);
     expect(result.refactoringSuggestions[0]!.title).toContain('SQL injection');
     expect(result.fixedVersion).toContain('function getUser');
+  });
+
+  it('should drop issues that reference files not in the reviewed set', async () => {
+    const response = `### REVIEW SCORE
+Score: 60
+
+### CORRECTNESS & BUGS
+#### Issue 1: Real bug in reviewed file
+- **Location**: sample.ts:3
+- **Severity**: MAJOR
+- **Explanation**: Actual problem.
+- **Recommended Fix**:
+  \`\`\`typescript
+  fix();
+  \`\`\`
+- **Effort**: Minutes
+
+### SECURITY
+#### Issue 2: Hallucinated issue in unreviewed file
+- **Location**: README.md:10
+- **Severity**: CRITICAL
+- **Explanation**: Not in scope.
+- **Recommended Fix**:
+  \`\`\`typescript
+  fix();
+  \`\`\`
+- **Effort**: Minutes
+`;
+    vi.mocked(generateFromAI).mockResolvedValue(response);
+
+    const result = await service.reviewFiles([
+      { file: createVirtualFile('sample.ts'), content: 'x' },
+      { file: createVirtualFile('app.ts'), content: 'y' },
+    ]);
+
+    expect(result.totalIssues).toBe(1);
+    expect(result.categories.bugs.issues).toHaveLength(1);
+    expect(result.categories.security.issues).toHaveLength(0);
+  });
+
+  it('should clamp hallucinated line numbers beyond the visible lines to 0', async () => {
+    const response = `### REVIEW SCORE
+Score: 70
+
+### CORRECTNESS & BUGS
+#### Issue 1: Bug
+- **Location**: sample.ts:999
+- **Severity**: MAJOR
+- **Explanation**: Way out of range.
+- **Recommended Fix**:
+  \`\`\`typescript
+  fix();
+  \`\`\`
+- **Effort**: Minutes
+`;
+    vi.mocked(generateFromAI).mockResolvedValue(response);
+
+    const result = await service.reviewFiles([
+      { file: createVirtualFile('sample.ts'), content: 'const a = 1;\nconst b = 2;' },
+    ]);
+
+    const bug = result.categories.bugs.issues[0]!;
+    expect(bug.line).toBe(0);
+    expect(result.categories.bugs.issues).toHaveLength(1);
+  });
+
+  it('should not clamp lines within the visible range of a truncated file', async () => {
+    const response = `### REVIEW SCORE
+Score: 60
+
+### CORRECTNESS & BUGS
+#### Issue 1: Bug
+- **Location**: sample.ts:100
+- **Severity**: MAJOR
+- **Explanation**: Line 100 is within the 100-line window.
+- **Recommended Fix**:
+  \`\`\`typescript
+  fix();
+  \`\`\`
+- **Effort**: Minutes
+`;
+    vi.mocked(generateFromAI).mockResolvedValue(response);
+
+    // 300 lines -> truncated to 100 shown lines; the truncation marker line
+    // must not count as a real code line.
+    const longContent = Array.from({ length: 300 }, (_, i) => 'const x' + i + ' = ' + i + ';').join('\n');
+    const result = await service.reviewFiles([
+      { file: createVirtualFile('sample.ts'), content: longContent },
+    ]);
+
+    const bug = result.categories.bugs.issues[0]!;
+    expect(bug.line).toBe(100);
+  });
+
+  it('should rank files by code volume so dense code outranks sparse long files', async () => {
+    await service.reviewFiles([
+      // Sparse: spans 400 lines but has ZERO non-blank lines, so it must rank
+      // strictly below every other file (ties keep input order with a stable
+      // sort, so this guarantees it's excluded from the top-5 selection).
+      { file: createVirtualFile('sparse.ts'), content: Array.from({ length: 400 }, () => '').join('\n') },
+      // Dense: 200 lines of real code.
+      { file: createVirtualFile('dense.ts'), content: Array.from({ length: 200 }, (_, i) => 'const x' + i + ' = ' + i + ';').join('\n') },
+      // Also dense: 150 lines.
+      { file: createVirtualFile('mid.ts'), content: Array.from({ length: 150 }, (_, i) => 'let y' + i + ' = ' + i + ';').join('\n') },
+      { file: createVirtualFile('small.ts'), content: 'const z = 1;' },
+      { file: createVirtualFile('tiny.ts'), content: 'const w = 1;' },
+      { file: createVirtualFile('extra.ts'), content: 'const v = 1;' },
+    ]);
+
+    // Dense and mid must be selected over the sparse 400-line file.
+    const prompt = vi.mocked(generateFromAI).mock.calls[0]![0].prompt;
+    expect(prompt).toContain('--- File: dense.ts');
+    expect(prompt).toContain('--- File: mid.ts');
+    expect(prompt).not.toContain('--- File: sparse.ts');
+  });
+
+  it('should include numbered lines and scope constraints in the review prompt', async () => {
+    await service.reviewFiles([
+      { file: createVirtualFile('sample.ts'), content: 'const a = 1;\nconst b = 2;' },
+    ]);
+
+    const prompt = vi.mocked(generateFromAI).mock.calls[0]![0].prompt;
+    expect(prompt).toContain('1: const a = 1;');
+    expect(prompt).toContain('2: const b = 2;');
+    expect(prompt).toContain('SCOPE CONSTRAINTS');
+    expect(prompt).toContain('sample.ts');
+  });
+
+  it('should retry once on an empty AI response and use the retried result', async () => {
+    vi.mocked(generateFromAI)
+      .mockResolvedValueOnce('\n')
+      .mockResolvedValueOnce(REALISTIC_RESPONSE);
+
+    const result = await service.reviewFiles([
+      // Enough lines that "Line: 3" stays within the visible range.
+      { file: createVirtualFile('sample.ts'), content: 'const a = 1;\nconst b = 2;\nconst c = 3;' },
+    ]);
+
+    expect(vi.mocked(generateFromAI)).toHaveBeenCalledTimes(2);
+    expect(result.totalIssues).toBe(2);
+    expect(result.score).toBe(72);
+  });
+
+  it('should fall back to the neutral review when the AI returns empty twice', async () => {
+    vi.mocked(generateFromAI).mockResolvedValue('  \n ');
+
+    const result = await service.reviewFiles([
+      { file: createVirtualFile('sample.ts'), content: 'x' },
+    ]);
+
+    expect(vi.mocked(generateFromAI)).toHaveBeenCalledTimes(2);
+    expect(result.score).toBe(50);
+    expect(result.summary).toContain('AI review was unavailable');
+    expect(result.summary).toContain('empty response twice');
+    expect(result.totalIssues).toBe(0);
   });
 
   it('should return the neutral fallback when the AI call fails', async () => {

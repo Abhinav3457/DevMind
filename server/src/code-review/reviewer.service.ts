@@ -78,8 +78,12 @@ const SECTION_MAPPINGS: SectionMapping[] = [
 
 export class ReviewerService {
   async reviewFiles(files: { file: IIndexedFile; content: string }[]): Promise<ReviewResult> {
-    // Limit to MAX_FILES_IN_PROMPT, sorted by size (largest first, most relevant)
-    const sortedFiles = [...files].sort((a, b) => b.content.length - a.content.length);
+    // Limit to MAX_FILES_IN_PROMPT. Rank by actual code volume (non-blank
+    // lines) rather than raw length so blank placeholder lines from chunk
+    // reconstruction don't let sparse long files outrank dense code.
+    const codeVolume = (content: string): number =>
+      content.split('\n').filter((l) => l.trim().length > 0).length;
+    const sortedFiles = [...files].sort((a, b) => codeVolume(b.content) - codeVolume(a.content));
     const limitedFiles = sortedFiles.slice(0, MAX_FILES_IN_PROMPT);
 
     // Truncate each file's content to MAX_LINES_PER_FILE
@@ -97,8 +101,20 @@ export class ReviewerService {
 
     const totalLines = truncatedFiles.reduce((acc, f) => acc + f.content.split('\n').length, 0);
 
+    // Prefix every shown line with its real line number so the AI's "Line: N"
+    // references map 1:1 back to the actual source files.
     let codeBlock = truncatedFiles
-      .map((f) => '--- File: ' + f.file.path + ' (' + f.file.language + ', ' + f.content.split('\n').length + ' lines shown) ---\n' + f.content)
+      .map((f) => {
+        const lines = f.content.split('\n');
+        const numbered = lines
+          .map((line, i) => {
+            // Don't number the truncation marker — it isn't a real file line.
+            if (line.startsWith('// ... [truncated')) return line;
+            return (i + 1) + ': ' + line;
+          })
+          .join('\n');
+        return '--- File: ' + f.file.path + ' (' + f.file.language + ', ' + lines.length + ' lines shown) ---\n' + numbered;
+      })
       .join('\n\n');
 
     // If the code block is still too large, truncate further
@@ -107,16 +123,30 @@ export class ReviewerService {
         '\n\n// ... [code truncated to fit within AI context window]';
     }
 
-    const prompt = this.buildReviewPrompt(codeBlock, truncatedFiles.length, totalLines);
+    const prompt = this.buildReviewPrompt(codeBlock, truncatedFiles.length, totalLines, truncatedFiles.map((f) => f.file.path));
     const systemInstruction = this.buildSystemInstruction();
 
+    const callAI = () => generateFromAI({
+      systemInstruction,
+      prompt,
+      temperature: 0.2,
+      maxTokens: 8192,
+    });
+
     try {
-      const response = await generateFromAI({
-        systemInstruction,
-        prompt,
-        temperature: 0.2,
-        maxTokens: 8192,
-      });
+      let response = await callAI();
+
+      // Guard against transient empty responses: an empty/whitespace result
+      // would otherwise parse into a misleading "score 100 / 0 issues" review.
+      // Retry once before falling back.
+      if (!response.trim()) {
+        logger.warn('Reviewer: empty AI response, retrying once');
+        response = await callAI();
+        if (!response.trim()) {
+          throw new Error('AI returned an empty response twice');
+        }
+      }
+
       logger.debug('Reviewer: raw AI response', response);
       return this.parseReviewResponse(response, truncatedFiles);
     } catch (error) {
@@ -258,13 +288,15 @@ export class ReviewerService {
       '- ALWAYS wrap code in language-annotated fenced blocks (```language)',
       '- Be thorough — a good review finds 5-15 issues per file',
       '- Be specific — reference exact variable names, function names, and line numbers',
+      '- ONLY report issues in the files shown in the review prompt — NEVER mention any other file',
+      '- Only cite line numbers that are visible in the numbered code (the \'N: \' prefixes)',
       '- Show actual code fixes, not just descriptions',
       '- If a dimension truly has no issues, write "No significant issues found in this category"',
       '- Focus on what matters — prioritize correctness, security, and performance over style',
     ].join('\n');
   }
 
-  private buildReviewPrompt(codeBlock: string, fileCount: number, totalLines: number): string {
+  private buildReviewPrompt(codeBlock: string, fileCount: number, totalLines: number, filePaths: string[]): string {
     return [
       '## Code to Review',
       '',
@@ -273,6 +305,13 @@ export class ReviewerService {
       codeBlock,
       '',
       '---',
+      '',
+      '### SCOPE CONSTRAINTS (strict)',
+      '- The ONLY files in scope are these: ' + filePaths.join(', '),
+      '- Every issue you report MUST reference one of these files with the EXACT path as shown in the \'--- File: ... ---\' headers.',
+      '- Every line number you cite MUST be a line actually visible in the numbered code above (use the \'N: \' prefix).',
+      '- NEVER invent issues, code, line numbers, or file names. If you are not certain about something, do not report it.',
+      '- If a category genuinely has no issues, write "No significant issues found in this category" — do not pad.',
       '',
       'Please provide a **deep, detailed, line-by-line code review** following the EXACT structure specified in the system instructions.',
       '',
@@ -309,7 +348,21 @@ export class ReviewerService {
     }
 
     const buildCategory = (type: ReviewIssue['type'], issues: ReviewIssue[]): ReviewCategory => {
-      const deduped = this.dedupeIssues(issues);
+      // Defensive scope filter: drop issues that reference files that were
+      // never part of the review prompt (prevents hallucinated cross-file
+      // findings like "issue in README.md" when README was not reviewed).
+      const inScope = issues.filter((issue) => this.isFileInScope(issue.file, files));
+      // Clamp hallucinated line numbers to "unknown" when they point beyond
+      // the lines actually shown to the AI (e.g. "Line: 999" on an 80-line file).
+      const clamped = inScope.map((issue) => {
+        if (issue.line <= 0) return issue;
+        const match = files.find((f) => f.file.path === issue.file);
+        if (!match) return issue;
+        // Don't count the truncation marker line as real code.
+        const shownLines = Math.min(MAX_LINES_PER_FILE, match.content.split('\n').length);
+        return issue.line <= shownLines ? issue : { ...issue, line: 0 };
+      });
+      const deduped = this.dedupeIssues(clamped);
       const score = this.calculateCategoryScore(deduped);
       const summary = deduped.length > 0
         ? 'Found ' + deduped.length + ' ' + type.replace('_', ' ') + ' issue(s)'
@@ -535,6 +588,20 @@ export class ReviewerService {
     }
 
     return issues;
+  }
+
+  private isFileInScope(filePath: string, files: { file: IIndexedFile }[]): boolean {
+    // Single-file (direct) reviews keep everything — the AI may reference the
+    // file by a shortened name/extension, so filtering would drop real issues.
+    if (files.length <= 1) return true;
+    if (!filePath || filePath === 'unknown') return false;
+
+    const file = filePath.toLowerCase();
+    return files.some((f) => {
+      const path = f.file.path.toLowerCase();
+      const name = (f.file.name || '').toLowerCase();
+      return path.includes(file) || file.includes(path) || (name.length > 0 && file.includes(name));
+    });
   }
 
   private dedupeIssues(issues: ReviewIssue[]): ReviewIssue[] {
