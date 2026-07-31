@@ -19,8 +19,10 @@ export interface AIGenerateParams {
   maxTokens?: number;
 }
 
-// Groq models with large context windows
-const GROQ_MODELS = ['mixtral-8x7b-32768', 'llama-3.1-8b-instant'];
+// Groq models with large context windows (current production models as of 2026)
+// Note: mixtral-8x7b-32768 (retired Mar 2025) and llama-3.1-8b-instant (retired Aug 2026)
+// are no longer reliable — using gpt-oss and llama-3.3 instead.
+const GROQ_MODELS = ['openai/gpt-oss-120b', 'openai/gpt-oss-20b', 'llama-3.3-70b-versatile'];
 
 export async function generateFromAI(params: AIGenerateParams): Promise<string> {
   const { systemInstruction, prompt, temperature = 0.3, maxTokens = 4096 } = params;
@@ -44,7 +46,7 @@ export async function generateFromAI(params: AIGenerateParams): Promise<string> 
             { role: 'user', content: prompt },
           ],
           temperature,
-          max_tokens: Math.min(maxTokens, 2048),
+          max_tokens: Math.min(maxTokens, 8192),
         });
         const content = response.choices[0]?.message?.content || '';
         if (content) {
@@ -69,8 +71,8 @@ export async function generateFromAI(params: AIGenerateParams): Promise<string> 
     throw new Error('All AI providers failed. Configure GEMINI_API_KEY for a fallback, or check your GROQ_API_KEY.');
   }
 
-  logger.info('AI: Using Gemini (model: gemini-2.0-flash)');
-  const model = getGeminiModel('gemini-2.0-flash');
+  logger.info('AI: Using Gemini (model: gemini-2.5-flash)');
+  const model = getGeminiModel('gemini-2.5-flash');
   const result = await model.generateContent({
     contents: [{ role: 'user', parts: [{ text: prompt }] }],
     systemInstruction: { role: 'user', parts: [{ text: systemInstruction }] },

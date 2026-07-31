@@ -115,12 +115,13 @@ export class ReviewerService {
         systemInstruction,
         prompt,
         temperature: 0.2,
-        maxTokens: 4096,
+        maxTokens: 8192,
       });
       return this.parseReviewResponse(response, truncatedFiles);
     } catch (error) {
+      const errMsg = error instanceof Error ? error.message : String(error);
       logger.error('Reviewer: AI review failed', error);
-      return this.fallbackReview();
+      return this.fallbackReview(errMsg);
     }
   }
 
@@ -638,10 +639,11 @@ export class ReviewerService {
     return codeMatch ? codeMatch[0] : section;
   }
 
-  private fallbackReview(): ReviewResult {
+  private fallbackReview(reason?: string): ReviewResult {
+    const detail = reason ? ' Reason: ' + reason.slice(0, 300) : '';
     return {
       score: 50,
-      summary: 'AI review was unavailable. Returning a neutral score. Please try again later.',
+      summary: 'AI review was unavailable. Returning a neutral score. Please try again later.' + detail,
       categories: {
         bugs: { issues: [], score: 100, summary: 'Review unavailable' },
         security: { issues: [], score: 100, summary: 'Review unavailable' },
