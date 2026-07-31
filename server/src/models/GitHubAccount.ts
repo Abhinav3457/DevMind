@@ -34,7 +34,7 @@ const gitHubAccountSchema = new Schema<IGitHubAccount>(
     rateLimitRemaining: { type: Number, default: 5000 },
     rateLimitReset: { type: Date, default: Date.now },
   },
-  { timestamps: true, toJSON: { transform(_doc: Document, ret: Record<string, unknown>) { delete ret.accessToken; delete ret.refreshToken; ret.id = (ret._id as string).toString(); delete ret._id; delete ret.__v; return ret; } } },
+  { timestamps: true, toJSON: { transform(_doc: Document, ret: Record<string, unknown>) { ret.id = (ret._id as string).toString(); delete ret._id; delete ret.__v; return ret; } } },
 );
 
 const GitHubAccount = mongoose.model<IGitHubAccount>('GitHubAccount', gitHubAccountSchema);

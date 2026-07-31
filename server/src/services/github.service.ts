@@ -1,6 +1,5 @@
 import { gitHubApiService } from '../github/api.service';
 import { gitHubOAuthService } from '../github/oauth.service';
-import { IGitHubAccount } from '../models/GitHubAccount';
 import ImportedRepository from '../models/ImportedRepository';
 import IndexReport from '../models/IndexReport';
 import IndexedFile from '../models/IndexedFile';
@@ -39,9 +38,23 @@ export class GitHubService {
     await gitHubOAuthService.disconnectAccount(userId);
   }
 
-  async getConnectionStatus(userId: string): Promise<{ connected: boolean; account: IGitHubAccount | null }> {
+  async getConnectionStatus(userId: string): Promise<{ connected: boolean; account: { id: string; login: string; name: string; email: string; avatarUrl: string; githubId: number; isConnected: boolean; scopes: string[] } | null }> {
     const account = await gitHubOAuthService.getConnectedAccount(userId);
-    return { connected: !!account, account };
+    if (!account) return { connected: false, account: null };
+
+    return {
+      connected: true,
+      account: {
+        id: account.id?.toString() || '',
+        login: account.login,
+        name: account.name,
+        email: account.email,
+        avatarUrl: account.avatarUrl,
+        githubId: account.githubId,
+        isConnected: account.isConnected,
+        scopes: account.scopes,
+      },
+    };
   }
 
   async listUserRepositories(userId: string, options: { type?: string; sort?: string; per_page?: number; page?: number } = {}): Promise<{ repos: GitHubRepoMetadata[] }> {
