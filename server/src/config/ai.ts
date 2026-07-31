@@ -22,7 +22,7 @@ export interface AIGenerateParams {
 // Groq models with large context windows (current production models as of 2026)
 // Note: mixtral-8x7b-32768 (retired Mar 2025) and llama-3.1-8b-instant (retired Aug 2026)
 // are no longer reliable — using gpt-oss and llama-3.3 instead.
-const GROQ_MODELS = ['openai/gpt-oss-120b', 'openai/gpt-oss-20b', 'llama-3.3-70b-versatile'];
+const GROQ_MODELS = ['openai/gpt-oss-120b', 'openai/gpt-oss-20b', 'llama-3.3-70b-versatile', 'qwen/qwen3.6-27b'];
 
 export async function generateFromAI(params: AIGenerateParams): Promise<string> {
   const { systemInstruction, prompt, temperature = 0.3, maxTokens = 4096 } = params;

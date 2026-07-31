@@ -117,6 +117,7 @@ export class ReviewerService {
         temperature: 0.2,
         maxTokens: 8192,
       });
+      logger.debug('Reviewer: raw AI response', response);
       return this.parseReviewResponse(response, truncatedFiles);
     } catch (error) {
       const errMsg = error instanceof Error ? error.message : String(error);
@@ -289,28 +290,6 @@ export class ReviewerService {
   }
 
   private parseReviewResponse(response: string, files: { file: IIndexedFile; content: string }[]): ReviewResult {
-    const defaultCategory = (): ReviewCategory => ({ issues: [], score: 100, summary: 'No issues detected' });
-
-    const parseCategory = (sectionName: string, type: ReviewIssue['type']): ReviewCategory => {
-      const section = this.extractSection(response, sectionName);
-      if (!section) return defaultCategory();
-
-      // Try parsing the new detailed format first (#### Issue N: ...)
-      let issues = this.parseIssuesDetailed(section, type, files);
-
-      // Fall back to old table format if no issues found via detailed parsing
-      if (issues.length === 0) {
-        issues = this.parseIssuesTable(section, type, files);
-      }
-
-      const score = this.calculateCategoryScore(issues);
-      const summary = issues.length > 0
-        ? 'Found ' + issues.length + ' ' + type.replace('_', ' ') + ' issue(s)'
-        : this.extractSection(section, '')?.split('\n')[0]?.trim() || 'No issues detected';
-
-      return { issues, score, summary };
-    };
-
     // Map section names to types, ACCUMULATING issues from all matching sections
     const categoryIssues: Record<string, ReviewIssue[]> = { bug: [], security: [], performance: [], code_smell: [], solid_violation: [] };
 
@@ -330,11 +309,12 @@ export class ReviewerService {
     }
 
     const buildCategory = (type: ReviewIssue['type'], issues: ReviewIssue[]): ReviewCategory => {
-      const score = this.calculateCategoryScore(issues);
-      const summary = issues.length > 0
-        ? 'Found ' + issues.length + ' ' + type.replace('_', ' ') + ' issue(s)'
+      const deduped = this.dedupeIssues(issues);
+      const score = this.calculateCategoryScore(deduped);
+      const summary = deduped.length > 0
+        ? 'Found ' + deduped.length + ' ' + type.replace('_', ' ') + ' issue(s)'
         : 'No issues detected';
-      return { issues, score, summary };
+      return { issues: deduped, score, summary };
     };
 
     const bugs = buildCategory('bug', categoryIssues['bug']);
@@ -372,7 +352,9 @@ export class ReviewerService {
   private extractSection(text: string, sectionName: string): string {
     if (!sectionName) return text;
     const escaped = sectionName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const pattern = new RegExp('###\\s*' + escaped + '\\s*([\\s\\S]*?)(?=###\\s|$)', 'i');
+    // The lookahead requires a NEWLINE before the next '###' header so that
+    // '#### Issue N:' sub-headers inside a section don't terminate it early.
+    const pattern = new RegExp('###\\s*' + escaped + '\\s*([\\s\\S]*?)(?=\\n###\\s|$)', 'i');
     const match = text.match(pattern);
     return match ? match[1]!.trim() : '';
   }
@@ -409,15 +391,31 @@ export class ReviewerService {
       const locationMatch = trimmed.match(/-\s*\*\*Location\*\*:\s*([^\n]+)/i);
       const locationStr = locationMatch ? locationMatch[1]!.trim() : '';
 
-      let filePath = '';
+      let filePath = locationStr.trim();
       let lineNum = 0;
       if (locationStr) {
-        // Try "File:line" or "File (line N)" or just "File"
-        const fileLineMatch = locationStr.match(/([^:]+)(?::(\d+))?/);
-        if (fileLineMatch) {
-          filePath = fileLineMatch[1]!.trim();
-          if (fileLineMatch[2]) {
-            lineNum = parseInt(fileLineMatch[2]!, 10);
+        // Normalize: strip a leading "File:" label if present (e.g. "File: sample.ts, Line: 2")
+        const rest = locationStr.replace(/^File\s*:\s*/i, '');
+        // Format: "path, Line: N" (e.g. "sample.ts, Line: 2")
+        const commaLine = rest.match(/^(.+?),\s*Line\s*:?\s*(\d+)/i);
+        if (commaLine) {
+          filePath = commaLine[1]!.trim();
+          lineNum = parseInt(commaLine[2]!, 10);
+        } else {
+          // Format: "path:N" (e.g. "sample.ts:2")
+          const colonLine = rest.match(/^(.+?):(\d+)$/);
+          if (colonLine) {
+            filePath = colonLine[1]!.trim();
+            lineNum = parseInt(colonLine[2]!, 10);
+          } else {
+            // Format: "path (line N)" (e.g. "sample.ts (line 2)")
+            const parenLine = rest.match(/^(.+?)\s*\(line\s*(\d+)\)/i);
+            if (parenLine) {
+              filePath = parenLine[1]!.trim();
+              lineNum = parseInt(parenLine[2]!, 10);
+            } else {
+              filePath = rest.trim();
+            }
           }
         }
       }
@@ -537,6 +535,18 @@ export class ReviewerService {
     }
 
     return issues;
+  }
+
+  private dedupeIssues(issues: ReviewIssue[]): ReviewIssue[] {
+    const seen = new Set<string>();
+    return issues.filter((issue) => {
+      // Same issue may be parsed from multiple matching section names
+      // (e.g. 'CORRECTNESS & BUGS' and 'CORRECTNESS' both map to 'bug').
+      const key = [issue.type, issue.file, issue.line, issue.message].join('|');
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
   }
 
   private calculateCategoryScore(issues: ReviewIssue[]): number {
