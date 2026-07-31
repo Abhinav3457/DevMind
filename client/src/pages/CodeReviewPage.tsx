@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Bug, Loader2, Code2, FileCode, BookOpen, Database, AlertCircle, ExternalLink } from 'lucide-react';
+import { Bug, Loader2, Code2, BookOpen, Brain, Wand2, Sparkles, AlertCircle, ExternalLink, Database } from 'lucide-react';
 import apiClient from '../api/axios';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { MarkdownRenderer } from '../components/ui/MarkdownRenderer';
+import Editor from '@monaco-editor/react';
 
 interface IndexedReport {
   id: string;
@@ -13,13 +14,147 @@ interface IndexedReport {
   status: string;
 }
 
+/**
+ * Detect programming language from code content using keyword and pattern matching.
+ * Returns a monaco-compatible language ID.
+ */
+function detectLanguage(code: string): string {
+  const trimmed = code.trim();
+  if (!trimmed) return 'typescript';
+
+  // Heuristics sorted by specificity
+  const patterns: [RegExp, string][] = [
+    // HTML/XML
+    [/^<!DOCTYPE html/i, 'html'],
+    [/<\/?(html|div|span|p|a|body|head|table|h[1-6]|form|input|button|img|nav|header|footer|section|article|main|aside)[^>]*>/i, 'html'],
+    // JSX/TSX — look for JSX-specific patterns
+    [/(?:import\s+React|export\s+(?:default\s+)?(?:const|function|class)\s+\w+\s*(?:[=:]\s*)?\(?\)?\s*=>\s*[<({])/m, 'tsx'],
+    [/\b(?:className|onClick|onChange|useState|useEffect|useRef|useCallback|useMemo|return\s*\(?\s*<)/, 'tsx'],
+    // TypeScript
+    [/\b(?:interface|type|as\s+\w+|: string|: number|: boolean|: any|: void|: Record<|: Partial<|: Pick<|: Omit<|: Promise<)\b/, 'typescript'],
+    [/\b(const|let|var)\s+\w+\s*:\s*\w+/s, 'typescript'],
+    // JavaScript
+    [/^import\s+.*\s+from\s+['"]/m, 'javascript'],
+    [/\b(?:module\.exports|require\s*\(|export\s+default|export\s+const\s+\w+\s*=\s*\(|=>\s*{)/, 'javascript'],
+    [/\b(?:const|let|var)\s+\w+\s*=\s*(?:require|import)\s*\(/m, 'javascript'],
+    // Python
+    [/^import\s+\w+/m, 'python'],
+    [/^from\s+\w+\s+import\s+/m, 'python'],
+    [/\b(?:def\s+\w+\s*\(|class\s+\w+\s*:|print\s*\(|if\s+__name__\s*==\s*['"]__main__['"])/, 'python'],
+    [/\b(?:self\s*[.,]|@(?:staticmethod|classmethod|property)\b)/, 'python'],
+    // CSS/SCSS
+    [/[.#]\w+\s*\{[^}]*\}[.\w\s,#]*\{/s, 'css'],
+    [/^\s*[.#]?\w[\w-]*\s*\{/m, 'css'],
+    [/@(?:import|media|keyframes|mixin|include|extend)\s/m, 'scss'],
+    // JSON
+    [/^\s*\{[\s\S]*"[\w]+"\s*:[\s\S]*\}\s*$/, 'json'],
+    // SQL
+    [/\b(?:SELECT|FROM|WHERE|INSERT|UPDATE|DELETE|CREATE|ALTER|DROP|JOIN|INNER|LEFT|RIGHT|GROUP BY|ORDER BY)\s/i, 'sql'],
+    // Bash
+    [/^#!/m, 'bash'],
+    [/\b(?:npm|yarn|pnpm|echo|curl|wget|grep|sed|awk|chmod|sudo|apt|yum|brew)\s+/, 'bash'],
+    // Markdown
+    [/^#{1,6}\s/m, 'markdown'],
+    [/\*\*[\w\s]+\*\*|__[\w\s]+__/m, 'markdown'],
+    // Go
+    [/\b(?:func\s+\w+|package\s+\w+|import\s+\(|fmt\.Print|defer\s+)/, 'go'],
+    // Rust
+    [/\b(?:fn\s+\w+|let\s+mut\s+|impl\s+|pub\s+(?:fn|struct|enum|trait))\b/, 'rust'],
+    // Java
+    [/\b(?:public\s+(?:class|void|static)|private\s+\w+\s+\w+\s*\(|System\.out\.print|@Override)\b/, 'java'],
+    // C# / CSharp
+    [/\b(?:using\s+System|namespace\s+\w+|Console\.(?:WriteLine|ReadLine)|class\s+\w+\s*:\s*\w+)\b/, 'csharp'],
+    // C / C++
+    [/#include\s*[<"].*[>"]/m, 'cpp'],
+    [/\b(?:int\s+main\s*\(|printf\s*\(|cout\s*<<|std::)/, 'cpp'],
+    // YAML
+    [/^[\w-]+:\s/m, 'yaml'],
+    [/^---\s*$/m, 'yaml'],
+    // Dockerfile
+    [/^FROM\s+\w+/im, 'dockerfile'],
+    [/^RUN\s+/im, 'dockerfile'],
+    // GraphQL
+    [/\b(?:type\s+\w+\s*\{|query\s+\w+\s*\{|mutation\s+\w+\s*\{|scalar\s+)/, 'graphql'],
+  ];
+
+  for (const [regex, lang] of patterns) {
+    if (regex.test(trimmed)) return lang;
+  }
+
+  // Fallback: check for common keywords
+  if (/\b(function|console\.log|async|await|Promise|new Promise|Array\.from|Object\.keys|try\s*{|catch\s*\()/s.test(trimmed)) return 'javascript';
+  if (/\b(public|private|protected|class\s+\w+\s*extends|static\s+void)\b/.test(trimmed)) return 'java';
+  if (/\b(def\s+\w+|class\s+\w+:|import\s+\w+\s*$|print\s*\()/m.test(trimmed)) return 'python';
+
+  return 'typescript';
+}
+
+/**
+ * Map our internal language IDs to Monaco-compatible ones.
+ */
+function toMonacoLanguage(lang: string): string {
+  const map: Record<string, string> = {
+    jsx: 'javascript',
+    tsx: 'typescript',
+    cpp: 'cpp',
+    csharp: 'csharp',
+    scss: 'scss',
+    yaml: 'yaml',
+    dockerfile: 'dockerfile',
+    graphql: 'graphql',
+    sql: 'sql',
+    bash: 'bash',
+    go: 'go',
+    rust: 'rust',
+    java: 'java',
+    json: 'json',
+    markdown: 'markdown',
+    python: 'python',
+    html: 'html',
+    css: 'css',
+    javascript: 'javascript',
+    typescript: 'typescript',
+  };
+  return map[lang] || 'typescript';
+}
+
+/**
+ * Map internal language IDs to extensions for the server.
+ */
+function toExtension(lang: string): string {
+  const map: Record<string, string> = {
+    typescript: 'ts',
+    javascript: 'js',
+    python: 'py',
+    jsx: 'jsx',
+    tsx: 'tsx',
+    html: 'html',
+    css: 'css',
+    json: 'json',
+    markdown: 'md',
+    bash: 'sh',
+    sql: 'sql',
+    go: 'go',
+    rust: 'rs',
+    java: 'java',
+    csharp: 'cs',
+    cpp: 'cpp',
+    scss: 'scss',
+    yaml: 'yml',
+    dockerfile: 'Dockerfile',
+    graphql: 'graphql',
+  };
+  return map[lang] || 'ts';
+}
+
 export function CodeReviewPage() {
   const [mode, setMode] = useState<'snippet' | 'repo'>('snippet');
   const [code, setCode] = useState('');
-  const [language, setLanguage] = useState('typescript');
+  const [detectedLang, setDetectedLang] = useState('typescript');
   const [review, setReview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [score, setScore] = useState<number | null>(null);
+  const [editorReady, setEditorReady] = useState(false);
   const navigate = useNavigate();
 
   // Repo review state
@@ -27,8 +162,11 @@ export function CodeReviewPage() {
   const [selectedReportId, setSelectedReportId] = useState<string>('');
   const [loadingReports, setLoadingReports] = useState(false);
 
+
+
   useEffect(() => {
     if (mode === 'repo') fetchReports();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode]);
 
   const fetchReports = async () => {
@@ -42,13 +180,28 @@ export function CodeReviewPage() {
     setLoadingReports(false);
   };
 
+  const handleCodeChange = useCallback((value: string | undefined) => {
+    const newCode = value || '';
+    setCode(newCode);
+    if (newCode.trim()) {
+      setDetectedLang(detectLanguage(newCode));
+    }
+  }, []);
+
   const handleReviewSnippet = async () => {
     if (!code.trim()) { toast.error('Please enter some code to review'); return; }
     setLoading(true);
     setReview(null);
     setScore(null);
     try {
-      const res = await apiClient.post('/ai/code-review/review', { code, language, fileName: 'input.' + language });
+      // Only send languages the server supports — fall back to typescript for unsupported ones
+      const supportedLanguages = ['typescript', 'javascript', 'python', 'jsx', 'tsx', 'html', 'css', 'json', 'markdown'];
+      const safeLang = supportedLanguages.includes(detectedLang) ? detectedLang : 'typescript';
+      const res = await apiClient.post('/ai/code-review/review', {
+        code,
+        language: safeLang,
+        fileName: 'input.' + toExtension(safeLang),
+      });
       const result = res.data.data?.summary || res.data.data?.review || res.data.data?.result || res.data.message;
       const extractedScore = typeof result === 'string' ? parseInt(result.match(/\d+/)?.[0] || '') || null : null;
       if (typeof result === 'string' && result.includes('```')) {
@@ -113,15 +266,43 @@ export function CodeReviewPage() {
   const handleReview = mode === 'snippet' ? handleReviewSnippet : handleReviewRepo;
 
   const examples = [
-    { label: 'TypeScript', code: 'function add(a: any, b: any) { return a + b; }\n\n// Review this function' },
+    { label: 'TypeScript', code: 'interface User {\n  id: string;\n  name: string;\n  email: string;\n}\n\nfunction greet(user: User): string {\n  return `Hello, ${user.name}!`;\n}' },
     { label: 'React', code: 'function App() {\n  const [data, setData] = useState(null);\n  useEffect(() => { fetchData().then(setData); }, []);\n  return <div>{data}</div>;\n}' },
+    { label: 'Python', code: 'def fibonacci(n: int) -> list:\n    """Generate Fibonacci sequence up to n."""\n    fib = [0, 1]\n    while fib[-1] + fib[-2] <= n:\n        fib.append(fib[-1] + fib[-2])\n    return fib' },
+    { label: 'HTML', code: '<!DOCTYPE html>\n<html lang="en">\n<head>\n  <meta charset="UTF-8">\n  <title>My Page</title>\n</head>\n<body>\n  <h1>Hello World</h1>\n</body>\n</html>' },
   ];
+
+  const langColors: Record<string, string> = {
+    typescript: 'bg-blue-500/10 text-blue-400',
+    javascript: 'bg-yellow-500/10 text-yellow-400',
+    python: 'bg-green-500/10 text-green-400',
+    tsx: 'bg-cyan-500/10 text-cyan-400',
+    jsx: 'bg-cyan-500/10 text-cyan-400',
+    html: 'bg-orange-500/10 text-orange-400',
+    css: 'bg-pink-500/10 text-pink-400',
+    json: 'bg-emerald-500/10 text-emerald-400',
+    bash: 'bg-gray-500/10 text-gray-400',
+    sql: 'bg-amber-500/10 text-amber-400',
+    go: 'bg-sky-500/10 text-sky-400',
+    rust: 'bg-red-500/10 text-red-400',
+    java: 'bg-orange-500/10 text-orange-400',
+    csharp: 'bg-purple-500/10 text-purple-400',
+    cpp: 'bg-indigo-500/10 text-indigo-400',
+    markdown: 'bg-gray-500/10 text-gray-400',
+    yaml: 'bg-red-500/10 text-red-400',
+    graphql: 'bg-pink-500/10 text-pink-400',
+    dockerfile: 'bg-sky-500/10 text-sky-400',
+    scss: 'bg-pink-500/10 text-pink-400',
+  };
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4 sm:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <h1 className="text-xl sm:text-2xl font-bold text-surface-100 truncate">AI Code Review</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-surface-100 truncate flex items-center gap-2">
+            <Brain className="h-5 w-5 sm:h-6 sm:w-6 text-primary-400" />
+            AI Code Review
+          </h1>
           <p className="mt-0.5 text-xs sm:text-sm text-surface-400">Get instant feedback on your code quality, security, and performance</p>
         </div>
         <div className="flex rounded-lg border border-surface-700 bg-surface-800 p-0.5 self-start sm:self-auto">
@@ -140,7 +321,7 @@ export function CodeReviewPage() {
 
       <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
         <div className="space-y-4 w-full lg:w-1/2">
-          {mode === 'repo' && (
+          {mode === 'repo' ? (
             <>
               {loadingReports ? (
                 <div className="flex items-center gap-2 text-sm text-surface-400">
@@ -179,71 +360,125 @@ export function CodeReviewPage() {
                   </p>
                 </div>
               )}
+              <button onClick={handleReview} disabled={loading || !selectedReportId}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 py-3 text-sm font-medium text-white shadow-lg shadow-blue-500/20 transition-all hover:from-blue-500 hover:to-purple-500 disabled:opacity-50"
+              >
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <BookOpen className="h-4 w-4" />}
+                {loading ? 'Analyzing...' : 'Review Repository'}
+              </button>
             </>
-          )}
-
-          {mode === 'snippet' && (
+          ) : (
             <>
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-surface-200">Paste your code</label>
-                <select value={language} onChange={e => setLanguage(e.target.value)}
-                  className="rounded-lg border border-surface-600 bg-surface-800 px-3 py-1.5 text-xs text-surface-300"
-                >
-                  <option value="typescript">TypeScript</option>
-                  <option value="javascript">JavaScript</option>
-                  <option value="python">Python</option>
-                  <option value="jsx">React JSX</option>
-                  <option value="tsx">React TSX</option>
-                  <option value="html">HTML</option>
-                  <option value="css">CSS</option>
-                </select>
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-medium text-surface-200 flex items-center gap-2">
+                    <Wand2 className="h-4 w-4 text-primary-400" />
+                    Paste your code
+                  </label>
+                  {code.trim() && (
+                    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${langColors[detectedLang] || 'bg-surface-800 text-surface-400'}`}>
+                      <Code2 className="h-3 w-3" />
+                      {detectedLang}
+                    </span>
+                  )}
+                </div>
+                <div className={`overflow-hidden rounded-xl border transition-all duration-200 ${editorReady ? 'border-surface-600' : 'border-surface-700'} ${!code.trim() ? 'opacity-80' : ''}`}>
+                  <Editor
+                    height="280px"
+                    language={toMonacoLanguage(detectedLang)}
+                    value={code}
+                    onChange={handleCodeChange}
+                    onMount={() => setEditorReady(true)}
+                    theme="vs-dark"
+                    options={{
+                      minimap: { enabled: false },
+                      fontSize: 13,
+                      fontFamily: "'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace",
+                      lineNumbers: 'on',
+                      scrollBeyondLastLine: false,
+                      padding: { top: 12, bottom: 12 },
+                      folding: true,
+                      foldingHighlight: true,
+                      automaticLayout: true,
+                      tabSize: 2,
+                      renderWhitespace: 'selection',
+                      bracketPairColorization: { enabled: true },
+                      suggestOnTriggerCharacters: false,
+                      quickSuggestions: false,
+                      wordWrap: 'on',
+                    }}
+                  />
+                </div>
+                {!code.trim() && (
+                  <p className="mt-1.5 text-[10px] text-surface-500">Start typing or paste code — language is detected automatically</p>
+                )}
               </div>
-              <textarea
-                value={code} onChange={e => setCode(e.target.value)}
-                placeholder={'// Paste your code here for AI review\nfunction example() {\n  // ...\n}'}
-                className="h-[180px] sm:h-[250px] lg:h-[300px] w-full resize-none rounded-xl border border-surface-700 bg-surface-900/50 p-3 sm:p-4 font-mono text-xs sm:text-sm text-surface-200 placeholder-surface-600 focus:border-primary-500/50 focus:outline-none"
-              />
+
               <div className="flex gap-1.5 sm:gap-2 flex-wrap">
                 {examples.map(ex => (
-                  <button key={ex.label} onClick={() => setCode(ex.code)}
-                    className="rounded-lg border border-surface-600 bg-surface-800/50 px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs text-surface-400 transition-all hover:border-primary-500/30 hover:text-surface-200"
-                  ><Code2 className="mr-1 inline h-2.5 w-2.5 sm:h-3 sm:w-3" />{ex.label}</button>
+                  <button key={ex.label} onClick={() => handleCodeChange(ex.code)}
+                    className="flex items-center gap-1 rounded-lg border border-surface-600 bg-surface-800/50 px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs text-surface-400 transition-all hover:border-primary-500/30 hover:text-surface-200 hover:bg-surface-800/80"
+                  ><Sparkles className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-primary-400" />{ex.label}</button>
                 ))}
               </div>
+
+              <button onClick={handleReview} disabled={loading || !code.trim()}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 py-3 text-sm font-medium text-white shadow-lg shadow-blue-500/20 transition-all hover:from-blue-500 hover:to-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bug className="h-4 w-4" />}
+                {loading ? 'Analyzing with AI...' : 'Review Code'}
+              </button>
             </>
           )}
-
-          <button onClick={handleReview} disabled={loading || (mode === 'snippet' && !code.trim()) || (mode === 'repo' && !selectedReportId)}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 py-3 text-sm font-medium text-white shadow-lg shadow-blue-500/20 transition-all hover:from-blue-500 hover:to-purple-500 disabled:opacity-50"
-          >
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bug className="h-4 w-4" />}
-            {loading ? 'Analyzing...' : mode === 'repo' ? 'Review Repository' : 'Review Code'}
-          </button>
         </div>
 
         <div className="w-full lg:w-1/2">
           <div className="flex items-center justify-between mb-3">
             <label className="text-sm font-medium text-surface-200">Review Results</label>
-            {score !== null && (
-              <span className={
-                'rounded-full px-3 py-1 text-xs font-medium ' +
-                (score >= 80 ? 'bg-emerald-500/10 text-emerald-400' :
-                 score >= 50 ? 'bg-amber-500/10 text-amber-400' :
-                 'bg-red-500/10 text-red-400')
-              }>Score: {score}/100</span>
-            )}
+            <div className="flex items-center gap-2">
+              {code.trim() && detectedLang && (
+                <span className="rounded-full bg-surface-800 px-2 py-0.5 text-[10px] text-surface-400">
+                  {code.length} chars
+                </span>
+              )}
+              {score !== null && (
+                <span className={
+                  'rounded-full px-3 py-1 text-xs font-medium ' +
+                  (score >= 80 ? 'bg-emerald-500/10 text-emerald-400' :
+                   score >= 50 ? 'bg-amber-500/10 text-amber-400' :
+                   'bg-red-500/10 text-red-400')
+                }>Score: {score}/100</span>
+              )}
+            </div>
           </div>
-          <div className="h-[250px] sm:h-[350px] lg:h-[400px] overflow-y-auto rounded-xl border border-surface-700 bg-surface-900/50 p-3 sm:p-4 backdrop-blur-sm">
+          <div className="h-[350px] sm:h-[400px] lg:h-[450px] overflow-y-auto rounded-xl border border-surface-700 bg-surface-900/50 p-3 sm:p-4 backdrop-blur-sm">
             {review ? (
               <div className="max-w-none">
                 <MarkdownRenderer content={review} />
               </div>
             ) : (
               <div className="flex h-full flex-col items-center justify-center text-center">
-                <FileCode className="mb-3 h-10 w-10 text-surface-600" />
-                <p className="text-sm text-surface-400">
-                  {mode === 'repo' ? 'Select a repository and click "Review Repository"' : 'Paste code and click "Review Code"'}
+                <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 ring-1 ring-blue-500/20">
+                  <Brain className="h-7 w-7 text-primary-400" />
+                </div>
+                <p className="text-sm font-medium text-surface-300">Ready to Review</p>
+                <p className="mt-1 text-xs text-surface-500 max-w-xs">
+                  Paste your code on the left, then click <span className="text-primary-400 font-medium">Review Code</span> to get AI-powered feedback
                 </p>
+                <div className="mt-5 grid grid-cols-3 gap-2 text-[10px] text-surface-500">
+                  <div className="rounded-lg bg-surface-800/50 p-2 text-center">
+                    <div className="font-medium text-surface-400">Quality</div>
+                    <div className="mt-0.5">Bugs & style</div>
+                  </div>
+                  <div className="rounded-lg bg-surface-800/50 p-2 text-center">
+                    <div className="font-medium text-surface-400">Security</div>
+                    <div className="mt-0.5">Vulnerabilities</div>
+                  </div>
+                  <div className="rounded-lg bg-surface-800/50 p-2 text-center">
+                    <div className="font-medium text-surface-400">Performance</div>
+                    <div className="mt-0.5">Optimizations</div>
+                  </div>
+                </div>
               </div>
             )}
           </div>

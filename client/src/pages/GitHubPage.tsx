@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Github, GitBranch, Globe, Lock, Loader2, ExternalLink, Search, RefreshCw, Database, Trash2, LogOut } from 'lucide-react';
+import { isAxiosError } from 'axios';
 import apiClient from '../api/axios';
 import toast from 'react-hot-toast';
 
@@ -24,6 +25,20 @@ const OAUTH_ERRORS: Record<string, string> = {
   invalid_or_expired_state: 'Your GitHub authorization session expired or is invalid. Please try connecting again.',
   access_denied: 'You denied the GitHub authorization request.',
 };
+
+/**
+ * Detects the server error about a GitHub account being already linked
+ * to a different DevMind user and returns a user-friendly message.
+ */
+function formatConnectionError(serverMsg: string): string {
+  const alreadyConnectedPattern = /already connected to another user/i;
+  if (alreadyConnectedPattern.test(serverMsg)) {
+    const loginMatch = serverMsg.match(/GitHub account "([^"]+)"/);
+    const login = loginMatch ? loginMatch[1] : 'this GitHub account';
+    return `"${login}" is already signed in to another DevMind account. Please disconnect GitHub from that account's settings first, then try connecting again.`;
+  }
+  return serverMsg;
+}
 
 export function GitHubPage() {
   const [searchParams] = useSearchParams();
@@ -62,7 +77,7 @@ export function GitHubPage() {
         toast.success('GitHub account connected successfully!');
       } else if (githubStatus === 'error' && errorMsg) {
         const decoded = decodeURIComponent(errorMsg);
-        toast.error(decoded);
+        toast.error(formatConnectionError(decoded));
       }
 
       processedParams.current = true;
@@ -185,13 +200,16 @@ export function GitHubPage() {
     if (!indexModal) return;
     setIndexing(true);
     try {
-      await apiClient.post('/indexer/repos/' + indexModal.repoId + '/index', {});
-      toast.success('Repository is being indexed! This may take a few moments.');
+      // Use a longer timeout for indexing — downloading + parsing can take several minutes
+      await apiClient.post('/indexer/repos/' + indexModal.repoId + '/index', {}, { timeout: 300000 });
+      toast.success('Repository indexed successfully!');
       setIndexModal(null);
       fetchImportedRepos();
     } catch (err: unknown) {
-      const e = err as { response?: { data?: { message?: string } } };
-      toast.error(e?.response?.data?.message || 'Failed to index repository');
+      const message = isAxiosError(err)
+        ? err.response?.data?.message || err.message || 'Failed to index repository'
+        : 'Failed to index repository';
+      toast.error(message);
     } finally { setIndexing(false); }
   };
 
