@@ -2,6 +2,16 @@ import { IIndexedFile } from '../models/IndexedFile';
 import { generateFromAI } from '../config/ai';
 import logger from '../utils/logger';
 
+// Maximum total prompt characters to avoid exceeding AI context windows
+// (~32k tokens for Groq, estimate ~4 chars per token = ~120k chars)
+const MAX_PROMPT_CHARS = 80000;
+
+// Maximum lines of code to include per file (truncated at the end)
+const MAX_LINES_PER_FILE = 100;
+
+// Maximum number of files to include in the AI prompt
+const MAX_FILES_IN_PROMPT = 5;
+
 export interface ReviewIssue {
   type: 'bug' | 'security' | 'performance' | 'code_smell' | 'solid_violation';
   severity: 'critical' | 'major' | 'minor' | 'info';
@@ -68,13 +78,36 @@ const SECTION_MAPPINGS: SectionMapping[] = [
 
 export class ReviewerService {
   async reviewFiles(files: { file: IIndexedFile; content: string }[]): Promise<ReviewResult> {
-    const totalLines = files.reduce((acc, f) => acc + f.content.split('\n').length, 0);
+    // Limit to MAX_FILES_IN_PROMPT, sorted by size (largest first, most relevant)
+    const sortedFiles = [...files].sort((a, b) => b.content.length - a.content.length);
+    const limitedFiles = sortedFiles.slice(0, MAX_FILES_IN_PROMPT);
 
-    const codeBlock = files
-      .map((f) => '--- File: ' + f.file.path + ' (' + f.file.language + ', ' + f.content.split('\n').length + ' lines) ---\n' + f.content)
+    // Truncate each file's content to MAX_LINES_PER_FILE
+    const truncatedFiles = limitedFiles.map((f) => {
+      const lines = f.content.split('\n');
+      const truncated = lines.slice(0, MAX_LINES_PER_FILE).join('\n');
+      const truncatedMessage = lines.length > MAX_LINES_PER_FILE
+        ? '\n// ... [truncated, ' + lines.length + ' total lines in file]'
+        : '';
+      return {
+        file: f.file,
+        content: truncated + truncatedMessage,
+      };
+    });
+
+    const totalLines = truncatedFiles.reduce((acc, f) => acc + f.content.split('\n').length, 0);
+
+    let codeBlock = truncatedFiles
+      .map((f) => '--- File: ' + f.file.path + ' (' + f.file.language + ', ' + f.content.split('\n').length + ' lines shown) ---\n' + f.content)
       .join('\n\n');
 
-    const prompt = this.buildReviewPrompt(codeBlock, files.length, totalLines);
+    // If the code block is still too large, truncate further
+    if (codeBlock.length > MAX_PROMPT_CHARS) {
+      codeBlock = codeBlock.substring(0, MAX_PROMPT_CHARS) +
+        '\n\n// ... [code truncated to fit within AI context window]';
+    }
+
+    const prompt = this.buildReviewPrompt(codeBlock, truncatedFiles.length, totalLines);
     const systemInstruction = this.buildSystemInstruction();
 
     try {
@@ -82,9 +115,9 @@ export class ReviewerService {
         systemInstruction,
         prompt,
         temperature: 0.2,
-        maxTokens: 8192,
+        maxTokens: 4096,
       });
-      return this.parseReviewResponse(response, files);
+      return this.parseReviewResponse(response, truncatedFiles);
     } catch (error) {
       logger.error('Reviewer: AI review failed', error);
       return this.fallbackReview();
