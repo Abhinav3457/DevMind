@@ -260,7 +260,6 @@ export function CodeReviewPage() {
 
   useEffect(() => {
     if (mode === 'repo') fetchReports();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode]);
 
   const fetchReports = async () => {
@@ -536,7 +535,7 @@ export function CodeReviewPage() {
                 <p className="mt-1 text-xs text-surface-500 max-w-xs">
                   Paste your code on the left, then click <span className="text-primary-400 font-medium">Review Code</span> to get AI-powered feedback
                 </p>
-                <div className="mt-5 grid grid-cols-3 gap-2 text-[10px] text-surface-500">
+                <div className="mt-5 grid grid-cols-1 gap-2 text-[10px] text-surface-500 min-[420px]:grid-cols-3">
                   <div className="rounded-lg bg-surface-800/50 p-2 text-center">
                     <div className="font-medium text-surface-400">Quality</div>
                     <div className="mt-0.5">Bugs & style</div>

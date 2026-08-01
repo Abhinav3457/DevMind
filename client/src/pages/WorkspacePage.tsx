@@ -76,7 +76,7 @@ export function WorkspacePage() {
 
       {/* Create Modal */}
       {showCreate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setShowCreate(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setShowCreate(false)}>
           <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="w-full max-w-md rounded-xl border border-surface-700 bg-surface-900 p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
             <h2 className="text-lg font-semibold text-surface-200">Create Workspace</h2>
             <div className="mt-4 space-y-3">

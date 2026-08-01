@@ -361,7 +361,7 @@ export function WorkspaceDetailPage() {
                 {repos.map((repo) => {
                   const status = repo.indexStatus || 'not_indexed';
                   return (
-                    <div key={repo.id} className="flex flex-col xs:flex-row xs:items-center justify-between gap-2 rounded-lg border border-surface-700 bg-surface-900/30 px-3 sm:px-4 py-2.5 sm:py-3 transition-all hover:border-surface-600">
+                    <div key={repo.id} className="flex flex-col justify-between gap-2 rounded-lg border border-surface-700 bg-surface-900/30 px-3 sm:flex-row sm:items-center sm:px-4 py-2.5 sm:py-3 transition-all hover:border-surface-600">
                       <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
                         <GitBranch className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0 text-surface-400" />
                         <div className="min-w-0 flex-1">
@@ -373,7 +373,7 @@ export function WorkspaceDetailPage() {
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 ml-5 xs:ml-0">
+                      <div className="flex flex-shrink-0 items-center gap-2 sm:ml-0 sm:gap-3">
                         <span className={
                           'rounded-full px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[10px] font-medium whitespace-nowrap ' +
                           (status === 'completed' ? 'bg-emerald-500/10 text-emerald-400' :
@@ -418,7 +418,7 @@ export function WorkspaceDetailPage() {
                   <UserPlus className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-surface-400" />
                   Invite Member
                 </h3>
-                <div className="flex flex-col xs:flex-row gap-2 sm:gap-3">
+                <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
                   <div className="relative flex-1">
                     <Mail className="absolute left-3 top-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 -translate-y-1/2 text-surface-400" />
                     <input type="email" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)}
@@ -483,7 +483,7 @@ export function WorkspaceDetailPage() {
             </div>
 
             {removeTarget && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setRemoveTarget(null)}>
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setRemoveTarget(null)}>
                 <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }}
                   className="w-full max-w-sm rounded-xl border border-surface-700 bg-surface-900 p-6 shadow-2xl" onClick={e => e.stopPropagation()}
                 >
@@ -591,7 +591,7 @@ export function WorkspaceDetailPage() {
             )}
 
             {showArchiveConfirm && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setShowArchiveConfirm(false)}>
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setShowArchiveConfirm(false)}>
                 <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }}
                   className="w-full max-w-sm rounded-xl border border-surface-700 bg-surface-900 p-6 shadow-2xl" onClick={e => e.stopPropagation()}
                 >
@@ -609,7 +609,7 @@ export function WorkspaceDetailPage() {
             )}
 
             {removeRepo && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setRemoveRepo(null)}>
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setRemoveRepo(null)}>
                 <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }}
                   className="w-full max-w-sm rounded-xl border border-surface-700 bg-surface-900 p-6 shadow-2xl" onClick={e => e.stopPropagation()}
                 >
@@ -635,7 +635,7 @@ export function WorkspaceDetailPage() {
             )}
 
             {showDeleteConfirm && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setShowDeleteConfirm(false)}>
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setShowDeleteConfirm(false)}>
                 <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }}
                   className="w-full max-w-sm rounded-xl border border-surface-700 bg-surface-900 p-6 shadow-2xl" onClick={e => e.stopPropagation()}
                 >

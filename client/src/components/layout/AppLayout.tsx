@@ -51,7 +51,7 @@ export function AppLayout() {
   };
 
   return (
-    <div className="flex min-h-screen min-h-dvh bg-surface-950">
+    <div className="flex min-h-screen min-h-dvh overflow-x-hidden bg-surface-950">
       {/* Mobile sidebar overlay */}
       <AnimatePresence>
         {mobileOpen && (
@@ -161,7 +161,7 @@ export function AppLayout() {
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto p-3 sm:p-4 lg:p-6">
+        <main className="flex-1 overflow-x-hidden overflow-y-auto p-3 sm:p-4 lg:p-6">
           <Outlet />
         </main>
       </div>

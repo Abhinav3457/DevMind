@@ -329,10 +329,10 @@ export function GitHubPage() {
                   const status = ir.indexStatus || 'not_indexed';
                   const isIndexed = status === 'completed';
                   return (
-                    <div key={ir._id} className="flex items-center justify-between rounded-lg border border-surface-700 bg-surface-900/50 px-4 py-3">
-                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div key={ir._id} className="flex flex-col gap-2 rounded-lg border border-surface-700 bg-surface-900/50 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-4">
+                      <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
                         <GitBranch className="h-4 w-4 flex-shrink-0 text-surface-400" />
-                        <span className="text-sm font-medium text-surface-200 truncate">{ir.fullName}</span>
+                        <span className="truncate text-sm font-medium text-surface-200">{ir.fullName}</span>
                         <span className={
                           'flex-shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ' +
                           (status === 'completed' ? 'bg-emerald-500/10 text-emerald-400' :
@@ -347,7 +347,7 @@ export function GitHubPage() {
                            'Not indexed'}
                         </span>
                       </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
+                      <div className="flex flex-shrink-0 items-center gap-2 sm:ml-3">
                         {!isIndexed ? (
                           <button
                             onClick={() => setIndexModal({ open: true, repoName: ir.fullName, repoId: ir._id })}
@@ -379,7 +379,7 @@ export function GitHubPage() {
 
       {/* Remove Confirmation Modal */}
       {showRemoveConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setShowRemoveConfirm(null)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setShowRemoveConfirm(null)}>
           <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }}
             className="w-full max-w-sm rounded-xl border border-surface-700 bg-surface-900 p-6 shadow-2xl" onClick={e => e.stopPropagation()}
           >
@@ -406,7 +406,7 @@ export function GitHubPage() {
 
       {/* Index Modal */}
       {indexModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => { setIndexModal(null); }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => { setIndexModal(null); }}>
           <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="w-full max-w-md rounded-xl border border-surface-700 bg-surface-900 p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="flex items-center gap-3">
               <Database className="h-5 w-5 text-emerald-400" />

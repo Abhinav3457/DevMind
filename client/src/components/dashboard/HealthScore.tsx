@@ -69,12 +69,12 @@ export function HealthScore({ score, level, metrics }: HealthScoreProps) {
   return (
     <div className="space-y-6">
       {/* Score Circle Section */}
-      <div className="flex items-center gap-6">
-        <div className="relative flex h-32 w-32 items-center justify-center">
+      <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:items-center sm:gap-6 sm:text-left">
+        <div className="relative flex h-24 w-24 flex-shrink-0 items-center justify-center sm:h-32 sm:w-32">
           {/* Background glow */}
           <div className={`absolute inset-0 rounded-full ${config.bg} blur-xl opacity-50`} />
           
-          <svg className="absolute h-32 w-32 -rotate-90" viewBox="0 0 120 120">
+          <svg className="absolute h-24 w-24 -rotate-90 sm:h-32 sm:w-32" viewBox="0 0 120 120">
             {/* Track */}
             <circle 
               cx="60" cy="60" r={radius} 
@@ -108,9 +108,9 @@ export function HealthScore({ score, level, metrics }: HealthScoreProps) {
             </defs>
           </svg>
           
-          <div className="text-center z-10">
+          <div className="z-10 text-center">
             <motion.p 
-              className={`text-3xl font-bold ${config.color}`}
+              className={`text-2xl font-bold sm:text-3xl ${config.color}`}
               initial={{ opacity: 0, scale: 0.5 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.5, duration: 0.5 }}
@@ -122,12 +122,12 @@ export function HealthScore({ score, level, metrics }: HealthScoreProps) {
         </div>
         
         <div className="space-y-2">
-          <p className="text-lg font-bold text-surface-100">Repository Health</p>
+          <p className="text-base font-bold text-surface-100 sm:text-lg">Repository Health</p>
           <div className={`inline-flex items-center gap-2 rounded-full px-3 py-1 ${config.bg}`}>
             <div className={`h-2 w-2 rounded-full bg-gradient-to-r ${config.gradient}`} />
             <span className={`text-sm font-semibold ${config.color}`}>{config.label}</span>
           </div>
-          <p className="text-xs text-surface-400 max-w-[200px] leading-relaxed">
+          <p className="max-w-[220px] text-xs leading-relaxed text-surface-400">
             Based on indexing completeness and documentation coverage
           </p>
         </div>
