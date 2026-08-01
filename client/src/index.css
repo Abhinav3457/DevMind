@@ -6,6 +6,7 @@
   /* ── Theme Variables ───────────────────────────────────────────── */
   /* Dark theme (default) */
   :root {
+    color-scheme: dark;
     --surface-50: #f8fafc;
     --surface-100: #f1f5f9;
     --surface-200: #e2e8f0;
@@ -21,13 +22,16 @@
 
   /* Light theme */
   .light {
+    color-scheme: light;
     --surface-50: #020617;
     --surface-100: #0f172a;
     --surface-200: #1e293b;
     --surface-300: #334155;
     --surface-400: #475569;
-    --surface-500: #64748b;
-    --surface-600: #94a3b8;
+    /* Muted text / placeholders — darkened so they stay readable on light bg */
+    --surface-500: #526273;
+    /* Dim text / icons — darkened from #94a3b8 (was ~2.4:1 contrast) */
+    --surface-600: #64748b;
     --surface-700: #cbd5e1;
     --surface-800: #e2e8f0;
     --surface-900: #f1f5f9;
@@ -173,6 +177,11 @@
     @apply bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent;
   }
 
+  /* Light theme: darker gradient stops so gradient headings stay readable */
+  .light .gradient-text {
+    background-image: linear-gradient(to right, #2563eb, #7c3aed);
+  }
+
   .btn-primary {
     @apply bg-primary-600 hover:bg-primary-700 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
   }
@@ -186,6 +195,40 @@
   }
 }
 
+/* ── Light Theme Text Contrast Fixes ───────────────────── */
+/* Tailwind accent text colors (blue-400, emerald-400, ...) are tuned for dark
+   backgrounds. In light mode they wash out against light tints, so remap them
+   to darker (500-700 level) equivalents while the light theme is active.
+   Unlayered so they beat Tailwind's generated utilities. */
+.light .text-primary-400 { color: #1d4ed8; }
+.light .text-primary-300 { color: #1d4ed8; }
+.light .text-blue-400 { color: #2563eb; }
+.light .text-blue-300 { color: #1d4ed8; }
+.light .text-blue-200 { color: #1e40af; }
+.light .text-emerald-400 { color: #059669; }
+.light .text-emerald-300 { color: #047857; }
+.light .text-amber-400 { color: #d97706; }
+.light .text-amber-300 { color: #b45309; }
+.light .text-amber-200 { color: #92400e; }
+.light .text-red-400 { color: #dc2626; }
+.light .text-red-300 { color: #b91c1c; }
+.light .text-red-200 { color: #991b1b; }
+.light .text-purple-400 { color: #9333ea; }
+.light .text-cyan-400 { color: #0891b2; }
+.light .text-pink-400 { color: #db2777; }
+.light .text-yellow-400 { color: #ca8a04; }
+.light .text-green-400 { color: #16a34a; }
+.light .text-orange-400 { color: #ea580c; }
+.light .text-sky-400 { color: #0284c7; }
+.light .text-indigo-400 { color: #4f46e5; }
+.light .text-teal-400 { color: #0d9488; }
+.light .text-gray-400 { color: #4b5563; }
+
+/* Markdown links in light mode need a darker blue too */
+.light .prose-theme {
+  --tw-prose-links: #2563eb;
+}
+
 /* ── Highlight.js Syntax Colors ─────────────────────────── */
 .hljs {
   display: block;
@@ -195,6 +238,72 @@
 
 .light .hljs {
   color: #1e293b;
+}
+
+/* Darken highlight.js token colors when the light theme is active so code
+   stays readable on light code blocks (e.g. in AI chat / code review). */
+.light .hljs-keyword,
+.light .hljs-selector-tag,
+.light .hljs-section,
+.light .hljs-link {
+  color: #7e22ce;
+}
+
+.light .hljs-string,
+.light .hljs-title,
+.light .hljs-name,
+.light .hljs-type,
+.light .hljs-attribute,
+.light .hljs-symbol,
+.light .hljs-bullet,
+.light .hljs-built_in,
+.light .hljs-addition,
+.light .hljs-variable,
+.light .hljs-template-tag,
+.light .hljs-template-variable {
+  color: #047857;
+}
+
+.light .hljs-comment,
+.light .hljs-quote,
+.light .hljs-deletion,
+.light .hljs-meta {
+  color: #64748b;
+}
+
+.light .hljs-number,
+.light .hljs-regexp,
+.light .hljs-literal {
+  color: #b45309;
+}
+
+.light .hljs-function .hljs-title,
+.light .hljs-class .hljs-title {
+  color: #1d4ed8;
+}
+
+.light .hljs-tag {
+  color: #be185d;
+}
+
+.light .hljs-tag .hljs-name {
+  color: #be185d;
+}
+
+.light .hljs-tag .hljs-attr {
+  color: #1d4ed8;
+}
+
+.light .hljs-attr {
+  color: #1d4ed8;
+}
+
+.light .hljs-punctuation {
+  color: #475569;
+}
+
+.light .hljs-params {
+  color: #334155;
 }
 
 /* Keywords */
