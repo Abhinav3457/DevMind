@@ -24,12 +24,15 @@ function detectLanguage(code: string): string {
 
   // Heuristics sorted by specificity
   const patterns: [RegExp, string][] = [
+    // JSX/TSX — MUST run before the HTML tag pattern so JSX with <div> etc.
+    // isn't misdetected as HTML
+    [/(?:import\s+React|from\s+['"]react['"])/m, 'tsx'],
+    [/\b(?:className|onClick|onChange|useState|useEffect|useRef|useCallback|useMemo|return\s*\(?\s*<)/, 'tsx'],
+    [/(?:export\s+(?:default\s+)?(?:const|function|class)\s+\w+[\s\S]*?(?:=>\s*\(?\s*<|render\s*\(\s*\)\s*\{))/m, 'tsx'],
     // HTML/XML
     [/^<!DOCTYPE html/i, 'html'],
-    [/<\/?(html|div|span|p|a|body|head|table|h[1-6]|form|input|button|img|nav|header|footer|section|article|main|aside)[^>]*>/i, 'html'],
-    // JSX/TSX — look for JSX-specific patterns
-    [/(?:import\s+React|export\s+(?:default\s+)?(?:const|function|class)\s+\w+\s*(?:[=:]\s*)?\(?\)?\s*=>\s*[<({])/m, 'tsx'],
-    [/\b(?:className|onClick|onChange|useState|useEffect|useRef|useCallback|useMemo|return\s*\(?\s*<)/, 'tsx'],
+    [/<(html|body|head|meta|link|script|style|table)\b[^>]*>/i, 'html'],
+    [/<\/(html|body|head)\s*>/i, 'html'],
     // TypeScript
     [/\b(?:interface|type|as\s+\w+|: string|: number|: boolean|: any|: void|: Record<|: Partial<|: Pick<|: Omit<|: Promise<)\b/, 'typescript'],
     [/\b(const|let|var)\s+\w+\s*:\s*\w+/s, 'typescript'],
@@ -80,6 +83,12 @@ function detectLanguage(code: string): string {
   for (const [regex, lang] of patterns) {
     if (regex.test(trimmed)) return lang;
   }
+
+  // Generic HTML tag check — runs AFTER the JSX/TSX patterns above so that
+  // React/JSX snippets (which contain <div>, <span>, etc.) are not classified
+  // as HTML. Only plain HTML with a couple of tags reaches this point.
+  const tagMatches = (trimmed.match(/<\/?[a-z][a-z0-9-]*\b[^>]*>/gi) || []).length;
+  if (tagMatches >= 2) return 'html';
 
   // Fallback: check for common keywords
   if (/\b(function|console\.log|async|await|Promise|new Promise|Array\.from|Object\.keys|try\s*{|catch\s*\()/s.test(trimmed)) return 'javascript';
@@ -147,6 +156,91 @@ function toExtension(lang: string): string {
   return map[lang] || 'ts';
 }
 
+interface ReviewIssue {
+  type: string;
+  severity: string;
+  file: string;
+  line: number;
+  message: string;
+  explanation: string;
+  recommendation: string;
+}
+
+const CATEGORY_LABELS: Record<string, string> = {
+  bugs: 'Bugs & Correctness',
+  security: 'Security',
+  performance: 'Performance',
+  codeSmells: 'Code Smells & Maintainability',
+  solidViolations: 'Architecture & Design (SOLID)',
+};
+
+/**
+ * Build a readable markdown report from the structured review payload so the
+ * user sees every issue, its fix, the score and the refactoring suggestions —
+ * not just a one-line summary.
+ */
+function renderReviewMarkdown(data: Record<string, unknown>): string {
+  const parts: string[] = [];
+
+  const score = data.score;
+  if (typeof score === 'number') {
+    parts.push(`## Review Score\n\n**${score}/100**\n`);
+  }
+  if (typeof data.summary === 'string' && data.summary.trim()) {
+    parts.push(`## Summary\n\n${data.summary}\n`);
+  }
+
+  const cats = (data.categories || {}) as Record<string, { issues?: ReviewIssue[]; summary?: string }>;
+  for (const [key, cat] of Object.entries(cats)) {
+    const issues = cat?.issues || [];
+    if (issues.length === 0) continue;
+    parts.push(`## ${CATEGORY_LABELS[key] || key}\n`);
+    if (cat.summary) parts.push(`> ${cat.summary}\n`);
+    issues.forEach((issue) => {
+      const loc = issue.file && issue.file !== 'unknown'
+        ? `\`${issue.file}${issue.line ? ':' + issue.line : ''}\``
+        : 'Location unknown';
+      const sev = issue.severity ? `**${issue.severity.toUpperCase()}**` : '';
+      parts.push(`- **${issue.message || 'Issue'}** ${sev} — ${loc}`);
+      if (issue.explanation) parts.push(`  ${issue.explanation}`);
+      if (issue.recommendation) parts.push(`  **Fix:** ${issue.recommendation.replace(/\n/g, '\n  ')}`);
+      parts.push('');
+    });
+  }
+
+  const suggestions = (data.refactoringSuggestions || []) as {
+    title?: string;
+    description?: string;
+    file?: string;
+    priority?: string;
+  }[];
+  if (suggestions.length > 0) {
+    parts.push(`## Refactoring Suggestions\n`);
+    suggestions.forEach((s) => {
+      parts.push(`- **${s.title || 'Suggestion'}**${s.file ? ` — \`${s.file}\`` : ''}${s.priority ? ` (${s.priority})` : ''}`);
+      if (s.description) parts.push(`  ${s.description}`);
+    });
+    parts.push('');
+  }
+
+  const complexity = data.complexity as { averageComplexity?: number; highComplexityFiles?: unknown[] } | undefined;
+  if (complexity) {
+    parts.push(`## Complexity Analysis\n`);
+    parts.push(`- Average complexity: **${complexity.averageComplexity ?? 'N/A'}**`);
+    parts.push(`- High complexity files: **${(complexity.highComplexityFiles || []).length}**\n`);
+  }
+
+  if (Array.isArray(data.duplicateCode) && (data.duplicateCode as unknown[]).length > 0) {
+    parts.push(`## Duplicate Code\n\nFound **${(data.duplicateCode as unknown[]).length}** duplicate block(s).\n`);
+  }
+
+  if (typeof data.fixedVersion === 'string' && data.fixedVersion.trim()) {
+    parts.push(`## Fixed Version\n\n${data.fixedVersion}\n`);
+  }
+
+  return parts.join('\n') || 'Review completed. No issues found.';
+}
+
 export function CodeReviewPage() {
   const [mode, setMode] = useState<'snippet' | 'repo'>('snippet');
   const [code, setCode] = useState('');
@@ -188,30 +282,32 @@ export function CodeReviewPage() {
     }
   }, []);
 
+  // All languages the detector can return AND the server validator accepts.
+  const supportedLanguages = [
+    'typescript', 'javascript', 'python', 'jsx', 'tsx', 'html', 'css', 'json', 'markdown',
+    'go', 'rust', 'java', 'csharp', 'cpp', 'scss', 'yaml', 'dockerfile', 'graphql', 'sql', 'bash',
+  ];
+
   const handleReviewSnippet = async () => {
     if (!code.trim()) { toast.error('Please enter some code to review'); return; }
     setLoading(true);
     setReview(null);
     setScore(null);
     try {
-      // Only send languages the server supports — fall back to typescript for unsupported ones
-      const supportedLanguages = ['typescript', 'javascript', 'python', 'jsx', 'tsx', 'html', 'css', 'json', 'markdown'];
+      // Only send languages the server supports — fall back to typescript for unknown ones
       const safeLang = supportedLanguages.includes(detectedLang) ? detectedLang : 'typescript';
       const res = await apiClient.post('/ai/code-review/review', {
         code,
         language: safeLang,
         fileName: 'input.' + toExtension(safeLang),
       });
-      const result = res.data.data?.summary || res.data.data?.review || res.data.data?.result || res.data.message;
-      const extractedScore = typeof result === 'string' ? parseInt(result.match(/\d+/)?.[0] || '') || null : null;
-      if (typeof result === 'string' && result.includes('```')) {
-        setReview(result);
-      } else if (typeof result === 'object' && result?.summary) {
-        setReview(result.summary);
+      const data = res.data.data;
+      if (data) {
+        setReview(renderReviewMarkdown(data));
+        setScore(typeof data.score === 'number' ? data.score : null);
       } else {
-        setReview(typeof result === 'string' ? result : JSON.stringify(result, null, 2));
+        setReview('No review data returned from server.');
       }
-      setScore(extractedScore);
       toast.success('Code review complete!');
     } catch {
       toast.error('Failed to review code. Please try again.');
@@ -227,33 +323,8 @@ export function CodeReviewPage() {
       const res = await apiClient.post(`/ai/code-review/${selectedReportId}`, { files: undefined });
       const data = res.data.data;
       if (data) {
-        const summary = data.summary || '';
-        const cats = data.categories || {};
-        let reviewMd = '';
-        if (data.score !== undefined) {
-          reviewMd += `## REVIEW SCORE\n\n**Score: ${data.score}/100**\n\n`;
-        }
-        reviewMd += `### SUMMARY\n\n${summary || 'Review completed.'}\n\n`;
-        for (const [catName, cat] of Object.entries(cats)) {
-          const c = cat as { summary?: string; issues?: unknown[] };
-          if (c.summary && c.issues && c.issues.length > 0) {
-            reviewMd += `### ${catName.toUpperCase()}\n\n${c.summary}\n\n`;
-          }
-        }
-        if (data.refactoringSuggestions?.length > 0) {
-          reviewMd += `### REFACTORING SUGGESTIONS\n\n${data.refactoringSuggestions.length} suggestion(s) found.\n\n`;
-        }
-        if (data.complexity) {
-          const cx = data.complexity;
-          reviewMd += `### COMPLEXITY ANALYSIS\n\n`;
-          reviewMd += `- Average complexity: **${cx.averageComplexity || 'N/A'}**\n`;
-          reviewMd += `- High complexity files: **${(cx.highComplexityFiles || []).length}**\n\n`;
-        }
-        if (data.duplicateCode?.length > 0) {
-          reviewMd += `### DUPLICATE CODE\n\nFound **${data.duplicateCode.length}** duplicate block(s).\n\n`;
-        }
-        setReview(reviewMd || 'Review completed. No issues found.');
-        setScore(data.score ?? null);
+        setReview(renderReviewMarkdown(data));
+        setScore(typeof data.score === 'number' ? data.score : null);
       } else {
         setReview('No review data returned from server.');
       }

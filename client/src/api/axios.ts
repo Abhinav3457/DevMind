@@ -7,7 +7,7 @@ const apiClient = axios.create({
     'Content-Type': 'application/json',
   },
   withCredentials: true,
-  timeout: 30000,
+  timeout: 180000,
 });
 
 // Track refresh state to prevent multiple simultaneous refresh requests

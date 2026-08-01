@@ -29,65 +29,63 @@ const GROQ_MODELS = ['llama-3.3-70b-versatile', 'openai/gpt-oss-120b', 'openai/g
 
 // Groq free tier caps gpt-oss/qwen at ~8K tokens/min, so large prompts (e.g. code
 // reviews of 5 files x 100 lines) 413 with "Request too large". Gemini allows
-// 250K tokens/min, so large prompts are routed straight to Gemini.
+// 250K tokens/min, so large prompts are preferred on Gemini first.
 const LARGE_PROMPT_CHARS = 30000;
 
 // Gemini model verified to work with free-tier keys (gemini-2.5-flash is retired
 // for new users and returns 404).
 const GEMINI_MODEL = 'gemini-3.5-flash';
 
-export async function generateFromAI(params: AIGenerateParams): Promise<string> {
+// How many times to retry a single provider on transient failures (429/503/5xx),
+// and the base delay between attempts (grows with each retry).
+const MAX_ATTEMPTS = 2;
+const RETRY_DELAY_MS = 1500;
+
+function isTransientError(message: string): boolean {
+  return (
+    /503|429|5\d\d|quota|too many requests|high demand|temporar|overloaded|unavailable|busy/i.test(
+      message,
+    )
+  );
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function attemptGroq(params: AIGenerateParams): Promise<string> {
   const { systemInstruction, prompt, temperature = 0.3, maxTokens = 4096 } = params;
+  const client = getGroqClient();
+  let lastError = 'All Groq models failed';
 
-  // Check if any AI provider is configured
-  if (!env.GROQ_API_KEY && !env.GEMINI_API_KEY) {
-    throw new Error('No AI service configured. Set GEMINI_API_KEY or GROQ_API_KEY in your .env file.');
-  }
-
-  // Large prompts (code reviews, big docs) exceed Groq's ~8K tokens/min free-tier
-  // limit for gpt-oss/qwen and 413 with "Request too large". Route them straight to
-  // Gemini (250K tokens/min) when it is available. If Gemini is NOT configured, still
-  // attempt Groq — llama-3.3-70b-versatile (first in the list) can handle large prompts.
-  const promptChars = systemInstruction.length + prompt.length;
-  const useGroq = env.GROQ_API_KEY && (!env.GEMINI_API_KEY || promptChars <= LARGE_PROMPT_CHARS);
-
-  if (useGroq) {
-    const client = getGroqClient();
-    // Try each Groq model in order until one works
-    for (const model of GROQ_MODELS) {
-      try {
-        logger.info('AI: Using Groq (model: ' + model + ')');
-        const response = await client.chat.completions.create({
-          model,
-          messages: [
-            { role: 'system', content: systemInstruction },
-            { role: 'user', content: prompt },
-          ],
-          temperature,
-          max_tokens: Math.min(maxTokens, 8192),
-        });
-        const content = response.choices[0]?.message?.content || '';
-        if (content) {
-          logger.info('AI: Groq response received (' + content.length + ' chars)');
-          return content;
-        }
-      } catch (groqError: unknown) {
-        const errMsg = groqError instanceof Error ? groqError.message : String(groqError);
-        logger.warn('AI: Groq model ' + model + ' failed (' + errMsg.slice(0, 120) + ')');
-        // Continue to next model
+  for (const model of GROQ_MODELS) {
+    try {
+      logger.info('AI: Using Groq (model: ' + model + ')');
+      const response = await client.chat.completions.create({
+        model,
+        messages: [
+          { role: 'system', content: systemInstruction },
+          { role: 'user', content: prompt },
+        ],
+        temperature,
+        max_tokens: Math.min(maxTokens, 8192),
+      });
+      const content = response.choices[0]?.message?.content || '';
+      if (content) {
+        logger.info('AI: Groq response received (' + content.length + ' chars)');
+        return content;
       }
+    } catch (groqError: unknown) {
+      lastError = groqError instanceof Error ? groqError.message : String(groqError);
+      logger.warn('AI: Groq model ' + model + ' failed (' + lastError.slice(0, 140) + ')');
     }
-    // All Groq models failed
-    if (!env.GEMINI_API_KEY) {
-      throw new Error('Groq failed with all available models. Try asking a more specific question or configure GEMINI_API_KEY as a fallback.');
-    }
-    logger.warn('AI: All Groq models failed, falling back to Gemini');
   }
 
-  // Only try Gemini if API key is configured
-  if (!env.GEMINI_API_KEY) {
-    throw new Error('All AI providers failed. Configure GEMINI_API_KEY for a fallback, or check your GROQ_API_KEY.');
-  }
+  throw new Error(lastError);
+}
+
+async function attemptGemini(params: AIGenerateParams): Promise<string> {
+  const { systemInstruction, prompt, temperature = 0.3, maxTokens = 4096 } = params;
 
   logger.info('AI: Using Gemini (model: ' + GEMINI_MODEL + ')');
   const model = getGeminiModel(GEMINI_MODEL);
@@ -101,6 +99,64 @@ export async function generateFromAI(params: AIGenerateParams): Promise<string> 
   });
 
   const content = result.response.text();
+  if (!content) {
+    throw new Error('Gemini returned an empty response');
+  }
   logger.info('AI: Gemini response received (' + content.length + ' chars)');
   return content;
+}
+
+export async function generateFromAI(params: AIGenerateParams): Promise<string> {
+  const { systemInstruction, prompt } = params;
+
+  // Check if any AI provider is configured
+  if (!env.GROQ_API_KEY && !env.GEMINI_API_KEY) {
+    throw new Error('No AI service configured. Set GEMINI_API_KEY or GROQ_API_KEY in your .env file.');
+  }
+
+  const promptChars = systemInstruction.length + prompt.length;
+  const largePrompt = promptChars > LARGE_PROMPT_CHARS;
+  const groqAvailable = !!env.GROQ_API_KEY;
+  const geminiAvailable = !!env.GEMINI_API_KEY;
+
+  // Build the provider queue:
+  // - Large prompts (repo reviews, big docs) are preferred on Gemini (250K tokens/min)
+  //   but always keep Groq as a fallback — llama-3.3-70b-versatile handles large prompts.
+  // - Small prompts are preferred on Groq (fast, free) with Gemini as a fallback.
+  // - If the preferred provider fails permanently, the other provider is still tried,
+  //   so a single provider outage never takes the feature down.
+  const providers: Array<() => Promise<string>> = [];
+  if (largePrompt && geminiAvailable) providers.push(() => attemptGemini(params));
+  if (groqAvailable) providers.push(() => attemptGroq(params));
+  if (!largePrompt && geminiAvailable) providers.push(() => attemptGemini(params));
+
+  if (providers.length === 0) {
+    throw new Error('All AI providers failed. Configure GEMINI_API_KEY for a fallback, or check your GROQ_API_KEY.');
+  }
+
+  let lastError: unknown = new Error('All AI providers failed');
+
+  for (const attempt of providers) {
+    for (let tryCount = 0; tryCount < MAX_ATTEMPTS; tryCount++) {
+      try {
+        return await attempt();
+      } catch (error) {
+        lastError = error;
+        const errMsg = error instanceof Error ? error.message : String(error);
+        const transient = isTransientError(errMsg);
+        logger.warn('AI: provider attempt failed (' + errMsg.slice(0, 180) + ')');
+
+        // Transient errors (429/503/quota) are worth retrying; permanent errors
+        // (invalid model, auth failure) should fall through to the next provider.
+        if (transient && tryCount < MAX_ATTEMPTS - 1) {
+          await sleep(RETRY_DELAY_MS * (tryCount + 1));
+        } else if (!transient) {
+          break;
+        }
+      }
+    }
+  }
+
+  const finalMessage = lastError instanceof Error ? lastError.message : String(lastError);
+  throw new Error('All AI providers failed. ' + finalMessage.slice(0, 300));
 }
