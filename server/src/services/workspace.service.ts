@@ -241,13 +241,16 @@ export class WorkspaceService {
       .sort({ role: -1, joinedAt: 1 });
 
     return members.map((m) => {
-      const user = m.userId as unknown as { _id: string; name: string; email: string; avatar: string | null };
+      const user = m.userId as unknown as { _id?: mongoose.Types.ObjectId | string; name?: string; email?: string; avatar?: string | null } | null;
+      // m.userId is populated (User doc), so its _id is the real user id.
+      // It can be null when the referenced user no longer exists — don't crash.
+      const rawUserId = user?._id ?? m.userId;
       return {
         id: m._id.toString(),
-        userId: user._id?.toString() || m.userId.toString(),
-        name: user.name || 'Unknown',
-        email: user.email || '',
-        avatar: user.avatar || null,
+        userId: rawUserId?.toString() || '',
+        name: user?.name || 'Unknown',
+        email: user?.email || '',
+        avatar: user?.avatar || null,
         role: m.role as WorkspaceRole,
         joinedAt: m.joinedAt,
       };

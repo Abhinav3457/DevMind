@@ -210,6 +210,58 @@ describe('WorkspaceService', () => {
     });
   });
 
+  describe('listMembers', () => {
+    it('returns members with real user ids', async () => {
+      vi.mocked(WorkspaceMember.findOne).mockResolvedValue(createMockMember({ role: 'admin' }) as never);
+      vi.mocked(WorkspaceMember.find).mockReturnValue({
+        populate: vi.fn().mockReturnValue({
+          sort: vi.fn().mockResolvedValue([
+            {
+              _id: 'member-1',
+              workspaceId: WS_ID,
+              userId: { _id: USER_ID, name: 'Test User', email: 'test@example.com', avatar: null },
+              role: 'admin',
+              joinedAt: new Date(),
+            },
+          ]),
+        }),
+      } as never);
+
+      const result = await service.listMembers(WS_ID, USER_ID);
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toMatchObject({
+        userId: USER_ID,
+        name: 'Test User',
+        email: 'test@example.com',
+      });
+      expect(result[0].userId).not.toBe('[object Object]');
+    });
+
+    it('falls back gracefully when the populated user is null (no crash)', async () => {
+      vi.mocked(WorkspaceMember.findOne).mockResolvedValue(createMockMember({ role: 'admin' }) as never);
+      vi.mocked(WorkspaceMember.find).mockReturnValue({
+        populate: vi.fn().mockReturnValue({
+          sort: vi.fn().mockResolvedValue([
+            {
+              _id: 'member-1',
+              workspaceId: WS_ID,
+              userId: null,
+              role: 'member',
+              joinedAt: new Date(),
+            },
+          ]),
+        }),
+      } as never);
+
+      const result = await service.listMembers(WS_ID, USER_ID);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].userId).toBe('');
+      expect(result[0].name).toBe('Unknown');
+    });
+  });
+
   describe('getActivityTimeline', () => {
     it('should return activities with real user ids (not "[object Object]")', async () => {
       const populatedMembers = [
