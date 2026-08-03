@@ -20,7 +20,6 @@ export const importRepoSchema = Joi.object({
     'string.empty': 'Repository name is required',
     'any.required': 'Repository name is required',
   }),
-  workspaceId: Joi.string().optional(),
   isPrivate: Joi.boolean().default(false),
 });
 

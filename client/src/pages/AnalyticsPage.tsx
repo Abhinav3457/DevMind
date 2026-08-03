@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import {
-  FolderGit2,
   GitBranch,
   FileCode,
   Code2,
@@ -181,7 +180,7 @@ export function AnalyticsPage() {
                 <h1 className="truncate text-xl font-bold tracking-tight text-surface-100 sm:text-2xl">Analytics Dashboard</h1>
               </div>
               <p className="pl-[46px] text-xs text-surface-400 sm:pl-[52px] sm:text-sm">
-                Overview of your projects, repositories, and AI operations
+                Overview of your repositories and AI operations
               </p>
             </div>
 
@@ -213,9 +212,8 @@ export function AnalyticsPage() {
         <motion.div variants={containerVariants} initial="hidden" animate="visible">
           {/* ── Overview Stats ────────────────────── */}
           <motion.div variants={itemVariants} className="mb-6 sm:mb-8">
-            <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-6">
-              <StatCard title="Projects" value={overview.projects} icon={FolderGit2} color="blue" delay={0.1} />
-              <StatCard title="Repositories" value={overview.repositories} icon={GitBranch} color="green" delay={0.15} />
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-5">
+              <StatCard title="Repositories" value={overview.repositories} icon={GitBranch} color="green" delay={0.1} />
               <StatCard title="Indexed Repos" value={overview.indexedRepos} icon={Database} color="purple" delay={0.2} />
               <StatCard title="Total Files" value={overview.totalFiles} icon={FileCode} color="cyan" delay={0.25} />
               <StatCard title="Total Chunks" value={overview.totalChunks} icon={Code2} color="indigo" delay={0.3} />

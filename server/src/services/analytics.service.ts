@@ -1,6 +1,4 @@
 import mongoose from 'mongoose';
-import Project from '../models/Project';
-import WorkspaceMember from '../models/WorkspaceMember';
 import ImportedRepository from '../models/ImportedRepository';
 import IndexReport from '../models/IndexReport';
 import IndexedFile from '../models/IndexedFile';
@@ -9,8 +7,6 @@ import logger from '../utils/logger';
 
 export interface AnalyticsData {
   overview: {
-    projects: number;
-    workspaces: number;
     repositories: number;
     indexedRepos: number;
     totalFiles: number;
@@ -75,8 +71,6 @@ export class AnalyticsService {
     const userReportIds = userReports.map((r) => r._id);
 
     const [
-      projects,
-      workspaces,
       repositories,
       indexedRepos,
       indexedFiles,
@@ -85,8 +79,6 @@ export class AnalyticsService {
       chunkAgg,
       activityScore,
     ] = await Promise.all([
-      Project.countDocuments({ owner: userId, status: { $ne: 'deleted' } }),
-      WorkspaceMember.distinct('workspaceId', { userId }).then(ids => ids.length),
       reportId ? 1 : ImportedRepository.countDocuments({ userId }),
       IndexReport.countDocuments(reportFilter),
       // Use $in with pre-fetched IDs instead of $lookup + $unwind
@@ -192,8 +184,6 @@ export class AnalyticsService {
 
     return {
       overview: {
-        projects,
-        workspaces,
         repositories,
         indexedRepos,
         totalFiles,

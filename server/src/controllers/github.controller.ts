@@ -148,8 +148,8 @@ export class GitHubController {
   }
 
   async importRepository(req: Request, res: Response): Promise<void> {
-    const { owner, repo, workspaceId } = req.body;
-    const result = await gitHubService.importRepository(req.user!.userId, owner, repo, workspaceId);
+    const { owner, repo } = req.body;
+    const result = await gitHubService.importRepository(req.user!.userId, owner, repo);
     sendSuccess(res, { statusCode: 200, message: 'Repository imported and stored successfully', data: result });
   }
 

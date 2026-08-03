@@ -155,7 +155,7 @@ export class GitHubService {
     };
   }
 
-  async importRepository(userId: string, owner: string, repo: string, workspaceId?: string): Promise<{ imported: boolean; metadata: GitHubRepoMetadata }> {
+  async importRepository(userId: string, owner: string, repo: string): Promise<{ imported: boolean; metadata: GitHubRepoMetadata }> {
     const metadata = await this.getRepoMetadata(userId, owner, repo);
 
     const updateData: Record<string, unknown> = {
@@ -177,10 +177,6 @@ export class GitHubService {
       lastSyncedAt: new Date(),
     };
 
-    if (workspaceId) {
-      updateData.workspaceId = workspaceId;
-    }
-
     await ImportedRepository.findOneAndUpdate(
       { githubId: metadata.githubId },
       updateData,
@@ -191,7 +187,6 @@ export class GitHubService {
 
     void logActivity({
       userId,
-      workspaceId,
       type: 'repo_imported',
       description: 'Imported repository ' + metadata.fullName + ' from GitHub',
       metadata: { repoName: metadata.fullName },

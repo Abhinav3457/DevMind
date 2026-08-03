@@ -8,28 +8,6 @@ export interface User {
   updatedAt: string;
 }
 
-export interface Project {
-  id: string;
-  name: string;
-  description?: string;
-  owner: string;
-  collaborators: string[];
-  files: ProjectFile[];
-  status: 'active' | 'archived' | 'deleted';
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface ProjectFile {
-  id: string;
-  name: string;
-  path: string;
-  content: string;
-  language: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
 export interface ApiResponse<T = unknown> {
   success: boolean;
   message: string;
@@ -60,7 +38,6 @@ export interface RegisterData extends LoginCredentials {
 
 export interface AnalyticsData {
   overview: {
-    projects: number;
     repositories: number;
     indexedRepos: number;
     totalFiles: number;

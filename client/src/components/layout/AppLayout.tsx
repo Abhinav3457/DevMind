@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, Code2, Brain, Bug, FileText,
   Github, BarChart3, LogOut, ChevronLeft,
-  Bell, Menu, X, Users, Sun, Moon, Loader2,
+  Bell, Menu, X, Sun, Moon, Loader2,
   CheckCheck,
 } from 'lucide-react';
 import { useAuthStore, useUIStore } from '../../store';
@@ -24,7 +24,6 @@ interface AppNotification {
 
 const navItems = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/workspace', icon: Users, label: 'Workspaces' },
   { to: '/github', icon: Github, label: 'GitHub' },
   { to: '/ai/chat', icon: Brain, label: 'AI Chat' },
   { to: '/ai/code-review', icon: Bug, label: 'Code Review' },
@@ -38,7 +37,6 @@ export function AppLayout() {
   const { user, clearUser } = useAuthStore();
   const { theme, setTheme, sidebarOpen, toggleSidebar } = useUIStore();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [inviteCount, setInviteCount] = useState(0);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [bellOpen, setBellOpen] = useState(false);
@@ -57,12 +55,9 @@ export function AppLayout() {
     }
   }, []);
 
-  // Fetch pending invitation count + notifications when the route changes
+  // Fetch notifications when the route changes
   useEffect(() => {
     fetchNotifications();
-    apiClient.get('/invitations')
-      .then((res) => setInviteCount(res.data.data?.invitations?.length || 0))
-      .catch(() => { /* ignore */ });
   }, [location.pathname, fetchNotifications]);
 
   // Live notifications pushed over the socket
@@ -115,9 +110,6 @@ export function AppLayout() {
       setNotifications((prev) => prev.map((n) => (n._id === notification._id ? { ...n, read: true } : n)));
       setUnreadCount((c) => Math.max(0, c - 1));
     }
-    const data = notification.data || {};
-    if (notification.type === 'workspace_invite') navigate('/invitations');
-    else if (typeof data.workspaceId === 'string') navigate('/workspace/' + data.workspaceId);
     setBellOpen(false);
   };
 
@@ -238,9 +230,9 @@ export function AppLayout() {
                 title="Notifications"
               >
                 <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
-                {(unreadCount + inviteCount) > 0 && (
+                {unreadCount > 0 && (
                   <span className="absolute right-0.5 sm:right-1 top-0.5 sm:top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-500 px-1 text-[9px] font-bold text-white">
-                    {(unreadCount + inviteCount) > 9 ? '9+' : (unreadCount + inviteCount)}
+                    {unreadCount > 9 ? '9+' : unreadCount}
                   </span>
                 )}
               </button>
@@ -299,14 +291,7 @@ export function AppLayout() {
                         ))
                       )}
                     </div>
-                    <div className="border-t border-surface-700 p-2">
-                      <button
-                        onClick={() => { setBellOpen(false); navigate('/invitations'); }}
-                        className="flex w-full items-center justify-center gap-1 rounded-lg py-2 text-xs text-surface-300 transition-colors hover:bg-surface-800"
-                      >
-                        View invitations ({inviteCount})
-                      </button>
-                    </div>
+
                   </motion.div>
                 </>
               )}

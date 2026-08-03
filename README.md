@@ -1,6 +1,6 @@
 # 🧠 DevMind AI
 
-> **Full Stack AI Software Engineer Workspace** — an AI-powered platform for writing, reviewing, analyzing, and documenting code.
+> **Full Stack AI Software Engineer Platform** — an AI-powered platform for writing, reviewing, analyzing, and documenting code.
 
 DevMind AI is a production-ready, full-stack monorepo that combines a **React 19 + Vite** frontend with an **Express + MongoDB** backend. Users can authenticate (email/JWT **and** GitHub OAuth), import GitHub repositories, index them into a searchable code corpus, and then ask an LLM (Gemini / Groq) questions about the code, run AI code reviews, and auto-generate documentation.
 
@@ -19,7 +19,7 @@ DevMind AI is a production-ready, full-stack monorepo that combines a **React 19
 - [AI Code Review](#-ai-code-review)
 - [AI Documentation Generator](#-ai-documentation-generator)
 - [AI Chat](#-ai-chat)
-- [Real-time Collaboration (Socket.io)](#-real-time-collaboration-socketio)
+- [Real-time (Socket.io)](#-real-time-socketio)
 - [Data Models (MongoDB)](#-data-models-mongodb)
 - [API Endpoints](#-api-endpoints)
 - [Environment Variables](#-environment-variables)
@@ -88,7 +88,7 @@ devmind-ai/
 │   │   ├── api/            # Axios instance + React Query client
 │   │   ├── components/     # dashboard/, layout/, ui/, ErrorBoundary
 │   │   ├── hooks/          # useSocket
-│   │   ├── pages/          # Login, Dashboard, Workspace, GitHub, AI pages...
+│   │   ├── pages/          # Login, Dashboard, GitHub, AI pages...
 │   │   ├── routes/         # React Router config
 │   │   ├── services/       # auth, analytics, socket
 │   │   ├── store/          # Zustand stores (auth, UI)
@@ -101,7 +101,7 @@ devmind-ai/
         ├── app.ts          # Express app: middleware chain, rate limiting, routes mount
         ├── config/         # environment, database, socket, ai, gemini, github, cloudinary, nodemailer
         ├── controllers/    # HTTP handlers (auth, github, indexer, chat, ...)
-        ├── services/       # Business logic (auth, github, analytics, workspace, ...)
+        ├── services/       # Business logic (auth, github, analytics, ...)
         ├── routes/         # Express routers per resource
         ├── middleware/     # authenticate, authorize, validate (Joi), asyncHandler, errorHandler
         ├── models/         # Mongoose schemas
@@ -343,7 +343,7 @@ GitHubApiService.getClient({ userId?, useGlobalToken? })
 The pipeline that turns a GitHub repo into a queryable code corpus:
 
 ```
-1. Import       POST /github/repos/import { owner, repo, workspaceId? }
+1. Import       POST /github/repos/import { owner, repo }
                   • gitHubService.importRepository()
                   • fetches full metadata via Octokit
                   • upserts ImportedRepository (unique index: userId + githubId)
@@ -490,24 +490,20 @@ POST /generate  { message, history?, chatId? }
 
 ---
 
-## ⚡ Real-time Collaboration (Socket.io)
+## ⚡ Real-time (Socket.io)
 
-Initialized in `server/src/index.ts` on the same HTTP server (`config/socket.ts`).
+Initialized in `server/src/index.ts` on the same HTTP server (`config/socket.ts`). The socket is used to **push in-app notifications live** to the user's browser.
 
 ```
 Client (socket.io-client) ──auth:{ token: <accessToken> }──► Server
    │                                                            │
    │                      io.use(socketAuthMiddleware)          │ JWT verified, userId attached to socket.data
    │                                                            ▼
-   │  join-project / leave-project          (room: project:<id>)   ← verifies owner/collaborator/workspace member
-   │  join-workspace / leave-workspace      (room: workspace:<id>) ← verifies WorkspaceMember
-   │  code-change  ──► broadcast code-update to project room
-   │  cursor-move  ──► broadcast cursor-update to project room
-   │  send-message ──► broadcast new-message to project room
+   notification:new ──► pushed to room "user:<userId>"          ← sent by notificationService.create()
    └────────────────────────────────────────────────────────────────
 ```
 
-**Rooms** are named `project:<projectId>` and `workspace:<workspaceId>`. Membership is **verified server-side on join** (owner, collaborator, or workspace member) — clients cannot join arbitrary rooms.
+Notifications are emitted to the authenticated user's room (`user:<userId>`), so only the recipient receives them.
 
 ---
 
@@ -516,10 +512,7 @@ Client (socket.io-client) ──auth:{ token: <accessToken> }──► Server
 | Collection | Purpose | Notable fields / indexes |
 |---|---|---|
 | `User` | App users | email/username unique, hashed password, role, email-verification & reset tokens (hashed, TTL indexes), refreshToken (rotation) |
-| `Workspace` | Team containers | ownerId, slug unique, plan |
-| `WorkspaceMember` | Workspace membership & RBAC | role (owner/admin/member/guest), unique (workspaceId,userId), ROLE_HIERARCHY helper |
-| `Project` | Code projects (Monaco-backed) | owner, workspace, collaborators[], files[] (name/path/content/language), status |
-| `Chat` | Chat sessions | type (direct/project/ai), participants[] |
+| `Chat` | AI chat sessions | type (ai), participants[] |
 | `Message` | Chat messages | chatId, senderId, role (user/assistant/system), type (text/code/ai/…) |
 | `GitHubAccount` | OAuth-bound GitHub identity | userId unique, githubId, login, accessToken, scopes, isConnected, rate-limit tracking |
 | `OAuthState` | CSRF state for OAuth | state unique, TTL index (10 min) |
@@ -540,8 +533,6 @@ Base URL: `/api/v1` — everything except `health`, `auth` public routes, and th
 | Module | Endpoints |
 |---|---|
 | **Auth** | `POST /auth/register` · `POST /auth/login` · `POST /auth/logout` · `POST /auth/refresh-token` · `PATCH /auth/change-password` · `POST /auth/forgot-password` · `POST /auth/reset-password` · `GET /auth/verify-email/:token` |
-| **Workspaces** | `GET/POST /workspaces` · `GET/PATCH/DELETE /workspaces/:id` · `POST /workspaces/:id/archive` · `POST /workspaces/:id/unarchive` · `GET/POST /workspaces/:id/members` · `PATCH/DELETE /workspaces/:id/members/:userId` · `POST /workspaces/:id/transfer` · `GET /workspaces/:id/repos` · `GET /workspaces/:id/activity` |
-| **Projects** | `GET/POST /projects` · `GET/PATCH/DELETE /projects/:id` · `POST /projects/:id/archive` · `DELETE /projects/:id/hard` · `POST/DELETE /projects/:id/collaborators` · `GET /projects/:id/files` |
 | **GitHub** | `GET /github/callback` *(public)* · `GET /github/auth/url` · `POST /github/auth/callback` · `POST /github/disconnect` · `POST /github/force-disconnect` · `GET /github/status` · `GET /github/repos` · `GET /github/repos/imported` · `POST /github/repos/import` · `DELETE /github/repos/imported/:id` · `POST /github/repos/sync` · `GET /github/repos/:owner/:repo` (+ `/branches`, `/commits`, `/pulls`, `/tree`) |
 | **Indexer** | `POST /indexer/repos/:repositoryId/index` · `GET /indexer/reports/:reportId` (+ `/files`, `/files/:fileId`, `/chunks`) · `DELETE /indexer/reports/:reportId` |
 | **Repo Intelligence** | `GET /ai/repo-intelligence/questions` · `GET /ai/repo-intelligence/status` · `GET /ai/repo-intelligence/reports` · `POST /ai/repo-intelligence/query` · `POST /ai/repo-intelligence/:reportId/ask` |
@@ -552,7 +543,7 @@ Base URL: `/api/v1` — everything except `health`, `auth` public routes, and th
 | **Upload** | `POST /upload/single` · `POST /upload/multiple` · `DELETE /upload/delete` |
 | **Health** | `GET /health` · `GET /health/ping` |
 
-**Frontend routes** (`client/src/routes/index.tsx`): `/auth/login`, `/auth/register`, `/auth/forgot-password`, `/auth/reset-password/:token`, `/auth/verify-email/:token`, `/auth/github/callback`, then a guarded `<AuthGuard>` layout wrapping `/dashboard`, `/workspace`, `/workspace/:id`, `/github`, `/ai/chat`, `/ai/code-review`, `/ai/docs`, `/analytics`.
+**Frontend routes** (`client/src/routes/index.tsx`): `/auth/login`, `/auth/register`, `/auth/forgot-password`, `/auth/reset-password/:token`, `/auth/verify-email/:token`, `/auth/github/callback`, then a guarded `<AuthGuard>` layout wrapping `/dashboard`, `/github`, `/ai/chat`, `/ai/code-review`, `/ai/docs`, `/analytics`.
 
 ---
 
@@ -674,7 +665,7 @@ npm run test:watch  # watch mode
 npm run test:coverage
 ```
 
-Tests use `mongodb-memory-server` (in-memory MongoDB), so no external DB is needed. Coverage includes the service layer (`auth`, `github`, `analytics`, `workspace`, `project`, `code-review`, `doc-generator`, `repo-intelligence`, `upload`), the chat controller, and socket auth/membership logic.
+Tests use `mongodb-memory-server` (in-memory MongoDB), so no external DB is needed. Coverage includes the service layer (`auth`, `github`, `analytics`, `code-review`, `doc-generator`, `repo-intelligence`, `upload`), and the chat controller.
 
 ---
 

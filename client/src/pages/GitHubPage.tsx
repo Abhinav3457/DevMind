@@ -49,8 +49,6 @@ export function GitHubPage() {
   const [loading, setLoading] = useState(false);
   const [importing, setImporting] = useState<string | null>(null);
   const [search, setSearch] = useState('');
-  const [workspaces, setWorkspaces] = useState<{ id: string; name: string }[]>([]);
-  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>('');
   const [indexModal, setIndexModal] = useState<{ open: boolean; repoName: string; repoId: string } | null>(null);
   const [indexing, setIndexing] = useState(false);
   const [removing, setRemoving] = useState<string | null>(null);
@@ -84,18 +82,8 @@ export function GitHubPage() {
     }
 
     checkConnection();
-    fetchWorkspaces(); 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const fetchWorkspaces = async () => {
-    try {
-      const res = await apiClient.get('/workspaces');
-      const list = res.data.data?.workspaces || [];
-      setWorkspaces(list);
-      if (list.length > 0) setSelectedWorkspaceId(list[0].id);
-    } catch { /* ignore */ }
-  };
 
   const checkConnection = async () => {
     try {
@@ -172,7 +160,6 @@ export function GitHubPage() {
       const owner = parts[0]!;
       const repo = parts.slice(1).join('/') || parts[0]!;
       const body: Record<string, string> = { owner, repo };
-      if (selectedWorkspaceId) body.workspaceId = selectedWorkspaceId;
       await apiClient.post('/github/repos/import', body);
       toast.success('Repository imported! You can now index it from anywhere.');
       fetchImportedRepos();
@@ -262,18 +249,6 @@ export function GitHubPage() {
                   className="w-full rounded-lg border border-surface-700 bg-surface-900 py-2 sm:py-2.5 pl-8 sm:pl-10 pr-3 sm:pr-4 text-xs sm:text-sm text-surface-100 placeholder-surface-500 focus:border-primary-500/50 focus:outline-none"
                 />
               </div>
-              {workspaces.length > 0 && (
-                <div className="flex items-center gap-1.5 sm:gap-2">
-                  <span className="text-[10px] sm:text-xs text-surface-400 whitespace-nowrap">Link to:</span>
-                  <select value={selectedWorkspaceId} onChange={e => setSelectedWorkspaceId(e.target.value)}
-                    className="rounded-lg border border-surface-600 bg-surface-800 px-2 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-xs text-surface-300 focus:border-primary-500/50 focus:outline-none max-w-[120px] sm:max-w-none truncate"
-                  >
-                    {workspaces.map((ws) => (
-                      <option key={ws.id} value={ws.id} className="truncate">{ws.name}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
             </div>
             <button onClick={handleFetchRepos} disabled={loading}
               className="flex items-center gap-1.5 sm:gap-2 rounded-lg border border-surface-700 bg-surface-900 px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm text-surface-300 transition-all hover:text-surface-100 self-end sm:self-auto"

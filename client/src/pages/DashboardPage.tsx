@@ -2,17 +2,15 @@ import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-  Code2, GitBranch, Users, FileCode,  Clock, Activity,
+  Code2, GitBranch, FileCode, Clock, Activity,
   Sparkles, Github, Bot, Bug, FileText,
-  Star, TrendingUp, Zap, ChevronRight,
+  TrendingUp, Zap, ChevronRight,
 } from 'lucide-react';
 import { StatCard } from '../components/dashboard/StatCard';
 import { useAuthStore } from '../store';
 import apiClient from '../api/axios';
 
 interface AnalyticsOverview {
-  projects: number;
-  workspaces: number;
   repositories: number;
   indexedRepos: number;
   totalFiles: number;
@@ -23,8 +21,6 @@ interface AnalyticsOverview {
 }
 
 interface DashboardStats {
-  projects: number;
-  workspaces: number;
   repositories: number;
   indexedFiles: number;
   healthScore: number;
@@ -33,7 +29,6 @@ interface DashboardStats {
 }
 
 const quickActions = [
-  { to: '/workspace', label: 'Create Workspace', icon: Users, color: 'blue', desc: 'Collaborate with your team' },
   { to: '/github', label: 'Import Repository', icon: Github, color: 'purple', desc: 'Analyze your codebase' },
   { to: '/ai/chat', label: 'AI Chat', icon: Bot, color: 'green', desc: 'Get coding assistance' },
   { to: '/ai/code-review', label: 'Code Review', icon: Bug, color: 'amber', desc: 'Review code quality' },
@@ -62,9 +57,8 @@ export function DashboardPage() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const [analyticsRes, workspacesRes, activityRes] = await Promise.all([
+        const [analyticsRes, activityRes] = await Promise.all([
           apiClient.get('/analytics'),
-          apiClient.get('/workspaces?limit=1'),
           apiClient.get('/activity?limit=10'),
         ]);
         const overview: AnalyticsOverview = analyticsRes.data.data?.overview || {};
@@ -76,8 +70,6 @@ export function DashboardPage() {
           }),
         );
         setStats({
-          projects: overview.projects || 0,
-          workspaces: overview.workspaces || workspacesRes.data.meta?.pagination?.total || 0,
           repositories: overview.repositories || 0,
           indexedFiles: overview.totalFiles || 0,
           healthScore: overview.healthScore || 0,
@@ -85,7 +77,7 @@ export function DashboardPage() {
           recentActivity,
         });
       } catch {
-        setStats({ projects: 0, workspaces: 0, repositories: 0, indexedFiles: 0, healthScore: 0, stars: 0, recentActivity: [] });
+        setStats({ repositories: 0, indexedFiles: 0, healthScore: 0, stars: 0, recentActivity: [] });
       } finally {
         setLoading(false);
       }
@@ -126,8 +118,8 @@ export function DashboardPage() {
               <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent break-words">{user?.name || 'Developer'}</span>
             </h1>
             <p className="max-w-xl text-xs sm:text-sm text-surface-400">
-              Here&apos;s an overview of your development workspace. Start by exploring your projects,
-              importing repositories, or asking the AI for help.
+              Here&apos;s an overview of your development activity. Import repositories,
+              analyze your code, or ask the AI for help.
             </p>
           </div>
 
@@ -142,9 +134,7 @@ export function DashboardPage() {
             </div>
             <div className="border-l border-surface-700 pl-2 sm:pl-3">
               <p className="text-[10px] sm:text-xs text-surface-400">
-                <span className="font-semibold text-surface-200">{stats?.projects || 0}</span> projects
-                {' · '}
-                <span className="font-semibold text-surface-200">{stats?.repositories || 0}</span> repos
+                <span className="font-semibold text-surface-200">{stats?.repositories || 0}</span> repositories
               </p>
             </div>
           </div>
@@ -159,11 +149,9 @@ export function DashboardPage() {
           ))}
         </motion.div>
       ) : (
-        <motion.div variants={item} className="grid gap-3 sm:gap-5 grid-cols-2 lg:grid-cols-4">
-          <StatCard title="Projects" value={stats?.projects || 0} icon={Code2} color="blue" delay={0} />
-          <StatCard title="Workspaces" value={stats?.workspaces || 0} icon={Users} color="purple" delay={0.06} />
-          <StatCard title="Repositories" value={stats?.repositories || 0} icon={Github} color="green" delay={0.12} />
-          <StatCard title="Files Indexed" value={stats?.indexedFiles || 0} icon={FileCode} color="amber" delay={0.18} />
+        <motion.div variants={item} className="grid gap-3 sm:gap-5 grid-cols-2">
+          <StatCard title="Repositories" value={stats?.repositories || 0} icon={Github} color="green" delay={0} />
+          <StatCard title="Files Indexed" value={stats?.indexedFiles || 0} icon={FileCode} color="amber" delay={0.06} />
         </motion.div>
       )}
 
@@ -257,14 +245,14 @@ export function DashboardPage() {
                 </div>
                 <p className="text-sm font-medium text-surface-400">No recent activity</p>
                 <p className="mt-1 max-w-[200px] text-xs text-surface-500">
-                  Start by creating a workspace or importing a repository
+                  Start by importing a repository to see your activity here
                 </p>
                 <Link
-                  to="/workspace"
+                  to="/github"
                   className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-surface-800 px-4 py-2 text-xs font-medium text-surface-200 transition-all hover:bg-surface-700 hover:text-surface-100"
                 >
-                  <Star className="h-3.5 w-3.5" />
-                  Create Workspace
+                  <Github className="h-3.5 w-3.5" />
+                  Import Repository
                 </Link>
               </div>
             )}

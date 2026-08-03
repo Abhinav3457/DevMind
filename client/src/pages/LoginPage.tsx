@@ -72,7 +72,7 @@ export function LoginPage() {
             </div>
           </motion.div>
           <h1 className="text-2xl sm:text-3xl font-bold text-surface-100">Welcome Back</h1>
-          <p className="mt-1 sm:mt-2 text-xs sm:text-sm text-surface-400">Sign in to your DevMind AI workspace</p>
+          <p className="mt-1 sm:mt-2 text-xs sm:text-sm text-surface-400">Sign in to your DevMind AI account</p>
         </div>
 
         {/* Login Form */}

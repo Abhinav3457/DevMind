@@ -57,7 +57,7 @@ describe('CodeReviewService', () => {
     vi.mocked(IndexedFile.find).mockReturnValue(createQueryMock([]) as never);
     vi.mocked(ImportedRepository.findById).mockReturnValue({
       select: vi.fn().mockReturnValue({
-        lean: vi.fn().mockResolvedValue({ fullName: 'test/repo', workspaceId: null }),
+        lean: vi.fn().mockResolvedValue({ fullName: 'test/repo' }),
       }),
     } as never);
     vi.mocked(CodeReview.create).mockResolvedValue({} as never);

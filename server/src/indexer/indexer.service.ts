@@ -104,12 +104,11 @@ export class IndexerService {
       // logging failure must never turn a successful index into a failed one)
       try {
         const importedRepo = await ImportedRepository.findOne({ _id: repositoryId, userId })
-          .select('workspaceId fullName')
+          .select('fullName')
           .lean();
         const repoLabel = importedRepo?.fullName || 'a repository';
         void logActivity({
           userId,
-          workspaceId: importedRepo?.workspaceId ? importedRepo.workspaceId.toString() : undefined,
           type: 'repo_indexed',
           description: 'Indexed ' + repoLabel + ' (' + report.fileCount + ' files, ' + report.chunkCount + ' chunks)',
           metadata: { reportId: report._id.toString(), fileCount: report.fileCount, chunkCount: report.chunkCount },

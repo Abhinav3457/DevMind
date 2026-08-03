@@ -1,10 +1,7 @@
 import { Router } from 'express';
 import authRoutes from './auth.routes';
-import invitationRoutes from './invitation.routes';
 import activityRoutes from './activity.routes';
 import notificationRoutes from './notification.routes';
-import workspaceRoutes from './workspace.routes';
-import projectRoutes from './project.routes';
 import githubRoutes from './github.routes';
 import indexerRoutes from './indexer.routes';
 import repoIntelligenceRoutes from './repo-intelligence.routes';
@@ -19,11 +16,8 @@ const router = Router();
 
 router.use('/health', healthRoutes);
 router.use('/auth', authRoutes);
-router.use('/invitations', invitationRoutes);
 router.use('/activity', activityRoutes);
 router.use('/notifications', notificationRoutes);
-router.use('/workspaces', workspaceRoutes);
-router.use('/projects', projectRoutes);
 router.use('/github', githubRoutes);
 router.use('/upload', uploadRoutes);
 router.use('/indexer', indexerRoutes);

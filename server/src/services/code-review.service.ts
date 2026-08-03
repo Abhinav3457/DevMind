@@ -153,7 +153,7 @@ export class CodeReviewService {
 
     // Persist to review history + notify (best-effort — never break the review response)
     try {
-      const importedRepo = await ImportedRepository.findById(report.repositoryId).select('fullName workspaceId').lean();
+      const importedRepo = await ImportedRepository.findById(report.repositoryId).select('fullName').lean();
       await CodeReview.create({
         userId,
         reportId,
@@ -168,7 +168,6 @@ export class CodeReviewService {
 
       void logActivity({
         userId,
-        workspaceId: importedRepo?.workspaceId ? importedRepo.workspaceId.toString() : undefined,
         type: 'review_completed',
         description: 'Reviewed ' + (importedRepo?.fullName || 'a repository') + ' — score ' + result.score + '/100',
         metadata: { score: result.score, totalIssues: result.totalIssues },

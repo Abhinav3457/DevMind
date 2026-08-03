@@ -2,8 +2,6 @@ import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IImportedRepository extends Document {
   userId: mongoose.Types.ObjectId;
-  workspaceId?: mongoose.Types.ObjectId;
-  projectId?: mongoose.Types.ObjectId;
   githubId: number;
   name: string;
   fullName: string;
@@ -26,8 +24,6 @@ export interface IImportedRepository extends Document {
 const importedRepoSchema = new Schema<IImportedRepository>(
   {
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-    workspaceId: { type: Schema.Types.ObjectId, ref: 'Workspace' },
-    projectId: { type: Schema.Types.ObjectId, ref: 'Project' },
     githubId: { type: Number, required: true },
     name: { type: String, required: true },
     fullName: { type: String, required: true },

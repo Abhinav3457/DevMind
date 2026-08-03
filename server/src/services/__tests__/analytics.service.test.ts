@@ -1,14 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { AnalyticsService } from '../analytics.service';
-import Project from '../../models/Project';
-import WorkspaceMember from '../../models/WorkspaceMember';
 import ImportedRepository from '../../models/ImportedRepository';
 import IndexReport from '../../models/IndexReport';
 import IndexedFile from '../../models/IndexedFile';
 import IndexedChunk from '../../models/IndexedChunk';
 
-vi.mock('../../models/Project', () => ({ default: { countDocuments: vi.fn() } }));
-vi.mock('../../models/WorkspaceMember', () => ({ default: { distinct: vi.fn() } }));
 vi.mock('../../models/ImportedRepository', () => ({ default: { countDocuments: vi.fn(), aggregate: vi.fn() } }));
 vi.mock('../../models/IndexReport', () => ({ default: { find: vi.fn(), countDocuments: vi.fn() } }));
 vi.mock('../../models/IndexedFile', () => ({ default: { aggregate: vi.fn() } }));
@@ -37,31 +33,24 @@ describe('AnalyticsService', () => {
 
   it('should return defaults when no data exists', async () => {
     vi.mocked(IndexReport.find).mockReturnValue(makeFindMock([]) as never);
-    vi.mocked(Project.countDocuments).mockResolvedValue(0);
-    vi.mocked(WorkspaceMember.distinct).mockResolvedValue([]);
     vi.mocked(ImportedRepository.countDocuments).mockResolvedValue(0);
     vi.mocked(IndexReport.countDocuments).mockResolvedValue(0);
     vi.mocked(ImportedRepository.aggregate).mockResolvedValue([]);
 
     const result = await service.getAnalytics(VALID_USER_ID);
 
-    expect(result.overview.projects).toBe(0);
-    expect(result.overview.workspaces).toBe(0);
+    expect(result.overview.repositories).toBe(0);
     expect(result.overview.totalFiles).toBe(0);
     expect(result.languages).toHaveLength(0);
   });
 
-  it('should compute workspace count via membership', async () => {
+  it('should compute repository count', async () => {
     vi.mocked(IndexReport.find).mockReturnValue(makeFindMock([]) as never);
-    vi.mocked(Project.countDocuments).mockResolvedValue(1);
-    vi.mocked(WorkspaceMember.distinct).mockResolvedValue(['ws-1', 'ws-2', 'ws-3']);
     vi.mocked(ImportedRepository.countDocuments).mockResolvedValue(2);
-    vi.mocked(IndexReport.countDocuments).mockResolvedValue(1);
+    vi.mocked(IndexReport.countDocuments).mockResolvedValue(0);
     vi.mocked(ImportedRepository.aggregate).mockResolvedValue([]);
 
     const result = await service.getAnalytics(VALID_USER_ID);
-    expect(result.overview.workspaces).toBe(3);
-    expect(result.overview.projects).toBe(1);
     expect(result.overview.repositories).toBe(2);
   });
 
@@ -71,8 +60,6 @@ describe('AnalyticsService', () => {
     vi.mocked(IndexReport.find).mockReturnValueOnce(makeFindMock([{ _id: 'report-1' }]) as never);
     vi.mocked(IndexReport.find).mockReturnValue(makeFindMock([{ _id: 'rep-1', fileCount: 10, chunkCount: 20, totalTokens: 5000, summary: 'test', techStack: { frameworks: ['express'], libraries: ['react'], authentication: [], databases: [] }, folderStructure: [{ name: 'src', type: 'folder' }] }]) as never);
     
-    vi.mocked(Project.countDocuments).mockResolvedValue(0);
-    vi.mocked(WorkspaceMember.distinct).mockResolvedValue([]);
     vi.mocked(ImportedRepository.countDocuments).mockResolvedValue(0);
     vi.mocked(IndexReport.countDocuments).mockResolvedValue(1);
     

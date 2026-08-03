@@ -165,10 +165,9 @@ export class DocGeneratorService {
 
     // Log to the activity feed (best-effort)
     try {
-      const importedRepo = await ImportedRepository.findById(report.repositoryId).select('workspaceId fullName').lean();
+      const importedRepo = await ImportedRepository.findById(report.repositoryId).select('fullName').lean();
       void logActivity({
         userId,
-        workspaceId: importedRepo?.workspaceId ? importedRepo.workspaceId.toString() : undefined,
         type: 'doc_generated',
         description: 'Generated ' + result.fileName + (importedRepo?.fullName ? ' for ' + importedRepo.fullName : ''),
         metadata: { docType, fileName: result.fileName },

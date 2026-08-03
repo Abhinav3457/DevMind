@@ -1,9 +1,6 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
 export type ActivityType =
-  | 'workspace_created'
-  | 'member_joined'
-  | 'invite_sent'
   | 'repo_imported'
   | 'repo_indexed'
   | 'review_completed'
@@ -11,7 +8,6 @@ export type ActivityType =
 
 export interface IActivityLog extends Document {
   userId: mongoose.Types.ObjectId;
-  workspaceId?: mongoose.Types.ObjectId | null;
   type: ActivityType;
   description: string;
   metadata: Record<string, unknown>;
@@ -21,10 +17,9 @@ export interface IActivityLog extends Document {
 const activityLogSchema = new Schema<IActivityLog>(
   {
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-    workspaceId: { type: Schema.Types.ObjectId, ref: 'Workspace', default: null },
     type: {
       type: String,
-      enum: ['workspace_created', 'member_joined', 'invite_sent', 'repo_imported', 'repo_indexed', 'review_completed', 'doc_generated'],
+      enum: ['repo_imported', 'repo_indexed', 'review_completed', 'doc_generated'],
       required: true,
     },
     description: { type: String, required: true, maxlength: 500 },
@@ -34,7 +29,6 @@ const activityLogSchema = new Schema<IActivityLog>(
 );
 
 activityLogSchema.index({ userId: 1, createdAt: -1 });
-activityLogSchema.index({ workspaceId: 1, createdAt: -1 });
 
 const ActivityLog = mongoose.model<IActivityLog>('ActivityLog', activityLogSchema);
 export default ActivityLog;
