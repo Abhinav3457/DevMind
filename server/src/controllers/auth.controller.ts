@@ -68,16 +68,6 @@ export class AuthController {
     });
   }
 
-  async getMe(req: Request, res: Response): Promise<void> {
-    const user = await authService.getProfile(req.user!.userId);
-
-    sendSuccess(res, {
-      statusCode: 200,
-      message: 'User profile retrieved',
-      data: { user },
-    });
-  }
-
   async changePassword(req: Request, res: Response): Promise<void> {
     const { currentPassword, newPassword } = req.body;
     await authService.changePassword(req.user!.userId, currentPassword, newPassword);
@@ -120,16 +110,6 @@ export class AuthController {
     });
   }
 
-  async updateProfile(req: Request, res: Response): Promise<void> {
-    const { name, username, bio } = req.body;
-    const user = await authService.updateProfile(req.user!.userId, { name, username, bio });
-
-    sendSuccess(res, {
-      statusCode: 200,
-      message: 'Profile updated successfully',
-      data: { user },
-    });
-  }
 }
 
 export const authController = new AuthController();

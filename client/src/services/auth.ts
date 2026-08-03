@@ -33,11 +33,6 @@ export async function refreshToken(): Promise<AuthResponse> {
   return { user, accessToken };
 }
 
-export async function getProfile(): Promise<User> {
-  const response = await apiClient.get('/auth/me');
-  return response.data.data.user;
-}
-
 export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
   await apiClient.patch('/auth/change-password', { currentPassword, newPassword });
 }
@@ -52,9 +47,4 @@ export async function resetPassword(token: string, password: string): Promise<vo
 
 export async function verifyEmail(token: string): Promise<void> {
   await apiClient.get(`/auth/verify-email/${token}`);
-}
-
-export async function updateProfile(data: { name?: string; username?: string; bio?: string }): Promise<User> {
-  const response = await apiClient.patch('/auth/profile', data);
-  return response.data.data.user;
 }

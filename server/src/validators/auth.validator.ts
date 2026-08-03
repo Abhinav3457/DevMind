@@ -88,9 +88,3 @@ export const changePasswordSchema = Joi.object({
   }),
 });
 
-export const updateProfileSchema = Joi.object({
-  name: Joi.string().trim().min(1).max(100),
-  username: Joi.string().trim().min(3).max(30).pattern(/^[a-zA-Z0-9_-]+$/),
-  bio: Joi.string().max(500).allow('', null),
-  avatar: Joi.string().uri().allow('', null).max(500),
-}).min(1).messages({ 'object.min': 'At least one field must be provided for update' });

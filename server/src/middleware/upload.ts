@@ -64,10 +64,4 @@ export const uploadSingle = upload.single('file');
 // Multiple file upload (field name: 'files', max 5)
 export const uploadMultiple = upload.array('files', 5);
 
-// Upload fields
-export const uploadFields = upload.fields([
-  { name: 'avatar', maxCount: 1 },
-  { name: 'attachments', maxCount: 5 },
-]);
-
 export { TEMP_DIR };

@@ -9,7 +9,6 @@ import {
   forgotPasswordSchema,
   resetPasswordSchema,
   changePasswordSchema,
-  updateProfileSchema,
 } from '../validators/auth.validator';
 
 const router = Router();
@@ -36,11 +35,6 @@ router.post(
   '/refresh-token',
   asyncHandler(authController.refreshToken),
 );
-
-// @route   GET /api/v1/auth/me
-// @desc    Get current authenticated user's profile
-// @access  Private
-router.get('/me', authenticate, asyncHandler(authController.getMe));
 
 // @route   PATCH /api/v1/auth/change-password
 // @desc    Change password for authenticated user
@@ -74,15 +68,5 @@ router.post(
 // @desc    Verify email address using verification token
 // @access  Public
 router.get('/verify-email/:token', asyncHandler(authController.verifyEmail));
-
-// @route   PATCH /api/v1/auth/profile
-// @desc    Update user profile (name, username, bio)
-// @access  Private
-router.patch(
-  '/profile',
-  authenticate,
-  validate({ body: updateProfileSchema }),
-  asyncHandler(authController.updateProfile),
-);
 
 export default router;

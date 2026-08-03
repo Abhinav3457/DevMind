@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Code2, Brain, Bug, FileText,
   Github, BarChart3, LogOut, ChevronLeft,
   Bell, Menu, X, Users, Sun, Moon, Loader2,
-  Search, UserCircle, CheckCheck,
+  CheckCheck,
 } from 'lucide-react';
 import { useAuthStore, useUIStore } from '../../store';
 import { logout as logoutApi } from '../../services/auth';
@@ -30,8 +30,6 @@ const navItems = [
   { to: '/ai/code-review', icon: Bug, label: 'Code Review' },
   { to: '/ai/docs', icon: FileText, label: 'Documentation' },
   { to: '/analytics', icon: BarChart3, label: 'Analytics' },
-  { to: '/search', icon: Search, label: 'Search' },
-  { to: '/settings', icon: UserCircle, label: 'Profile' },
 ];
 
 export function AppLayout() {

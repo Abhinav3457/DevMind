@@ -56,18 +56,6 @@ export class RepoIntelligenceController {
     });
   }
 
-  async searchCode(req: Request, res: Response): Promise<void> {
-    const query = (req.query.q as string) || '';
-    const limit = parseInt(req.query.limit as string, 10) || 30;
-
-    const result = await repoIntelligenceService.searchCode(req.user!.userId, query, { limit });
-
-    sendSuccess(res, {
-      statusCode: 200,
-      message: 'Search completed',
-      data: result,
-    });
-  }
 }
 
 export const repoIntelligenceController = new RepoIntelligenceController();

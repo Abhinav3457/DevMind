@@ -281,25 +281,6 @@ describe('AuthService', () => {
     });
   });
 
-  // ─── Get Profile ──────────────────────────────────────────────
-
-  describe('getProfile', () => {
-    it('should return user profile', async () => {
-      const mockUser = createMockUser();
-      vi.mocked(User.findById).mockResolvedValue(mockUser);
-
-      const result = await authService.getProfile('user-123');
-      expect(result).toBe(mockUser);
-    });
-
-    it('should throw 404 if user not found', async () => {
-      vi.mocked(User.findById).mockResolvedValue(null);
-
-      await expect(authService.getProfile('user-123')).rejects.toThrow(ApiError);
-      await expect(authService.getProfile('user-123')).rejects.toThrow('User not found');
-    });
-  });
-
   // ─── Change Password ──────────────────────────────────────────
 
   describe('changePassword', () => {
@@ -427,57 +408,6 @@ describe('AuthService', () => {
 
       await expect(authService.verifyEmail(verificationToken)).rejects.toThrow(
         'Invalid or expired verification token',
-      );
-    });
-  });
-
-  // ─── Update Profile ───────────────────────────────────────────
-
-  describe('updateProfile', () => {
-    const userId = 'user-123';
-
-    it('should update profile fields successfully', async () => {
-      const updates = { name: 'New Name', bio: 'A new bio' };
-      const mockUser = createMockUser(updates);
-      vi.mocked(User.findByIdAndUpdate).mockResolvedValue(mockUser);
-
-      const result = await authService.updateProfile(userId, updates);
-
-      expect(result.name).toBe('New Name');
-      expect(result.bio).toBe('A new bio');
-    });
-
-    it('should reject duplicate usernames', async () => {
-      const updates = { username: 'taken-username' };
-      vi.mocked(User.findOne).mockResolvedValue(
-        createMockUser({ _id: 'other-user', username: 'taken-username' }),
-      );
-
-      await expect(authService.updateProfile(userId, updates)).rejects.toThrow(
-        'This username is already taken',
-      );
-      expect(User.findByIdAndUpdate).not.toHaveBeenCalled();
-    });
-
-    it('should allow updating to own username', async () => {
-      vi.mocked(User.findOne).mockResolvedValue(null);
-      const updates = { username: 'still-my-username' };
-      const mockUser = createMockUser(updates);
-      vi.mocked(User.findByIdAndUpdate).mockResolvedValue(mockUser);
-
-      const result = await authService.updateProfile(userId, updates);
-
-      expect(User.findOne).toHaveBeenCalledWith({
-        username: 'still-my-username', _id: { $ne: userId },
-      });
-      expect(result.username).toBe('still-my-username');
-    });
-
-    it('should throw 404 if user not found after update', async () => {
-      vi.mocked(User.findByIdAndUpdate).mockResolvedValue(null);
-
-      await expect(authService.updateProfile(userId, { name: 'New' })).rejects.toThrow(
-        'User not found',
       );
     });
   });

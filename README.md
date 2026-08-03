@@ -539,7 +539,7 @@ Base URL: `/api/v1` — everything except `health`, `auth` public routes, and th
 
 | Module | Endpoints |
 |---|---|
-| **Auth** | `POST /auth/register` · `POST /auth/login` · `POST /auth/logout` · `POST /auth/refresh-token` · `GET /auth/me` · `PATCH /auth/change-password` · `POST /auth/forgot-password` · `POST /auth/reset-password` · `GET /auth/verify-email/:token` · `PATCH /auth/profile` |
+| **Auth** | `POST /auth/register` · `POST /auth/login` · `POST /auth/logout` · `POST /auth/refresh-token` · `PATCH /auth/change-password` · `POST /auth/forgot-password` · `POST /auth/reset-password` · `GET /auth/verify-email/:token` |
 | **Workspaces** | `GET/POST /workspaces` · `GET/PATCH/DELETE /workspaces/:id` · `POST /workspaces/:id/archive` · `POST /workspaces/:id/unarchive` · `GET/POST /workspaces/:id/members` · `PATCH/DELETE /workspaces/:id/members/:userId` · `POST /workspaces/:id/transfer` · `GET /workspaces/:id/repos` · `GET /workspaces/:id/activity` |
 | **Projects** | `GET/POST /projects` · `GET/PATCH/DELETE /projects/:id` · `POST /projects/:id/archive` · `DELETE /projects/:id/hard` · `POST/DELETE /projects/:id/collaborators` · `GET /projects/:id/files` |
 | **GitHub** | `GET /github/callback` *(public)* · `GET /github/auth/url` · `POST /github/auth/callback` · `POST /github/disconnect` · `POST /github/force-disconnect` · `GET /github/status` · `GET /github/repos` · `GET /github/repos/imported` · `POST /github/repos/import` · `DELETE /github/repos/imported/:id` · `POST /github/repos/sync` · `GET /github/repos/:owner/:repo` (+ `/branches`, `/commits`, `/pulls`, `/tree`) |
@@ -549,7 +549,7 @@ Base URL: `/api/v1` — everything except `health`, `auth` public routes, and th
 | **Doc Generator** | `GET /ai/doc-generator/types` · `POST /ai/doc-generator/generate` · `POST /ai/doc-generator/:reportId/generate` |
 | **Chat** | `POST/GET /ai/chat/sessions` · `GET/PATCH/DELETE /ai/chat/sessions/:chatId` · `POST /ai/chat/generate` |
 | **Analytics** | `GET /analytics` |
-| **Upload** | `POST /upload/single` · `POST /upload/multiple` · `POST /upload/avatar` · `DELETE /upload/delete` |
+| **Upload** | `POST /upload/single` · `POST /upload/multiple` · `DELETE /upload/delete` |
 | **Health** | `GET /health` · `GET /health/ping` |
 
 **Frontend routes** (`client/src/routes/index.tsx`): `/auth/login`, `/auth/register`, `/auth/forgot-password`, `/auth/reset-password/:token`, `/auth/verify-email/:token`, `/auth/github/callback`, then a guarded `<AuthGuard>` layout wrapping `/dashboard`, `/workspace`, `/workspace/:id`, `/github`, `/ai/chat`, `/ai/code-review`, `/ai/docs`, `/analytics`.

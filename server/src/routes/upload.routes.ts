@@ -20,9 +20,6 @@ router.post('/single', uploadSingle, asyncHandler(uploadController.uploadSingle)
 // Multiple file upload (up to 5)
 router.post('/multiple', uploadMultiple, asyncHandler(uploadController.uploadMultiple));
 
-// Avatar upload
-router.post('/avatar', uploadSingle, asyncHandler(uploadController.uploadAvatar));
-
 // Delete a file from Cloudinary
 router.delete('/delete', asyncHandler(uploadController.deleteFile));
 

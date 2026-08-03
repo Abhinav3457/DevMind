@@ -12,7 +12,6 @@ router.use(authenticate);
 router.get('/questions', asyncHandler(repoIntelligenceController.getQuestionTemplates));
 router.get('/status', asyncHandler(repoIntelligenceController.getIndexStatus));
 router.get('/reports', asyncHandler(repoIntelligenceController.listReports));
-router.get('/search', asyncHandler(repoIntelligenceController.searchCode));
 
 // Query with reportId in body (used by AI Chat page)
 router.post('/query', validate({ body: queryQuestionSchema }), asyncHandler(repoIntelligenceController.query));

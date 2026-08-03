@@ -81,41 +81,6 @@ export class UploadController {
     });
   }
 
-  async uploadAvatar(req: Request, res: Response): Promise<void> {
-    const file = req.file;
-    if (!file) {
-      res.status(400).json({ success: false, message: 'No avatar file provided' });
-      return;
-    }
-
-    const result = await uploadService.uploadFile(
-      file.path,
-      file.originalname,
-      file.mimetype,
-      { folder: 'devmind-ai/avatars' },
-    );
-
-    // Persist avatar metadata
-    const uploadDoc = await Upload.create({
-      userId: req.user!.userId,
-      originalName: result.originalName,
-      mimeType: result.mimeType,
-      size: result.size,
-      url: result.url,
-      publicId: result.publicId,
-      format: result.format,
-      width: result.width,
-      height: result.height,
-      folder: 'devmind-ai/avatars',
-    });
-
-    sendSuccess(res, {
-      statusCode: 200,
-      message: 'Avatar uploaded successfully',
-      data: { avatar: { ...result, id: uploadDoc._id.toString() } },
-    });
-  }
-
   async deleteFile(req: Request, res: Response): Promise<void> {
     const { publicId } = req.body;
     if (!publicId) {

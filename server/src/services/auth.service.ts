@@ -104,14 +104,6 @@ export class AuthService {
     return { user, accessToken, refreshToken: newRefreshToken };
   }
 
-  async getProfile(userId: string): Promise<IUser> {
-    const user = await User.findById(userId);
-    if (!user) {
-      throw new ApiError(404, 'User not found');
-    }
-    return user;
-  }
-
   async changePassword(
     userId: string,
     currentPassword: string,
@@ -184,26 +176,6 @@ export class AuthService {
     await user.save({ validateBeforeSave: false });
   }
 
-  async updateProfile(
-    userId: string,
-    updates: { name?: string; username?: string; bio?: string },
-  ): Promise<IUser> {
-    if (updates.username) {
-      const existing = await User.findOne({
-        username: updates.username,
-        _id: { $ne: userId },
-      });
-      if (existing) {
-        throw new ApiError(409, 'This username is already taken');
-      }
-    }
-
-    const user = await User.findByIdAndUpdate(userId, { $set: updates }, { new: true, runValidators: true });
-    if (!user) {
-      throw new ApiError(404, 'User not found');
-    }
-    return user;
-  }
 }
 
 export const authService = new AuthService();
