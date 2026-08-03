@@ -40,7 +40,7 @@ export function LanguageChart({ languages }: LanguageChartProps) {
           ? [...topLanguages.map((l) => l.color + 'cc'), '#6b7280cc']
           : topLanguages.map((l) => l.color + 'cc'),
         borderWidth: 3,
-        borderColor: 'var(--surface-950)',
+        borderColor: 'rgb(var(--surface-950))',
         hoverBackgroundColor: otherFiles > 0
           ? [...topLanguages.map((l) => l.color), '#6b7280']
           : topLanguages.map((l) => l.color),
@@ -59,10 +59,10 @@ export function LanguageChart({ languages }: LanguageChartProps) {
         display: false,
       },
       tooltip: {
-        backgroundColor: 'var(--surface-900)',
-        titleColor: 'var(--surface-100)',
-        bodyColor: 'var(--surface-300)',
-        borderColor: 'var(--surface-600)',
+        backgroundColor: 'rgb(var(--surface-900))',
+        titleColor: 'rgb(var(--surface-100))',
+        bodyColor: 'rgb(var(--surface-300))',
+        borderColor: 'rgb(var(--surface-600))',
         borderWidth: 1,
         padding: { top: 12, bottom: 12, left: 16, right: 16 },
         cornerRadius: 12,

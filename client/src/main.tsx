@@ -19,8 +19,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             duration: 4000,
             className: 'theme-toast',
             style: {},
-            success: { iconTheme: { primary: '#22c55e', secondary: 'var(--surface-100)' } },
-            error: { iconTheme: { primary: '#ef4444', secondary: 'var(--surface-100)' } },
+            success: { iconTheme: { primary: '#22c55e', secondary: 'rgb(var(--surface-100))' } },
+            error: { iconTheme: { primary: '#ef4444', secondary: 'rgb(var(--surface-100))' } },
           }}
         />
       </BrowserRouter>

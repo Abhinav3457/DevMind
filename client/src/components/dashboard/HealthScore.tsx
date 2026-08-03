@@ -98,8 +98,8 @@ export function HealthScore({ score, level, metrics }: HealthScoreProps) {
             {/* Gradient definitions */}
             <defs>
               <linearGradient id="trackGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="var(--surface-700)" />
-                <stop offset="100%" stopColor="var(--surface-900)" />
+                <stop offset="0%" stopColor="rgb(var(--surface-700))" />
+                <stop offset="100%" stopColor="rgb(var(--surface-900))" />
               </linearGradient>
               <linearGradient id={`progressGradient-${level}`} x1="0%" y1="0%" x2="100%" y2="100%">
                 <stop offset="0%" stopColor={level === 'excellent' ? '#34d399' : level === 'good' ? '#60a5fa' : level === 'fair' ? '#fbbf24' : '#fb7185'} />

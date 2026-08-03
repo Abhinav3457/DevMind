@@ -384,7 +384,7 @@ export function AiChatPage() {
             initial="hidden"
             animate="visible"
             exit="exit"
-            className="fixed inset-0 z-40 bg-[color-mix(in_srgb,var(--surface-950)_60%,transparent)] backdrop-blur-sm lg:hidden"
+            className="fixed inset-0 z-40 bg-surface-950/60 backdrop-blur-sm lg:hidden"
             onClick={() => setShowSidebar(false)}
           />
         )}
