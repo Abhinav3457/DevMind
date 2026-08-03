@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Bug, Loader2, Code2, BookOpen, Brain, Wand2, Sparkles, AlertCircle, ExternalLink, Database, Clock, Trash2 } from 'lucide-react';
+import { Bug, Loader2, Code2, BookOpen, Brain, Wand2, Sparkles, AlertCircle, ExternalLink, Database, Clock, Trash2, Link2 } from 'lucide-react';
 import apiClient from '../api/axios';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { MarkdownRenderer } from '../components/ui/MarkdownRenderer';
+import { renderReviewMarkdown } from '../utils/reviewMarkdown';
 import Editor from '@monaco-editor/react';
 
 interface IndexedReport {
@@ -23,6 +24,7 @@ interface HistoryItem {
   summary: string;
   filesReviewed: number;
   totalIssues: number;
+  shareToken: string | null;
   createdAt: string;
 }
 
@@ -168,91 +170,6 @@ function toExtension(lang: string): string {
   return map[lang] || 'ts';
 }
 
-interface ReviewIssue {
-  type: string;
-  severity: string;
-  file: string;
-  line: number;
-  message: string;
-  explanation: string;
-  recommendation: string;
-}
-
-const CATEGORY_LABELS: Record<string, string> = {
-  bugs: 'Bugs & Correctness',
-  security: 'Security',
-  performance: 'Performance',
-  codeSmells: 'Code Smells & Maintainability',
-  solidViolations: 'Architecture & Design (SOLID)',
-};
-
-/**
- * Build a readable markdown report from the structured review payload so the
- * user sees every issue, its fix, the score and the refactoring suggestions —
- * not just a one-line summary.
- */
-function renderReviewMarkdown(data: Record<string, unknown>): string {
-  const parts: string[] = [];
-
-  const score = data.score;
-  if (typeof score === 'number') {
-    parts.push(`## Review Score\n\n**${score}/100**\n`);
-  }
-  if (typeof data.summary === 'string' && data.summary.trim()) {
-    parts.push(`## Summary\n\n${data.summary}\n`);
-  }
-
-  const cats = (data.categories || {}) as Record<string, { issues?: ReviewIssue[]; summary?: string }>;
-  for (const [key, cat] of Object.entries(cats)) {
-    const issues = cat?.issues || [];
-    if (issues.length === 0) continue;
-    parts.push(`## ${CATEGORY_LABELS[key] || key}\n`);
-    if (cat.summary) parts.push(`> ${cat.summary}\n`);
-    issues.forEach((issue) => {
-      const loc = issue.file && issue.file !== 'unknown'
-        ? `\`${issue.file}${issue.line ? ':' + issue.line : ''}\``
-        : 'Location unknown';
-      const sev = issue.severity ? `**${issue.severity.toUpperCase()}**` : '';
-      parts.push(`- **${issue.message || 'Issue'}** ${sev} — ${loc}`);
-      if (issue.explanation) parts.push(`  ${issue.explanation}`);
-      if (issue.recommendation) parts.push(`  **Fix:** ${issue.recommendation.replace(/\n/g, '\n  ')}`);
-      parts.push('');
-    });
-  }
-
-  const suggestions = (data.refactoringSuggestions || []) as {
-    title?: string;
-    description?: string;
-    file?: string;
-    priority?: string;
-  }[];
-  if (suggestions.length > 0) {
-    parts.push(`## Refactoring Suggestions\n`);
-    suggestions.forEach((s) => {
-      parts.push(`- **${s.title || 'Suggestion'}**${s.file ? ` — \`${s.file}\`` : ''}${s.priority ? ` (${s.priority})` : ''}`);
-      if (s.description) parts.push(`  ${s.description}`);
-    });
-    parts.push('');
-  }
-
-  const complexity = data.complexity as { averageComplexity?: number; highComplexityFiles?: unknown[] } | undefined;
-  if (complexity) {
-    parts.push(`## Complexity Analysis\n`);
-    parts.push(`- Average complexity: **${complexity.averageComplexity ?? 'N/A'}**`);
-    parts.push(`- High complexity files: **${(complexity.highComplexityFiles || []).length}**\n`);
-  }
-
-  if (Array.isArray(data.duplicateCode) && (data.duplicateCode as unknown[]).length > 0) {
-    parts.push(`## Duplicate Code\n\nFound **${(data.duplicateCode as unknown[]).length}** duplicate block(s).\n`);
-  }
-
-  if (typeof data.fixedVersion === 'string' && data.fixedVersion.trim()) {
-    parts.push(`## Fixed Version\n\n${data.fixedVersion}\n`);
-  }
-
-  return parts.join('\n') || 'Review completed. No issues found.';
-}
-
 export function CodeReviewPage() {
   const [mode, setMode] = useState<'snippet' | 'repo' | 'history'>('snippet');
   const [code, setCode] = useState('');
@@ -271,6 +188,7 @@ export function CodeReviewPage() {
   // History state
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [lastShareToken, setLastShareToken] = useState<string | null>(null);
 
   useEffect(() => {
     if (mode === 'repo') fetchReports();
@@ -307,6 +225,7 @@ export function CodeReviewPage() {
       if (data) {
         setReview(renderReviewMarkdown((data.details as Record<string, unknown>) || data));
         setScore(typeof data.score === 'number' ? data.score : null);
+        setLastShareToken(data.shareToken || null);
       }
     } catch {
       toast.error('Failed to load review');
@@ -322,6 +241,16 @@ export function CodeReviewPage() {
       toast.success('Review deleted');
     } catch {
       toast.error('Failed to delete review');
+    }
+  };
+
+  const copyShareLink = async (token: string | null) => {
+    if (!token) { toast.error('This review cannot be shared'); return; }
+    try {
+      await navigator.clipboard.writeText(window.location.origin + '/code-review/shared/' + token);
+      toast.success('Share link copied to clipboard');
+    } catch {
+      toast.error('Could not copy the share link');
     }
   };
 
@@ -359,6 +288,7 @@ export function CodeReviewPage() {
       } else {
         setReview('No review data returned from server.');
       }
+      setLastShareToken(typeof data?.shareToken === 'string' ? data.shareToken : null);
       toast.success('Code review complete!');
     } catch {
       toast.error('Failed to review code. Please try again.');
@@ -379,6 +309,7 @@ export function CodeReviewPage() {
       } else {
         setReview('No review data returned from server.');
       }
+      setLastShareToken(typeof data?.shareToken === 'string' ? data.shareToken : null);
       toast.success('Repository review complete!');
     } catch {
       toast.error('Failed to review repository. Make sure it is indexed and try again.');
@@ -492,6 +423,13 @@ export function CodeReviewPage() {
                         <p className="mt-1 text-[10px] text-surface-500">
                           {new Date(item.createdAt).toLocaleDateString()} · {item.filesReviewed} file{item.filesReviewed === 1 ? '' : 's'} · {item.totalIssues} issues
                         </p>
+                      </button>
+                      <button
+                        onClick={() => copyShareLink(item.shareToken)}
+                        className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg text-surface-500 transition-colors hover:bg-primary-500/10 hover:text-primary-400"
+                        title="Copy share link"
+                      >
+                        <Link2 className="h-3.5 w-3.5" />
                       </button>
                       <button
                         onClick={() => deleteHistory(item.id)}
@@ -632,6 +570,15 @@ export function CodeReviewPage() {
                    score >= 50 ? 'bg-amber-500/10 text-amber-400' :
                    'bg-red-500/10 text-red-400')
                 }>Score: {score}/100</span>
+              )}
+              {lastShareToken && (
+                <button
+                  onClick={() => copyShareLink(lastShareToken)}
+                  className="flex items-center gap-1 rounded-full bg-surface-800 px-2.5 py-1 text-[10px] font-medium text-surface-300 transition-all hover:bg-primary-500/10 hover:text-primary-400"
+                  title="Copy share link"
+                >
+                  <Link2 className="h-3 w-3" /> Share
+                </button>
               )}
             </div>
           </div>

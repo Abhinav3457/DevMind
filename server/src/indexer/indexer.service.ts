@@ -11,8 +11,10 @@ import IndexedFile from '../models/IndexedFile';
 import IndexedChunk from '../models/IndexedChunk';
 import ImportedRepository from '../models/ImportedRepository';
 import GitHubAccount from '../models/GitHubAccount';
+import User from '../models/User';
 import { logActivity } from '../services/activity.service';
 import { notificationService } from '../services/notification.service';
+import { sendIndexCompleteEmail } from '../helpers/email.helper';
 import logger from '../utils/logger';
 import { ApiError } from '../utils/apiResponse';
 import AdmZip from 'adm-zip';
@@ -120,6 +122,16 @@ export class IndexerService {
           message: repoLabel + ' finished indexing — ' + report.fileCount + ' files, ' + report.chunkCount + ' chunks',
           data: { reportId: report._id.toString() },
         });
+
+        // Best-effort email notification
+        const user = await User.findById(userId).select('email name').lean();
+        if (user?.email) {
+          void sendIndexCompleteEmail(user.email, user.name, {
+            repoName: repoLabel,
+            fileCount: report.fileCount,
+            chunkCount: report.chunkCount,
+          });
+        }
       } catch (logError) {
         logger.error('Indexer: Failed to record activity/notification after indexing', logError);
       }

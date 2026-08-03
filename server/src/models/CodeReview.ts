@@ -11,6 +11,7 @@ export interface ICodeReview extends Document {
   summary: string;
   filesReviewed: number;
   totalIssues: number;
+  shareToken?: string | null;
   details: Record<string, unknown>;
   createdAt: Date;
 }
@@ -27,6 +28,7 @@ const codeReviewSchema = new Schema<ICodeReview>(
     summary: { type: String, default: '' },
     filesReviewed: { type: Number, default: 0 },
     totalIssues: { type: Number, default: 0 },
+    shareToken: { type: String, default: null, index: true },
     details: { type: Schema.Types.Mixed, default: {} },
   },
   { timestamps: { createdAt: true, updatedAt: false } },

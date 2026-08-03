@@ -7,6 +7,9 @@ import { reviewRepoSchema, reviewCodeSchema } from '../validators/code-review.va
 
 const router = Router();
 
+// Public share link (no auth — keyed by unguessable token, must precede authenticate)
+router.get('/shared/:token', asyncHandler(codeReviewController.getSharedReview));
+
 router.use(authenticate);
 
 // Review history (must be registered before the /:reportId route)

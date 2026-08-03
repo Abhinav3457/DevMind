@@ -1,8 +1,11 @@
+import crypto from 'crypto';
 import { Request, Response } from 'express';
 import { codeReviewService } from '../services/code-review.service';
 import { reviewerService } from '../code-review/reviewer.service';
 import { IIndexedFile } from '../models/IndexedFile';
 import CodeReview from '../models/CodeReview';
+import User from '../models/User';
+import { sendReviewCompleteEmail } from '../helpers/email.helper';
 import { sendSuccess } from '../utils/apiResponse';
 
 export class CodeReviewController {
@@ -50,6 +53,7 @@ export class CodeReviewController {
     const result = await reviewerService.reviewFiles([virtualFile]);
 
     // Save to review history (best-effort, non-blocking)
+    const shareToken = crypto.randomBytes(16).toString('hex');
     CodeReview.create({
       userId: req.user!.userId,
       fileName: name,
@@ -58,6 +62,7 @@ export class CodeReviewController {
       summary: result.summary,
       filesReviewed: 1,
       totalIssues: result.totalIssues,
+      shareToken,
       details: {
         score: result.score,
         summary: result.summary,
@@ -68,6 +73,19 @@ export class CodeReviewController {
         filesReviewed: 1,
       },
     }).catch(() => undefined);
+
+    // Best-effort email notification (matches repo reviews)
+    User.findById(req.user!.userId).select('email name').lean()
+      .then((user) => {
+        if (user?.email) {
+          void sendReviewCompleteEmail(user.email, user.name, {
+            repoName: fileName || 'your code snippet',
+            score: result.score,
+            totalIssues: result.totalIssues,
+          });
+        }
+      })
+      .catch(() => undefined);
 
     sendSuccess(res, {
       statusCode: 200,
@@ -80,7 +98,18 @@ export class CodeReviewController {
         fixedVersion: result.fixedVersion,
         totalIssues: result.totalIssues,
         filesReviewed: 1,
+        shareToken,
       },
+    });
+  }
+
+  async getSharedReview(req: Request, res: Response): Promise<void> {
+    const result = await codeReviewService.getSharedReview(req.params.token);
+
+    sendSuccess(res, {
+      statusCode: 200,
+      message: 'Shared review retrieved',
+      data: result,
     });
   }
 

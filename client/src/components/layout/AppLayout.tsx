@@ -5,8 +5,9 @@ import {
   LayoutDashboard, Code2, Brain, Bug, FileText,
   Github, BarChart3, LogOut, ChevronLeft,
   Bell, Menu, X, Sun, Moon, Loader2,
-  CheckCheck,
+  CheckCheck, Search,
 } from 'lucide-react';
+import { CommandPalette } from './CommandPalette';
 import { useAuthStore, useUIStore } from '../../store';
 import { logout as logoutApi } from '../../services/auth';
 import { connectSocket, disconnectSocket, onNotificationNew } from '../../services/socket';
@@ -217,6 +218,14 @@ export function AppLayout() {
           </div>
           <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
             <button
+              onClick={() => window.dispatchEvent(new Event('devmind:open-palette'))}
+              className="hidden sm:flex items-center gap-1.5 rounded-lg border border-surface-700 bg-surface-800/60 px-2.5 py-1.5 text-surface-400 hover:bg-surface-800 hover:text-surface-200 transition-colors"
+              title="Search (Ctrl+K)"
+            >
+              <Search className="h-3.5 w-3.5" />
+              <span className="text-[10px] text-surface-500">Ctrl K</span>
+            </button>
+            <button
               onClick={toggleTheme}
               className="rounded-lg p-1.5 sm:p-2 text-surface-400 hover:bg-surface-800 hover:text-surface-200 transition-colors"
               title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
@@ -307,6 +316,7 @@ export function AppLayout() {
           <Outlet />
         </main>
       </div>
+      <CommandPalette />
     </div>
   );
 }

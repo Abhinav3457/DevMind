@@ -76,6 +76,7 @@ export function AiChatPage() {
   const [indexStatus, setIndexStatus] = useState<IndexStatus>(initialState);
   const [reports, setReports] = useState<{ id: string; repoName: string; fileCount: number }[]>([]);
   const [selectedReportId, setSelectedReportId] = useState<string>('latest');
+  const [repoContextId, setRepoContextId] = useState<string>('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
@@ -90,9 +91,10 @@ export function AiChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Load sessions on mount
+  // Load sessions + indexed reports (for optional repo context) on mount
   useEffect(() => {
     loadSessions();
+    fetchReports();
   }, []);
 
   // Load latest session or show welcome
@@ -228,6 +230,7 @@ export function AiChatPage() {
       const recentHistory = messages.slice(-10).map((m) => ({ role: m.role, content: m.content }));
 
       const body: Record<string, unknown> = { message: userMessage, history: recentHistory };
+      if (repoContextId) body.reportId = repoContextId;
 
       if (!activeChatId) {
         const chatId = await ensureSession();
@@ -238,14 +241,21 @@ export function AiChatPage() {
 
       const res = await apiClient.post('/ai/chat/generate', body);
       const answer = res.data.data?.answer || 'No response received.';
+      const sources: SourceRef[] = res.data.data?.sources || [];
 
-      setMessages((prev) => [...prev, { role: 'assistant', content: answer, timestamp: new Date() }]);
+      setMessages((prev) => [...prev, { role: 'assistant', content: answer, sources, timestamp: new Date() }]);
 
       loadSessions();
     } catch (err: unknown) {
       const axiosErr = err as AxiosError<{ message?: string }>;
       const serverMsg = axiosErr?.response?.data?.message || 'Could not connect to the AI service. Please check your API keys and server configuration.';
-      setMessages((prev) => [...prev, { role: 'assistant', content: `**Error:** ${serverMsg}`, timestamp: new Date() }]);
+      // Stale repo context (deleted index) — clear it so the next message falls back to general chat
+      let finalMsg = serverMsg;
+      if (/Index report not found|has not completed|No completed index/i.test(serverMsg)) {
+        setRepoContextId('');
+        finalMsg = 'The selected repository context is no longer available — I\'ve cleared it. ' + serverMsg;
+      }
+      setMessages((prev) => [...prev, { role: 'assistant', content: `**Error:** ${finalMsg}`, timestamp: new Date() }]);
     } finally {
       setLoading(false);
     }
@@ -545,6 +555,18 @@ export function AiChatPage() {
                   <span className="hidden sm:inline">Repo</span>
                 </button>
               </div>
+
+              {mode === 'general' && reports.length > 0 && (
+                <select
+                  value={repoContextId}
+                  onChange={(e) => setRepoContextId(e.target.value)}
+                  title="Attach repository context to your answers"
+                  className="rounded-lg border border-surface-700 bg-surface-800 px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs text-surface-300 focus:border-primary-500/50 focus:outline-none max-w-[110px] sm:max-w-[170px] truncate"
+                >
+                  <option value="">No repo context</option>
+                  {reports.map((r) => <option key={r.id} value={r.id}>{r.repoName}</option>)}
+                </select>
+              )}
 
               {mode === 'repo' && reports.length > 0 && (
                 <select value={selectedReportId} onChange={(e) => setSelectedReportId(e.target.value)}

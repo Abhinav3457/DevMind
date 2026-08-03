@@ -1,5 +1,5 @@
 import { queryClassifierService, QuestionType } from '../repo-intelligence/classifier.service';
-import { contextRetrieverService } from '../repo-intelligence/retriever.service';
+import { contextRetrieverService, RetrievedContext } from '../repo-intelligence/retriever.service';
 import { promptBuilderService } from '../repo-intelligence/prompt-builder.service';
 import { generateFromAI } from '../config/ai';
 import IndexReport from '../models/IndexReport';
@@ -30,6 +30,13 @@ interface QuestionTemplate {
   question: string;
   type: QuestionType;
   description: string;
+}
+
+interface ClassifiedQuestion {
+  type: QuestionType;
+  keywords: string[];
+  targetFile?: string;
+  targetFunction?: string;
 }
 
 export class RepoIntelligenceService {
@@ -71,9 +78,16 @@ export class RepoIntelligenceService {
     };
   }
 
-  async ask(reportId: string, userId: string, question: string): Promise<AskResult> {
-    const startTime = Date.now();
-
+  private async prepareContext(
+    reportId: string,
+    userId: string,
+    question: string,
+  ): Promise<{
+    reportId: string;
+    classification: ClassifiedQuestion;
+    context: RetrievedContext;
+    report: { repositoryId?: unknown } | null;
+  }> {
     // Support 'latest' as a special reportId value — get the most recent completed report
     if (reportId === 'latest') {
       const latestReport = await IndexReport.findOne({ userId, status: 'completed' }).sort({ createdAt: -1 });
@@ -106,6 +120,14 @@ export class RepoIntelligenceService {
 
     logger.info('RepoIntelligence: Retrieved ' + context.relevantFiles.length +
       ' files and ' + context.relevantChunks.length + ' chunks');
+
+    return { reportId, classification, context, report };
+  }
+
+  async ask(reportId: string, userId: string, question: string): Promise<AskResult> {
+    const startTime = Date.now();
+
+    const { classification, context } = await this.prepareContext(reportId, userId, question);
 
     const { systemInstruction, userPrompt } = promptBuilderService.build({
       question,
@@ -143,18 +165,7 @@ export class RepoIntelligenceService {
       ') in ' + duration + 's');
 
     // Build precise citations from the retrieved chunks (deduped by file)
-    const sources: SourceRef[] = [];
-    const seenFiles = new Set<string>();
-    for (const chunk of context.relevantChunks) {
-      if (seenFiles.has(chunk.filePath)) continue;
-      seenFiles.add(chunk.filePath);
-      sources.push({
-        filePath: chunk.filePath,
-        startLine: chunk.startLine,
-        endLine: chunk.endLine,
-        type: chunk.type,
-      });
-    }
+    const sources = this.buildSources(context);
 
     return {
       answer,
@@ -167,6 +178,46 @@ export class RepoIntelligenceService {
         hasFolderStructure: context.folderStructure !== '[]' && context.folderStructure !== '',
       },
     };
+  }
+
+  /**
+   * Build repository context for the main AI chat (no AI call — the chat
+   * controller merges the context into its own prompt). Returns a formatted
+   * context block plus deduped source references for citations.
+   */
+  async getChatContext(
+    reportId: string,
+    userId: string,
+    question: string,
+  ): Promise<{ repoName: string; contextBlock: string; sources: SourceRef[] }> {
+    const { report, context } = await this.prepareContext(reportId, userId, question);
+
+    let repoName = 'your repository';
+    if (report?.repositoryId) {
+      const repo = await ImportedRepository.findById(report.repositoryId).select('fullName').lean();
+      if (repo?.fullName) repoName = repo.fullName;
+    }
+
+    const contextBlock = promptBuilderService.buildContextBlock(context);
+
+    return { repoName, contextBlock, sources: this.buildSources(context) };
+  }
+
+  /** Build precise citations from the retrieved chunks (deduped by file). */
+  private buildSources(context: RetrievedContext): SourceRef[] {
+    const sources: SourceRef[] = [];
+    const seenFiles = new Set<string>();
+    for (const chunk of context.relevantChunks) {
+      if (seenFiles.has(chunk.filePath)) continue;
+      seenFiles.add(chunk.filePath);
+      sources.push({
+        filePath: chunk.filePath,
+        startLine: chunk.startLine,
+        endLine: chunk.endLine,
+        type: chunk.type,
+      });
+    }
+    return sources;
   }
 
   async listReports(userId: string): Promise<{ id: string; repoName: string; fileCount: number; chunkCount: number; createdAt: string }[]> {

@@ -32,6 +32,62 @@ export async function sendVerificationEmail(
   }
 }
 
+export async function sendReviewCompleteEmail(
+  to: string,
+  name: string,
+  info: { repoName: string; score: number; totalIssues: number },
+): Promise<void> {
+  const html = `
+    <div style="max-width: 600px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif;">
+      <h1 style="color: #3b82f6;">Code Review Complete ✨</h1>
+      <p>Hi ${name},</p>
+      <p>Your AI code review for <strong>${info.repoName}</strong> has finished.</p>
+      <div style="background-color: #f1f5f9; border-radius: 8px; padding: 16px; margin: 20px 0; text-align: center;">
+        <p style="margin: 0; font-size: 14px; color: #64748b;">Quality Score</p>
+        <p style="margin: 4px 0 0; font-size: 32px; font-weight: bold; color: #0f172a;">${info.score}/100</p>
+        <p style="margin: 4px 0 0; font-size: 13px; color: #64748b;">${info.totalIssues} issue${info.totalIssues === 1 ? '' : 's'} found</p>
+      </div>
+      <p style="color: #64748b; font-size: 13px;">Open DevMind AI to view the full report with suggestions and a fixed version.</p>
+      <hr style="border: 1px solid #e2e8f0; margin: 20px 0;" />
+      <p style="color: #94a3b8; font-size: 12px;">— DevMind AI</p>
+    </div>
+  `;
+
+  try {
+    await sendEmail({ to, subject: 'Your code review is ready', html });
+    logger.info('Review complete email sent to:', to);
+  } catch (error) {
+    logger.error('Failed to send review complete email:', error);
+  }
+}
+
+export async function sendIndexCompleteEmail(
+  to: string,
+  name: string,
+  info: { repoName: string; fileCount: number; chunkCount: number },
+): Promise<void> {
+  const html = `
+    <div style="max-width: 600px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif;">
+      <h1 style="color: #3b82f6;">Repository Indexed 🚀</h1>
+      <p>Hi ${name},</p>
+      <p><strong>${info.repoName}</strong> has been successfully indexed and is ready for AI questions, code review, and documentation generation.</p>
+      <div style="background-color: #f1f5f9; border-radius: 8px; padding: 16px; margin: 20px 0; text-align: center;">
+        <p style="margin: 0; font-size: 14px; color: #64748b;">${info.fileCount} files · ${info.chunkCount} chunks</p>
+      </div>
+      <p style="color: #64748b; font-size: 13px;">Ask your codebase anything in the AI Chat → Repo mode.</p>
+      <hr style="border: 1px solid #e2e8f0; margin: 20px 0;" />
+      <p style="color: #94a3b8; font-size: 12px;">— DevMind AI</p>
+    </div>
+  `;
+
+  try {
+    await sendEmail({ to, subject: 'Your repository finished indexing', html });
+    logger.info('Index complete email sent to:', to);
+  } catch (error) {
+    logger.error('Failed to send index complete email:', error);
+  }
+}
+
 export async function sendPasswordResetEmail(
   to: string,
   name: string,

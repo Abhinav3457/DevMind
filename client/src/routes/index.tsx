@@ -10,6 +10,7 @@ import { CodeReviewPage } from '../pages/CodeReviewPage';
 import { DocGeneratorPage } from '../pages/DocGeneratorPage';
 import { GitHubPage } from '../pages/GitHubPage';
 import { GitHubCallback } from '../pages/GitHubCallback';
+import { SharedReviewPage } from '../pages/SharedReviewPage';
 import { AnalyticsPage } from '../pages/AnalyticsPage';
 import { AppLayout } from '../components/layout/AppLayout';
 import { AuthGuard } from '../components/layout/AuthGuard';
@@ -23,6 +24,7 @@ export function AppRoutes() {
       <Route path="/auth/reset-password/:token" element={<ResetPasswordPage />} />
       <Route path="/auth/verify-email/:token" element={<VerifyEmailPage />} />
       <Route path="/auth/github/callback" element={<GitHubCallback />} />
+      <Route path="/code-review/shared/:token" element={<SharedReviewPage />} />
       <Route element={<AuthGuard><AppLayout /></AuthGuard>}>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<DashboardPage />} />

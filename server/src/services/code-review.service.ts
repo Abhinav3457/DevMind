@@ -1,9 +1,12 @@
+import crypto from 'crypto';
 import mongoose from 'mongoose';
 import IndexReport from '../models/IndexReport';
 import IndexedFile, { IIndexedFile } from '../models/IndexedFile';
 import IndexedChunk from '../models/IndexedChunk';
 import ImportedRepository from '../models/ImportedRepository';
 import CodeReview from '../models/CodeReview';
+import User from '../models/User';
+import { sendReviewCompleteEmail } from '../helpers/email.helper';
 import { complexityService, ComplexityReport } from '../code-review/complexity.service';
 import { duplicateService, DuplicateBlock } from '../code-review/duplicate.service';
 import { reviewerService, ReviewResult } from '../code-review/reviewer.service';
@@ -24,6 +27,7 @@ export interface CodeReviewResult {
   fixedVersion: string;
   filesReviewed: number;
   totalIssues: number;
+  shareToken: string;
 }
 
 export class CodeReviewService {
@@ -149,11 +153,13 @@ export class CodeReviewService {
       fixedVersion: reviewResult.fixedVersion,
       filesReviewed: indexedFiles.length,
       totalIssues: reviewResult.totalIssues,
+      shareToken: '',
     };
 
     // Persist to review history + notify (best-effort — never break the review response)
     try {
       const importedRepo = await ImportedRepository.findById(report.repositoryId).select('fullName').lean();
+      const shareToken = crypto.randomBytes(16).toString('hex');
       await CodeReview.create({
         userId,
         reportId,
@@ -163,8 +169,10 @@ export class CodeReviewService {
         summary: result.summary,
         filesReviewed: result.filesReviewed,
         totalIssues: result.totalIssues,
+        shareToken,
         details: result,
       });
+      result.shareToken = shareToken;
 
       void logActivity({
         userId,
@@ -180,6 +188,16 @@ export class CodeReviewService {
         message: 'Review of "' + (importedRepo?.fullName || 'your repository') + '" scored ' + result.score + '/100 with ' + result.totalIssues + ' issues',
         data: { score: result.score, totalIssues: result.totalIssues },
       });
+
+      // Best-effort email notification
+      const user = await User.findById(userId).select('email name').lean();
+      if (user?.email) {
+        void sendReviewCompleteEmail(user.email, user.name, {
+          repoName: importedRepo?.fullName || 'your repository',
+          score: result.score,
+          totalIssues: result.totalIssues,
+        });
+      }
     } catch (error) {
       logger.error('CodeReview: Failed to persist review history', error);
     }
@@ -227,6 +245,7 @@ export class CodeReviewService {
         summary: r.summary || '',
         filesReviewed: r.filesReviewed,
         totalIssues: r.totalIssues,
+        shareToken: r.shareToken || null,
         createdAt: r.createdAt,
       })),
       total,
@@ -238,7 +257,7 @@ export class CodeReviewService {
   async getHistoryDetail(
     userId: string,
     reviewId: string,
-  ): Promise<{ id: string; repoName: string; fileName: string; score: number; summary: string; createdAt: Date | undefined; details: Record<string, unknown> }> {
+  ): Promise<{ id: string; repoName: string; fileName: string; score: number; summary: string; shareToken: string | null; createdAt: Date | undefined; details: Record<string, unknown> }> {
     const review = await CodeReview.findOne({ _id: reviewId, userId }).lean();
     if (!review) {
       throw new ApiError(404, 'Review not found');
@@ -249,6 +268,7 @@ export class CodeReviewService {
       fileName: review.fileName || '',
       score: review.score,
       summary: review.summary || '',
+      shareToken: review.shareToken || null,
       createdAt: review.createdAt,
       details: (review.details as Record<string, unknown>) || {},
     };
@@ -256,6 +276,25 @@ export class CodeReviewService {
 
   async deleteHistory(userId: string, reviewId: string): Promise<void> {
     await CodeReview.deleteOne({ _id: reviewId, userId });
+  }
+
+  /** Public share lookup — no auth, keyed by unguessable share token. */
+  async getSharedReview(
+    token: string,
+  ): Promise<{ id: string; repoName: string; fileName: string; score: number; summary: string; createdAt: Date | undefined; details: Record<string, unknown> }> {
+    const review = await CodeReview.findOne({ shareToken: token }).lean();
+    if (!review) {
+      throw new ApiError(404, 'Shared review not found');
+    }
+    return {
+      id: (review._id as mongoose.Types.ObjectId).toString(),
+      repoName: review.repoName || '',
+      fileName: review.fileName || '',
+      score: review.score,
+      summary: review.summary || '',
+      createdAt: review.createdAt,
+      details: (review.details as Record<string, unknown>) || {},
+    };
   }
 }
 

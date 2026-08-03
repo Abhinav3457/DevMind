@@ -3,11 +3,19 @@ import { generateFromAI } from '../config/ai';
 import { sendSuccess, sendCreated, ApiError } from '../utils/apiResponse';
 import Chat from '../models/Chat';
 import Message from '../models/Message';
+import { repoIntelligenceService } from '../services/repo-intelligence.service';
 import logger from '../utils/logger';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
+}
+
+interface SourceRef {
+  filePath: string;
+  startLine: number;
+  endLine: number;
+  type: string;
 }
 
 export class ChatController {
@@ -85,12 +93,19 @@ export class ChatController {
   // ── AI Generation ────────────────────────────────────────
 
   async generate(req: Request, res: Response): Promise<void> {
-    const { message, history, chatId } = req.body as {
+    const { message, history, chatId, reportId } = req.body as {
       message: string;
       history?: ChatMessage[];
       chatId?: string;
+      reportId?: string;
     };
     const userId = req.user!.userId;
+
+    // Optional repository context (RAG) — grounds answers in an indexed repo
+    let repoContext: { repoName: string; contextBlock: string; sources: SourceRef[] } | null = null;
+    if (reportId) {
+      repoContext = await repoIntelligenceService.getChatContext(reportId, userId, message);
+    }
 
     // Build conversation context from history
     let historyContext = '';
@@ -100,7 +115,7 @@ export class ChatController {
         .join('\n\n');
     }
 
-    const systemInstruction = [
+    const baseInstruction = [
       'You are DevMind AI, an expert software engineering assistant with deep knowledge of programming.',
       'You help developers with coding questions, debugging, architecture, code reviews, and best practices.',
       '',
@@ -132,6 +147,17 @@ export class ChatController {
       '- Suggest best practices and potential improvements when relevant.',
     ].join('\n');
 
+    const systemInstruction = repoContext
+      ? baseInstruction + '\n\n' +
+        '=== REPOSITORY CONTEXT (' + repoContext.repoName + ') ===\n' +
+        repoContext.contextBlock +
+        '\n\n=== GROUNDING RULES ===\n' +
+        '- When the user asks about the attached repository, answer using ONLY the context above.\n' +
+        '- Reference specific file paths and line numbers from the context.\n' +
+        '- If the context does not contain the answer, say so clearly and give a general answer.\n' +
+        '- Cite sources as `path:startLine-endLine` when referencing code.'
+      : baseInstruction;
+
     const prompt = historyContext
       ? `Previous conversation:\n${historyContext}\n\nUser: ${message}`
       : message;
@@ -155,7 +181,10 @@ export class ChatController {
     sendSuccess(res, {
       statusCode: 200,
       message: 'Response generated successfully',
-      data: { answer },
+      data: {
+        answer,
+        ...(repoContext ? { sources: repoContext.sources, repoName: repoContext.repoName } : {}),
+      },
     });
   }
 }

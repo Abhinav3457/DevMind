@@ -123,7 +123,7 @@ export class PromptBuilderService {
     return base.join('\n');
   }
 
-  private buildContextBlock(context: RetrievedContext): string {
+  buildContextBlock(context: RetrievedContext): string {
     const parts: string[] = [];
 
     // Repository overview

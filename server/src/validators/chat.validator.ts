@@ -17,6 +17,7 @@ export const generateChatSchema = Joi.object({
     .max(50)
     .optional(),
   chatId: Joi.string().optional(),
+  reportId: Joi.string().optional(),
 });
 
 export const createSessionSchema = Joi.object({
