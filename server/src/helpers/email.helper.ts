@@ -32,6 +32,37 @@ export async function sendVerificationEmail(
   }
 }
 
+export async function sendWorkspaceInviteEmail(
+  to: string,
+  inviterName: string,
+  workspaceName: string,
+  acceptUrl: string,
+  declineUrl: string,
+): Promise<void> {
+  const html = `
+    <div style="max-width: 600px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif;">
+      <h1 style="color: #3b82f6;">You're invited to a workspace!</h1>
+      <p>Hi there,</p>
+      <p><strong>${inviterName}</strong> invited you to join the workspace <strong>${workspaceName}</strong> on DevMind AI.</p>
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="${acceptUrl}" style="background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 0 6px;">Accept Invitation</a>
+        <a href="${declineUrl}" style="background-color: #475569; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 0 6px;">Decline</a>
+      </div>
+      <p>If you don't have a DevMind AI account yet, you'll be able to create one and then accept the invitation.</p>
+      <p style="color: #64748b; font-size: 12px;">This invitation will expire in 7 days.</p>
+      <hr style="border: 1px solid #e2e8f0; margin: 20px 0;" />
+      <p style="color: #94a3b8; font-size: 12px;">If you weren't expecting this invitation, you can safely ignore this email.</p>
+    </div>
+  `;
+
+  try {
+    await sendEmail({ to, subject: `${inviterName} invited you to "${workspaceName}" on DevMind AI`, html });
+    logger.info('Workspace invitation email sent to:', to);
+  } catch (error) {
+    logger.error('Failed to send workspace invitation email:', error);
+  }
+}
+
 export async function sendPasswordResetEmail(
   to: string,
   name: string,

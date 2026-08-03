@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -26,6 +26,7 @@ type RegisterFormData = z.infer<typeof registerSchema>;
 
 export function RegisterPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
@@ -50,7 +51,8 @@ export function RegisterPage() {
         password: data.password,
       });
       setIsSuccess(true);
-      setTimeout(() => navigate('/auth/login', { replace: true }), 3000);
+      // Carry the intended destination (e.g. an invitation link) through to login
+      setTimeout(() => navigate('/auth/login', { replace: true, state: location.state }), 3000);
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } } };
       setServerError(error?.response?.data?.message || 'Registration failed. Please try again.');
@@ -76,6 +78,7 @@ export function RegisterPage() {
           </p>
           <Link
             to="/auth/login"
+            state={location.state}
             className="text-sm font-medium text-blue-400 hover:text-blue-300 transition-colors"
           >
             Go to Login

@@ -57,6 +57,14 @@ interface Activity {
   timestamp: string;
 }
 
+interface PendingInvite {
+  id: string;
+  email: string;
+  role: WorkspaceRole;
+  inviterName?: string;
+  createdAt: string;
+}
+
 const ROLE_BADGES: Record<WorkspaceRole, { label: string; color: string }> = {
   owner: { label: 'Owner', color: 'bg-amber-500/10 text-amber-400' },
   admin: { label: 'Admin', color: 'bg-blue-500/10 text-blue-400' },
@@ -86,6 +94,8 @@ export function WorkspaceDetailPage() {
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<WorkspaceRole>('member');
   const [inviting, setInviting] = useState(false);
+  const [invitations, setInvitations] = useState<PendingInvite[]>([]);
+  const [revokingInvite, setRevokingInvite] = useState<string | null>(null);
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
@@ -115,6 +125,14 @@ export function WorkspaceDetailPage() {
     } catch { /* ignore */ }
   }, [id]);
 
+  const fetchInvitations = useCallback(async () => {
+    if (!id) return;
+    try {
+      const res = await apiClient.get('/workspaces/' + id + '/invitations');
+      setInvitations(res.data.data?.invitations || []);
+    } catch { /* ignore */ }
+  }, [id]);
+
   const fetchRepos = useCallback(async () => {
     if (!id) return;
     try {
@@ -133,9 +151,9 @@ export function WorkspaceDetailPage() {
 
   useEffect(() => {
     setLoading(true);
-    Promise.all([fetchWorkspace(), fetchMembers(), fetchRepos(), fetchActivity()])
+    Promise.all([fetchWorkspace(), fetchMembers(), fetchRepos(), fetchActivity(), fetchInvitations()])
       .finally(() => setLoading(false));
-  }, [fetchWorkspace, fetchMembers, fetchRepos, fetchActivity]);
+  }, [fetchWorkspace, fetchMembers, fetchRepos, fetchActivity, fetchInvitations]);
 
   const handleSaveSettings = async () => {
     if (!id || !editName.trim()) { toast.error('Name is required'); return; }
@@ -180,15 +198,28 @@ export function WorkspaceDetailPage() {
     if (!id || !inviteEmail.trim()) { toast.error('Email is required'); return; }
     setInviting(true);
     try {
-      await apiClient.post('/workspaces/' + id + '/members', { email: inviteEmail.trim(), role: inviteRole });
-      toast.success('Member invited!');
+      await apiClient.post('/workspaces/' + id + '/invitations', { email: inviteEmail.trim(), role: inviteRole });
+      toast.success('Invitation sent!');
       setInviteEmail('');
       setInviteRole('member');
-      fetchMembers();
+      fetchInvitations();
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } } };
-      toast.error(e?.response?.data?.message || 'Failed to invite member');
+      toast.error(e?.response?.data?.message || 'Failed to send invitation');
     } finally { setInviting(false); }
+  };
+
+  const handleRevokeInvitation = async (inviteId: string) => {
+    if (!id) return;
+    setRevokingInvite(inviteId);
+    try {
+      await apiClient.delete('/workspaces/' + id + '/invitations/' + inviteId);
+      toast.success('Invitation revoked');
+      fetchInvitations();
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { message?: string } } };
+      toast.error(e?.response?.data?.message || 'Failed to revoke invitation');
+    } finally { setRevokingInvite(null); }
   };
 
   const handleRoleChange = async (userId: string, newRole: WorkspaceRole) => {
@@ -439,6 +470,39 @@ export function WorkspaceDetailPage() {
                     {inviting ? <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" /> : <UserPlus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
                     {inviting ? 'Inviting...' : 'Invite'}
                   </button>
+                </div>
+              </div>
+            )}
+
+            {canManage && invitations.length > 0 && (
+              <div className="rounded-lg border border-surface-700 bg-surface-800/30 p-3 sm:p-4">
+                <h3 className="mb-3 flex items-center gap-2 text-xs sm:text-sm font-semibold text-surface-200">
+                  <Mail className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-surface-400" />
+                  Pending Invitations ({invitations.length})
+                </h3>
+                <div className="space-y-2">
+                  {invitations.map((invite) => (
+                    <div key={invite.id} className="flex items-center gap-2 sm:gap-3 rounded-lg bg-surface-900/40 px-3 py-2.5">
+                      <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-amber-500/10">
+                        <Clock className="h-3.5 w-3.5 text-amber-400" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium text-surface-200 truncate">{invite.email}</p>
+                        <p className="text-[10px] text-surface-400">
+                          {invite.role.charAt(0).toUpperCase() + invite.role.slice(1)} · sent {new Date(invite.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => handleRevokeInvitation(invite.id)}
+                        disabled={revokingInvite === invite.id}
+                        className="flex flex-shrink-0 items-center gap-1 rounded-lg border border-surface-600 px-2.5 py-1.5 text-[10px] font-medium text-surface-300 transition-all hover:border-red-500/40 hover:text-red-400 disabled:opacity-50"
+                        title="Revoke invitation"
+                      >
+                        {revokingInvite === invite.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <UserMinus className="h-3 w-3" />}
+                        Revoke
+                      </button>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}

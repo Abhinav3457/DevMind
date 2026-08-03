@@ -3,7 +3,6 @@ import { Server as SocketServer, Socket } from 'socket.io';
 import jwt from 'jsonwebtoken';
 import { env } from './environment';
 import { handleSocketEvents } from '../socket';
-import WorkspaceMember from '../models/WorkspaceMember';
 import logger from '../utils/logger';
 
 let io: SocketServer | null = null;
@@ -32,7 +31,7 @@ function socketAuthMiddleware(socket: Socket, next: (err?: Error) => void): void
     (socket as Socket & { userId: string }).data.email = decoded.email;
     (socket as Socket & { userId: string }).data.role = decoded.role;
     next();
-  } catch (error) {
+  } catch {
     logger.warn('Socket auth rejected: Invalid token from ' + socket.id);
     next(new Error('Invalid or expired authentication token.'));
   }

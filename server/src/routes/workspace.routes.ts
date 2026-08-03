@@ -29,9 +29,14 @@ router.delete('/:id', asyncHandler(workspaceController.delete));
 // ─── Member Management ──────────────────────────────────────────
 
 router.get('/:id/members', asyncHandler(workspaceController.listMembers));
-router.post('/:id/members', validate({ body: inviteMemberSchema }), asyncHandler(workspaceController.inviteMember));
 router.patch('/:id/members/:userId', validate({ body: changeMemberRoleSchema }), asyncHandler(workspaceController.changeMemberRole));
 router.delete('/:id/members/:userId', asyncHandler(workspaceController.removeMember));
+
+// ─── Invitations within a workspace ─────────────────────────────
+
+router.post('/:id/invitations', validate({ body: inviteMemberSchema }), asyncHandler(workspaceController.sendInvitation));
+router.get('/:id/invitations', asyncHandler(workspaceController.listPendingInvitations));
+router.delete('/:id/invitations/:inviteId', asyncHandler(workspaceController.revokeInvitation));
 
 // ─── Ownership Transfer ─────────────────────────────────────────
 

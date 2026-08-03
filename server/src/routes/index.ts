@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import authRoutes from './auth.routes';
+import invitationRoutes from './invitation.routes';
 import workspaceRoutes from './workspace.routes';
 import projectRoutes from './project.routes';
 import githubRoutes from './github.routes';
@@ -16,6 +17,7 @@ const router = Router();
 
 router.use('/health', healthRoutes);
 router.use('/auth', authRoutes);
+router.use('/invitations', invitationRoutes);
 router.use('/workspaces', workspaceRoutes);
 router.use('/projects', projectRoutes);
 router.use('/github', githubRoutes);

@@ -15,6 +15,20 @@ interface Workspace {
   repoCount?: number;
 }
 
+/**
+ * Convert a workspace name into a valid slug.
+ * Lowercases, collapses non-alphanumeric runs into a single hyphen,
+ * trims leading/trailing hyphens, and caps at 50 chars (server limit).
+ */
+function slugify(value: string): string {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 50);
+}
+
 export function WorkspacePage() {
   const navigate = useNavigate();
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
@@ -82,11 +96,11 @@ export function WorkspacePage() {
             <div className="mt-4 space-y-3">
               <div>
                 <label className="mb-1 block text-sm text-surface-300">Name</label>
-                <input type="text" value={newName} onChange={e => { setNewName(e.target.value); setNewSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-')); }} className="w-full rounded-lg border border-surface-600 bg-surface-800 px-3 py-2 text-sm text-surface-100 focus:border-primary-500 focus:outline-none" placeholder="My Workspace" />
+                <input type="text" value={newName} onChange={e => { setNewName(e.target.value); setNewSlug(slugify(e.target.value)); }} className="w-full rounded-lg border border-surface-600 bg-surface-800 px-3 py-2 text-sm text-surface-100 focus:border-primary-500 focus:outline-none" placeholder="My Workspace" />
               </div>
               <div>
                 <label className="mb-1 block text-sm text-surface-300">Slug</label>
-                <input type="text" value={newSlug} onChange={e => setNewSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))} className="w-full rounded-lg border border-surface-600 bg-surface-800 px-3 py-2 text-sm text-surface-100 focus:border-primary-500 focus:outline-none" placeholder="my-workspace" />
+                <input type="text" value={newSlug} onChange={e => setNewSlug(slugify(e.target.value))} className="w-full rounded-lg border border-surface-600 bg-surface-800 px-3 py-2 text-sm text-surface-100 focus:border-primary-500 focus:outline-none" placeholder="my-workspace" />
               </div>
               <div className="flex justify-end gap-3 pt-2">
                 <button onClick={() => setShowCreate(false)} className="rounded-lg border border-surface-600 px-4 py-2 text-sm text-surface-300 hover:bg-surface-800">Cancel</button>

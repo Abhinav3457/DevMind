@@ -3,7 +3,10 @@ import { WorkspaceService } from '../workspace.service';
 import { ApiError } from '../../utils/apiResponse';
 import Workspace from '../../models/Workspace';
 import WorkspaceMember from '../../models/WorkspaceMember';
+import WorkspaceInvite from '../../models/WorkspaceInvite';
+import Notification from '../../models/Notification';
 import User from '../../models/User';
+import { sendWorkspaceInviteEmail } from '../../helpers/email.helper';
 
 vi.mock('../../models/Workspace', () => ({
   default: {
@@ -35,12 +38,6 @@ vi.mock('../../models/WorkspaceMember', () => ({
   ROLE_HIERARCHY: { owner: 100, admin: 80, member: 50, guest: 20 },
 }));
 
-vi.mock('../../models/User', () => ({
-  default: {
-    findOne: vi.fn(),
-  },
-}));
-
 vi.mock('../../models/ImportedRepository', () => ({
   default: {
     find: vi.fn(),
@@ -52,6 +49,30 @@ vi.mock('../../models/IndexReport', () => ({
   default: {
     findOne: vi.fn(),
   },
+}));
+
+vi.mock('../../models/WorkspaceInvite', () => ({
+  default: {
+    findOne: vi.fn(),
+    find: vi.fn(),
+    create: vi.fn(),
+    deleteOne: vi.fn(),
+  },
+}));
+
+vi.mock('../../models/Notification', () => ({
+  default: { create: vi.fn() },
+}));
+
+vi.mock('../../models/User', () => ({
+  default: {
+    findOne: vi.fn(),
+    findById: vi.fn(),
+  },
+}));
+
+vi.mock('../../helpers/email.helper', () => ({
+  sendWorkspaceInviteEmail: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock('../../utils/logger', () => ({
@@ -95,6 +116,22 @@ function createMockMember(overrides = {}) {
     role: 'owner',
     invitedBy: INVITER_ID,
     joinedAt: new Date(),
+    save: vi.fn().mockResolvedValue(true),
+    ...overrides,
+  };
+}
+
+function createMockInvite(overrides = {}) {
+  return {
+    _id: 'invite-1',
+    workspaceId: WS_ID,
+    inviterId: INVITER_ID,
+    email: 'friend@example.com',
+    role: 'member',
+    status: 'pending',
+    token: 'token-123',
+    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    createdAt: new Date(),
     save: vi.fn().mockResolvedValue(true),
     ...overrides,
   };
@@ -167,9 +204,76 @@ describe('WorkspaceService', () => {
       vi.mocked(WorkspaceMember.find).mockReturnValue({
         sort: vi.fn().mockResolvedValue([]),
       } as never);
-            const result = await service.listByUser(USER_ID);
+      const result = await service.listByUser(USER_ID);
       expect(result.workspaces).toHaveLength(0);
       expect(result.total).toBe(0);
+    });
+  });
+
+  describe('getActivityTimeline', () => {
+    it('should return activities with real user ids (not "[object Object]")', async () => {
+      const populatedMembers = [
+        {
+          workspaceId: WS_ID,
+          userId: {
+            _id: USER_ID,
+            name: 'Test User',
+            email: 'test@example.com',
+          },
+          joinedAt: new Date('2026-01-01T00:00:00.000Z'),
+        },
+      ];
+      vi.mocked(WorkspaceMember.findOne).mockResolvedValue(createMockMember() as never);
+      vi.mocked(WorkspaceMember.countDocuments).mockResolvedValue(1);
+      vi.mocked(WorkspaceMember.find).mockReturnValue({
+        populate: vi.fn().mockReturnValue({
+          sort: vi.fn().mockReturnValue({
+            skip: vi.fn().mockReturnValue({
+              limit: vi.fn().mockReturnValue({
+                lean: vi.fn().mockResolvedValue(populatedMembers),
+              }),
+            }),
+          }),
+        }),
+      } as never);
+
+      const result = await service.getActivityTimeline(WS_ID, USER_ID);
+
+      expect(result.activities).toHaveLength(1);
+      expect(result.activities[0]).toMatchObject({
+        type: 'member_joined',
+        description: 'Test User',
+        userId: USER_ID,
+      });
+      expect(result.activities[0].userId).not.toBe('[object Object]');
+    });
+
+    it('should fall back gracefully when populated user is null', async () => {
+      vi.mocked(WorkspaceMember.findOne).mockResolvedValue(createMockMember() as never);
+      vi.mocked(WorkspaceMember.countDocuments).mockResolvedValue(1);
+      vi.mocked(WorkspaceMember.find).mockReturnValue({
+        populate: vi.fn().mockReturnValue({
+          sort: vi.fn().mockReturnValue({
+            skip: vi.fn().mockReturnValue({
+              limit: vi.fn().mockReturnValue({
+                lean: vi.fn().mockResolvedValue([
+                  {
+                    workspaceId: WS_ID,
+                    userId: null,
+                    joinedAt: new Date(),
+                  },
+                ]),
+              }),
+            }),
+          }),
+        }),
+      } as never);
+
+      const result = await service.getActivityTimeline(WS_ID, USER_ID);
+
+      expect(result.activities).toHaveLength(1);
+      expect(result.activities[0].description).toBe('A user');
+      expect(result.activities[0].userId).toBe('');
     });
   });
 
@@ -225,6 +329,215 @@ describe('WorkspaceService', () => {
             await service.delete(WS_ID, USER_ID);
       expect(Workspace.findByIdAndDelete).toHaveBeenCalledWith(WS_ID);
       expect(WorkspaceMember.deleteMany).toHaveBeenCalledWith({ workspaceId: WS_ID });
+    });
+  });
+
+  describe('sendInvitation', () => {
+    it('creates a pending invite, notifies registered users, and sends an email', async () => {
+      // First findOne call: permission check (admin). Second: "already a member" check → null.
+      vi.mocked(WorkspaceMember.findOne)
+        .mockResolvedValueOnce(createMockMember({ role: 'admin' }) as never)
+        .mockResolvedValueOnce(null);
+      vi.mocked(User.findOne).mockResolvedValue({ _id: OTHER_ID, name: 'Friend', email: 'friend@example.com' } as never);
+      vi.mocked(WorkspaceInvite.findOne).mockResolvedValue(null);
+      vi.mocked(WorkspaceInvite.create).mockResolvedValue(createMockInvite() as never);
+      vi.mocked(Workspace.findById).mockReturnValue({ select: vi.fn().mockResolvedValue(createMockWorkspace()) } as never);
+      vi.mocked(User.findById).mockReturnValue({ select: vi.fn().mockResolvedValue({ name: 'Owner' }) } as never);
+      vi.mocked(Notification.create).mockResolvedValue({} as never);
+
+      const result = await service.sendInvitation(WS_ID, INVITER_ID, 'friend@example.com');
+
+      expect(result.status).toBe('pending');
+      expect(WorkspaceInvite.create).toHaveBeenCalledWith(expect.objectContaining({ email: 'friend@example.com' }));
+      expect(Notification.create).toHaveBeenCalledWith(expect.objectContaining({
+        userId: OTHER_ID,
+        type: 'workspace_invite',
+      }));
+      expect(sendWorkspaceInviteEmail).toHaveBeenCalledWith(
+        'friend@example.com', 'Owner', 'Test Workspace',
+        expect.stringContaining('/invitations/token-123'),
+        expect.stringContaining('action=decline'),
+      );
+    });
+
+    it('rejects when the invited user is already a member', async () => {
+      vi.mocked(WorkspaceMember.findOne)
+        .mockResolvedValueOnce(createMockMember({ role: 'admin' }) as never)
+        .mockResolvedValueOnce(createMockMember({ role: 'member' }) as never);
+      vi.mocked(User.findOne).mockResolvedValue({ _id: OTHER_ID, email: 'friend@example.com' } as never);
+
+      await expect(service.sendInvitation(WS_ID, INVITER_ID, 'friend@example.com')).rejects.toThrow('already a member');
+    });
+
+    it('allows inviting an unregistered email (email sent, no notification)', async () => {
+      vi.mocked(WorkspaceMember.findOne).mockResolvedValue(createMockMember({ role: 'admin' }) as never);
+      vi.mocked(User.findOne).mockResolvedValue(null);
+      vi.mocked(WorkspaceInvite.findOne).mockResolvedValue(null);
+      vi.mocked(WorkspaceInvite.create).mockResolvedValue(createMockInvite() as never);
+      vi.mocked(Workspace.findById).mockReturnValue({ select: vi.fn().mockResolvedValue(createMockWorkspace()) } as never);
+      vi.mocked(User.findById).mockReturnValue({ select: vi.fn().mockResolvedValue({ name: 'Owner' }) } as never);
+
+      const result = await service.sendInvitation(WS_ID, INVITER_ID, 'newuser@example.com');
+
+      expect(result.email).toBe('newuser@example.com');
+      expect(Notification.create).not.toHaveBeenCalled();
+      expect(sendWorkspaceInviteEmail).toHaveBeenCalled();
+    });
+
+    it('rejects duplicate pending invitations for the same email', async () => {
+      vi.mocked(WorkspaceMember.findOne).mockResolvedValue(createMockMember({ role: 'admin' }) as never);
+      vi.mocked(User.findOne).mockResolvedValue(null);
+      vi.mocked(WorkspaceInvite.findOne).mockResolvedValue(createMockInvite() as never);
+
+      await expect(service.sendInvitation(WS_ID, INVITER_ID, 'friend@example.com')).rejects.toThrow('already been sent');
+    });
+
+    it('rejects invitations from non-admin members', async () => {
+      vi.mocked(WorkspaceMember.findOne).mockResolvedValue(createMockMember({ role: 'guest' }) as never);
+
+      await expect(service.sendInvitation(WS_ID, INVITER_ID, 'friend@example.com')).rejects.toThrow(ApiError);
+    });
+  });
+
+  describe('acceptInvitation', () => {
+    it('adds the user as a member and marks the invite accepted', async () => {
+      const mockInvite = createMockInvite();
+      vi.mocked(WorkspaceInvite.findOne).mockResolvedValue(mockInvite as never);
+      vi.mocked(Workspace.findById).mockResolvedValue(createMockWorkspace() as never);
+      vi.mocked(WorkspaceMember.findOne).mockResolvedValue(null);
+      vi.mocked(WorkspaceMember.create).mockResolvedValue(createMockMember({ role: 'member' }) as never);
+      vi.mocked(User.findById).mockResolvedValue({ _id: OTHER_ID, name: 'Friend', email: 'friend@example.com', avatar: null } as never);
+
+      const result = await service.acceptInvitation('token-123', OTHER_ID, 'friend@example.com');
+
+      expect(result.email).toBe('friend@example.com');
+      expect(WorkspaceMember.create).toHaveBeenCalledWith(expect.objectContaining({ role: 'member' }));
+      expect(mockInvite.status).toBe('accepted');
+      expect(mockInvite.save).toHaveBeenCalled();
+    });
+
+    it('rejects when the token is invalid', async () => {
+      vi.mocked(WorkspaceInvite.findOne).mockResolvedValue(null);
+
+      await expect(service.acceptInvitation('bad-token', OTHER_ID, 'friend@example.com')).rejects.toThrow('Invitation not found');
+    });
+
+    it('rejects expired invitations', async () => {
+      const mockInvite = createMockInvite({ expiresAt: new Date(Date.now() - 1000) });
+      vi.mocked(WorkspaceInvite.findOne).mockResolvedValue(mockInvite as never);
+
+      await expect(service.acceptInvitation('token-123', OTHER_ID, 'friend@example.com')).rejects.toThrow('expired');
+    });
+
+    it('rejects when the invite email does not match the logged-in user', async () => {
+      vi.mocked(WorkspaceInvite.findOne).mockResolvedValue(createMockInvite() as never);
+
+      await expect(service.acceptInvitation('token-123', OTHER_ID, 'someone-else@example.com')).rejects.toThrow('different email');
+    });
+  });
+
+  describe('declineInvitation', () => {
+    it('marks the invite as declined', async () => {
+      const mockInvite = createMockInvite();
+      vi.mocked(WorkspaceInvite.findOne).mockResolvedValue(mockInvite as never);
+
+      await service.declineInvitation('token-123', OTHER_ID, 'friend@example.com');
+
+      expect(mockInvite.status).toBe('declined');
+      expect(mockInvite.save).toHaveBeenCalled();
+    });
+
+    it('rejects when the email does not match', async () => {
+      vi.mocked(WorkspaceInvite.findOne).mockResolvedValue(createMockInvite() as never);
+
+      await expect(service.declineInvitation('token-123', OTHER_ID, 'other@example.com')).rejects.toThrow('different email');
+    });
+  });
+
+  describe('revokeInvitation', () => {
+    it('deletes a pending invitation (admin)', async () => {
+      vi.mocked(WorkspaceMember.findOne).mockResolvedValue(createMockMember({ role: 'admin' }) as never);
+      vi.mocked(WorkspaceInvite.findOne).mockResolvedValue(createMockInvite() as never);
+      vi.mocked(WorkspaceInvite.deleteOne).mockResolvedValue({ deletedCount: 1 } as never);
+
+      await service.revokeInvitation(WS_ID, USER_ID, 'invite-1');
+
+      expect(WorkspaceInvite.deleteOne).toHaveBeenCalled();
+    });
+
+    it('throws 404 when no pending invite matches', async () => {
+      vi.mocked(WorkspaceMember.findOne).mockResolvedValue(createMockMember({ role: 'admin' }) as never);
+      vi.mocked(WorkspaceInvite.findOne).mockResolvedValue(null);
+
+      await expect(service.revokeInvitation(WS_ID, USER_ID, 'invite-1')).rejects.toThrow('Pending invitation not found');
+    });
+  });
+
+  describe('listMyInvitations', () => {
+    it('returns pending invitations with workspace and inviter names', async () => {
+      vi.mocked(WorkspaceInvite.find).mockReturnValue({
+        sort: vi.fn().mockReturnValue({
+          populate: vi.fn().mockReturnValue({
+            lean: vi.fn().mockResolvedValue([
+              {
+                _id: 'invite-1',
+                workspaceId: WS_ID,
+                email: 'me@example.com',
+                role: 'member',
+                status: 'pending',
+                token: 'tok',
+                expiresAt: new Date(),
+                createdAt: new Date(),
+                inviterId: { name: 'Owner' },
+              },
+            ]),
+          }),
+        }),
+      } as never);
+      vi.mocked(Workspace.find).mockReturnValue({
+        select: vi.fn().mockReturnValue({ lean: vi.fn().mockResolvedValue([{ _id: WS_ID, name: 'Test Workspace' }]) }),
+      } as never);
+
+      const result = await service.listMyInvitations(USER_ID, 'me@example.com');
+
+      expect(result).toHaveLength(1);
+      expect(result[0].workspaceName).toBe('Test Workspace');
+      expect(result[0].inviterName).toBe('Owner');
+    });
+  });
+
+  describe('getInvitationByToken', () => {
+    it('returns invite details with workspace and inviter names', async () => {
+      vi.mocked(WorkspaceInvite.findOne).mockReturnValue({
+        populate: vi.fn().mockReturnValue({
+          lean: vi.fn().mockResolvedValue({
+            _id: 'invite-1',
+            workspaceId: WS_ID,
+            email: 'friend@example.com',
+            role: 'member',
+            status: 'pending',
+            expiresAt: new Date(Date.now() + 100000),
+            inviterId: { name: 'Owner' },
+          }),
+        }),
+      } as never);
+      vi.mocked(Workspace.findById).mockReturnValue({
+        select: vi.fn().mockReturnValue({ lean: vi.fn().mockResolvedValue({ _id: WS_ID, name: 'Test Workspace', isActive: true }) }),
+      } as never);
+
+      const result = await service.getInvitationByToken('tok');
+
+      expect(result.workspaceName).toBe('Test Workspace');
+      expect(result.inviterName).toBe('Owner');
+      expect(result.status).toBe('pending');
+    });
+
+    it('throws 404 when the invite is not found', async () => {
+      vi.mocked(WorkspaceInvite.findOne).mockReturnValue({
+        populate: vi.fn().mockReturnValue({ lean: vi.fn().mockResolvedValue(null) }),
+      } as never);
+
+      await expect(service.getInvitationByToken('nope')).rejects.toThrow('Invitation not found');
     });
   });
 });

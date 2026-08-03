@@ -1,10 +1,17 @@
+import crypto from 'crypto';
 import mongoose from 'mongoose';
 import Workspace, { IWorkspace } from '../models/Workspace';
 import WorkspaceMember, { IWorkspaceMember, WorkspaceRole, hasMinimumRole } from '../models/WorkspaceMember';
+import WorkspaceInvite from '../models/WorkspaceInvite';
 import User from '../models/User';
 import ImportedRepository from '../models/ImportedRepository';
 import IndexReport from '../models/IndexReport';
+import Notification from '../models/Notification';
+import { sendWorkspaceInviteEmail } from '../helpers/email.helper';
 import { ApiError } from '../utils/apiResponse';
+
+const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
 
 interface CreateWorkspaceParams {
   name: string;
@@ -27,6 +34,30 @@ interface WorkspaceWithRole extends IWorkspace {
   userRole: WorkspaceRole;
   memberCount: number;
   repoCount?: number;
+}
+
+interface InviteResult {
+  id: string;
+  workspaceId: string;
+  email: string;
+  role: WorkspaceRole;
+  status: string;
+  token: string;
+  expiresAt: Date;
+  inviterName?: string;
+  workspaceName?: string;
+  createdAt?: Date;
+}
+
+interface InviteDetail {
+  id: string;
+  workspaceId: string;
+  workspaceName: string;
+  inviterName: string;
+  email: string;
+  role: WorkspaceRole;
+  status: string;
+  expiresAt: Date;
 }
 
 export class WorkspaceService {
@@ -223,44 +254,258 @@ export class WorkspaceService {
     });
   }
 
-  async inviteMember(workspaceId: string, inviterId: string, email: string, role: WorkspaceRole = 'member'): Promise<MemberResult> {
+  // ─── Invitations ──────────────────────────────────────────────
+
+  private generateInviteToken(): string {
+    return crypto.randomBytes(32).toString('hex');
+  }
+
+  /**
+   * Send a workspace invitation by email. Works for both registered users
+   * (who get an in-app notification + email) and new signups (who get an
+   * email with an accept link). Membership is only granted once the invite
+   * is accepted.
+   */
+  async sendInvitation(workspaceId: string, inviterId: string, email: string, role: WorkspaceRole = 'member'): Promise<InviteResult> {
     await this.assertMinimumRole(workspaceId, inviterId, 'admin');
 
     if (role === 'owner') {
       throw new ApiError(400, 'Cannot invite someone as owner. Transfer ownership instead.');
     }
 
-    const invitedUser = await User.findOne({ email });
-    if (!invitedUser) {
-      throw new ApiError(404, 'No user found with this email address');
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const invitedUser = await User.findOne({ email: normalizedEmail });
+
+    // Registered users who are already members cannot be invited again
+    if (invitedUser) {
+      const existingMember = await WorkspaceMember.findOne({
+        workspaceId,
+        userId: invitedUser._id,
+      });
+      if (existingMember) {
+        throw new ApiError(409, 'This user is already a member of the workspace');
+      }
     }
 
-    const existingMember = await WorkspaceMember.findOne({
+    // No duplicate pending invitations for the same email (expired invites
+    // don't block re-invites — the TTL index may not have cleaned them yet)
+    const existingInvite = await WorkspaceInvite.findOne({
       workspaceId,
-      userId: invitedUser._id,
+      email: normalizedEmail,
+      status: 'pending',
+      expiresAt: { $gt: new Date() },
+    });
+    if (existingInvite) {
+      throw new ApiError(409, 'An invitation has already been sent to this email');
+    }
+
+    const invite = await WorkspaceInvite.create({
+      workspaceId,
+      inviterId: new mongoose.Types.ObjectId(inviterId),
+      email: normalizedEmail,
+      role,
+      status: 'pending',
+      token: this.generateInviteToken(),
+      expiresAt: new Date(Date.now() + INVITE_TTL_MS),
     });
 
+    const [workspace, inviter] = await Promise.all([
+      Workspace.findById(workspaceId).select('name'),
+      User.findById(inviterId).select('name'),
+    ]);
+    const workspaceName = workspace?.name || 'the workspace';
+    const inviterName = inviter?.name || 'Someone';
+
+    const acceptUrl = `${CLIENT_URL}/invitations/${invite.token}`;
+    const declineUrl = `${CLIENT_URL}/invitations/${invite.token}?action=decline`;
+
+    // In-app notification for registered users
+    if (invitedUser) {
+      await Notification.create({
+        userId: invitedUser._id,
+        type: 'workspace_invite',
+        title: `Invitation to "${workspaceName}"`,
+        message: `${inviterName} invited you to join the workspace "${workspaceName}"`,
+        data: { workspaceId, inviteId: invite._id.toString(), token: invite.token, role },
+      });
+    }
+
+    // Always send the email so the request actually reaches the friend,
+    // even if they haven't created an account yet.
+    await sendWorkspaceInviteEmail(normalizedEmail, inviterName, workspaceName, acceptUrl, declineUrl);
+
+    return {
+      id: invite._id.toString(),
+      workspaceId,
+      email: normalizedEmail,
+      role,
+      status: invite.status,
+      token: invite.token,
+      expiresAt: invite.expiresAt,
+    };
+  }
+
+  async listPendingInvitations(workspaceId: string, userId: string): Promise<InviteResult[]> {
+    await this.assertMinimumRole(workspaceId, userId, 'member');
+
+    const invites = await WorkspaceInvite.find({ workspaceId, status: 'pending' })
+      .sort({ createdAt: -1 })
+      .populate('inviterId', 'name')
+      .lean();
+
+    return invites.map((i) => ({
+      id: (i._id as mongoose.Types.ObjectId).toString(),
+      workspaceId,
+      email: i.email,
+      role: i.role as WorkspaceRole,
+      status: i.status,
+      token: i.token,
+      expiresAt: i.expiresAt,
+      createdAt: i.createdAt,
+      inviterName: (i.inviterId as unknown as { name?: string })?.name || 'Someone',
+    }));
+  }
+
+  async revokeInvitation(workspaceId: string, userId: string, inviteId: string): Promise<void> {
+    await this.assertMinimumRole(workspaceId, userId, 'admin');
+
+    const invite = await WorkspaceInvite.findOne({ _id: inviteId, workspaceId, status: 'pending' });
+    if (!invite) {
+      throw new ApiError(404, 'Pending invitation not found');
+    }
+    await WorkspaceInvite.deleteOne({ _id: invite._id });
+  }
+
+  /**
+   * List pending invitations received by the current user (matched by email).
+   */
+  async listMyInvitations(userId: string, email: string): Promise<InviteResult[]> {
+    const invites = await WorkspaceInvite.find({ email: email.trim().toLowerCase(), status: 'pending' })
+      .sort({ createdAt: -1 })
+      .populate('inviterId', 'name')
+      .lean();
+
+    const workspaceIds = Array.from(new Set(invites.map((i) => (i.workspaceId as mongoose.Types.ObjectId).toString())));
+    const workspaces = workspaceIds.length > 0
+      ? await Workspace.find({ _id: { $in: workspaceIds }, isActive: true }).select('name').lean()
+      : [];
+    const workspaceNameMap = new Map(workspaces.map((w) => [(w._id as mongoose.Types.ObjectId).toString(), w.name]));
+
+    return invites
+      .filter((i) => workspaceNameMap.has((i.workspaceId as mongoose.Types.ObjectId).toString()))
+      .map((i) => ({
+        id: (i._id as mongoose.Types.ObjectId).toString(),
+        workspaceId: (i.workspaceId as mongoose.Types.ObjectId).toString(),
+        workspaceName: workspaceNameMap.get((i.workspaceId as mongoose.Types.ObjectId).toString()) || 'Workspace',
+        email: i.email,
+        role: i.role as WorkspaceRole,
+        status: i.status,
+        token: i.token,
+        expiresAt: i.expiresAt,
+        createdAt: i.createdAt,
+        inviterName: (i.inviterId as unknown as { name?: string })?.name || 'Someone',
+      }));
+  }
+
+  /**
+   * Fetch a single invitation by its token (used by the invite link page).
+   */
+  async getInvitationByToken(token: string): Promise<InviteDetail> {
+    const invite = await WorkspaceInvite.findOne({ token })
+      .populate('inviterId', 'name')
+      .lean();
+    if (!invite) {
+      throw new ApiError(404, 'Invitation not found');
+    }
+
+    const workspace = await Workspace.findById(invite.workspaceId).select('name isActive').lean();
+    if (!workspace || !workspace.isActive) {
+      throw new ApiError(404, 'Workspace not found');
+    }
+
+    const expired = invite.expiresAt.getTime() < Date.now();
+    return {
+      id: (invite._id as mongoose.Types.ObjectId).toString(),
+      workspaceId: (invite.workspaceId as mongoose.Types.ObjectId).toString(),
+      workspaceName: workspace.name,
+      inviterName: (invite.inviterId as unknown as { name?: string })?.name || 'Someone',
+      email: invite.email,
+      role: invite.role as WorkspaceRole,
+      status: expired ? 'expired' : invite.status,
+      expiresAt: invite.expiresAt,
+    };
+  }
+
+  /**
+   * Accept an invitation. The logged-in user's email must match the invite.
+   */
+  async acceptInvitation(token: string, userId: string, email: string): Promise<MemberResult> {
+    const invite = await WorkspaceInvite.findOne({ token, status: 'pending' });
+    if (!invite) {
+      throw new ApiError(404, 'Invitation not found or already responded to');
+    }
+
+    if (invite.expiresAt.getTime() < Date.now()) {
+      invite.status = 'expired';
+      await invite.save();
+      throw new ApiError(410, 'This invitation has expired');
+    }
+
+    if (invite.email !== email.trim().toLowerCase()) {
+      throw new ApiError(403, 'This invitation was sent to a different email address');
+    }
+
+    const workspace = await Workspace.findById(invite.workspaceId);
+    if (!workspace || !workspace.isActive) {
+      throw new ApiError(404, 'Workspace not found');
+    }
+
+    const existingMember = await WorkspaceMember.findOne({ workspaceId: invite.workspaceId, userId });
     if (existingMember) {
-      throw new ApiError(409, 'This user is already a member of the workspace');
+      invite.status = 'accepted';
+      invite.acceptedAt = new Date();
+      await invite.save();
+      throw new ApiError(409, 'You are already a member of this workspace');
     }
 
     const member = await WorkspaceMember.create({
-      workspaceId,
-      userId: invitedUser._id,
-      role,
-      invitedBy: new mongoose.Types.ObjectId(inviterId),
+      workspaceId: invite.workspaceId,
+      userId: new mongoose.Types.ObjectId(userId),
+      role: invite.role as WorkspaceRole,
+      invitedBy: invite.inviterId,
       joinedAt: new Date(),
     });
 
+    invite.status = 'accepted';
+    invite.acceptedAt = new Date();
+    await invite.save();
+
+    const user = await User.findById(userId);
     return {
       id: member._id.toString(),
-      userId: invitedUser._id.toString(),
-      name: invitedUser.name,
-      email: invitedUser.email,
-      avatar: invitedUser.avatar || null,
-      role,
+      userId,
+      name: user?.name || 'Member',
+      email: user?.email || invite.email,
+      avatar: user?.avatar || null,
+      role: invite.role as WorkspaceRole,
       joinedAt: member.joinedAt,
     };
+  }
+
+  async declineInvitation(token: string, userId: string, email: string): Promise<void> {
+    const invite = await WorkspaceInvite.findOne({ token, status: 'pending' });
+    if (!invite) {
+      throw new ApiError(404, 'Invitation not found or already responded to');
+    }
+
+    if (invite.email !== email.trim().toLowerCase()) {
+      throw new ApiError(403, 'This invitation was sent to a different email address');
+    }
+
+    invite.status = 'declined';
+    invite.declinedAt = new Date();
+    await invite.save();
   }
 
   async changeMemberRole(
@@ -390,12 +635,16 @@ export class WorkspaceService {
     const total = await WorkspaceMember.countDocuments({ workspaceId });
 
     const activities = members.map((m) => {
-      const user = m.userId as unknown as { name?: string; email?: string };
+      const user = m.userId as unknown as { _id?: mongoose.Types.ObjectId | string; name?: string; email?: string } | null;
+      // m.userId is populated (User doc), so its _id is the real user id.
+      // Calling .toString() on the populated doc would yield "[object Object]"
+      const rawUserId = user?._id ?? m.userId;
+      const userId = rawUserId?.toString() || '';
       return {
         type: 'member_joined',
         description: user?.name || 'A user',
         timestamp: m.joinedAt,
-        userId: m.userId?.toString() || '',
+        userId,
       };
     });
 

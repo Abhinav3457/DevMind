@@ -61,10 +61,40 @@ export class WorkspaceController {
     sendSuccess(res, { statusCode: 200, message: 'Members retrieved successfully', data: { members } });
   }
 
-  async inviteMember(req: Request, res: Response): Promise<void> {
+  async sendInvitation(req: Request, res: Response): Promise<void> {
     const { email, role } = req.body;
-    const member = await workspaceService.inviteMember(req.params.id, req.user!.userId, email, role);
-    sendSuccess(res, { statusCode: 200, message: 'Member invited successfully', data: { member } });
+    const invite = await workspaceService.sendInvitation(req.params.id, req.user!.userId, email, role);
+    sendSuccess(res, { statusCode: 200, message: 'Invitation sent successfully', data: { invite } });
+  }
+
+  async listPendingInvitations(req: Request, res: Response): Promise<void> {
+    const invitations = await workspaceService.listPendingInvitations(req.params.id, req.user!.userId);
+    sendSuccess(res, { statusCode: 200, message: 'Invitations retrieved successfully', data: { invitations } });
+  }
+
+  async revokeInvitation(req: Request, res: Response): Promise<void> {
+    await workspaceService.revokeInvitation(req.params.id, req.user!.userId, req.params.inviteId);
+    sendSuccess(res, { statusCode: 200, message: 'Invitation revoked successfully' });
+  }
+
+  async listMyInvitations(req: Request, res: Response): Promise<void> {
+    const invitations = await workspaceService.listMyInvitations(req.user!.userId, req.user!.email);
+    sendSuccess(res, { statusCode: 200, message: 'Invitations retrieved successfully', data: { invitations } });
+  }
+
+  async getInvitationByToken(req: Request, res: Response): Promise<void> {
+    const invitation = await workspaceService.getInvitationByToken(req.params.token);
+    sendSuccess(res, { statusCode: 200, message: 'Invitation retrieved successfully', data: { invitation } });
+  }
+
+  async acceptInvitation(req: Request, res: Response): Promise<void> {
+    const member = await workspaceService.acceptInvitation(req.params.token, req.user!.userId, req.user!.email);
+    sendSuccess(res, { statusCode: 200, message: 'Invitation accepted — welcome to the workspace!', data: { member } });
+  }
+
+  async declineInvitation(req: Request, res: Response): Promise<void> {
+    await workspaceService.declineInvitation(req.params.token, req.user!.userId, req.user!.email);
+    sendSuccess(res, { statusCode: 200, message: 'Invitation declined' });
   }
 
   async changeMemberRole(req: Request, res: Response): Promise<void> {

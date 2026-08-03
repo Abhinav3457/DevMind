@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, Code2, Brain, Bug, FileText,
@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore, useUIStore } from '../../store';
 import { logout as logoutApi } from '../../services/auth';
+import apiClient from '../../api/axios';
 
 const navItems = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -21,9 +22,18 @@ const navItems = [
 
 export function AppLayout() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, clearUser } = useAuthStore();
   const { theme, setTheme, sidebarOpen, toggleSidebar } = useUIStore();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [inviteCount, setInviteCount] = useState(0);
+
+  // Fetch pending invitation count so the bell shows a badge
+  useEffect(() => {
+    apiClient.get('/invitations')
+      .then((res) => setInviteCount(res.data.data?.invitations?.length || 0))
+      .catch(() => { /* ignore */ });
+  }, [location.pathname]);
 
   useEffect(() => {
     document.body.style.overflow = mobileOpen ? 'hidden' : '';
@@ -150,9 +160,17 @@ export function AppLayout() {
             >
               {theme === 'dark' ? <Sun className="h-4 w-4 sm:h-5 sm:w-5" /> : <Moon className="h-4 w-4 sm:h-5 sm:w-5" />}
             </button>
-            <button className="relative rounded-lg p-1.5 sm:p-2 text-surface-400 hover:bg-surface-800 hover:text-surface-200 transition-colors">
+            <button
+              onClick={() => navigate('/invitations')}
+              className="relative rounded-lg p-1.5 sm:p-2 text-surface-400 hover:bg-surface-800 hover:text-surface-200 transition-colors"
+              title="Invitations"
+            >
               <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
-              <span className="absolute right-1 sm:right-1.5 top-1 sm:top-1.5 h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-blue-500" />
+              {inviteCount > 0 && (
+                <span className="absolute right-0.5 sm:right-1 top-0.5 sm:top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-500 px-1 text-[9px] font-bold text-white">
+                  {inviteCount > 9 ? '9+' : inviteCount}
+                </span>
+              )}
             </button>
             <div className="flex h-7 w-7 sm:h-8 sm:w-8 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-[10px] sm:text-xs font-bold text-white ml-1 sm:ml-2">
               {user?.name?.charAt(0)?.toUpperCase() || 'D'}

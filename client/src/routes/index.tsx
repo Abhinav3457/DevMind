@@ -7,6 +7,7 @@ import { VerifyEmailPage } from '../pages/VerifyEmailPage';
 import { DashboardPage } from '../pages/DashboardPage';
 import { WorkspacePage } from '../pages/WorkspacePage';
 import { WorkspaceDetailPage } from '../pages/WorkspaceDetailPage';
+import { InvitationsPage } from '../pages/InvitationsPage';
 import { AiChatPage } from '../pages/AiChatPage';
 import { CodeReviewPage } from '../pages/CodeReviewPage';
 import { DocGeneratorPage } from '../pages/DocGeneratorPage';
@@ -30,6 +31,8 @@ export function AppRoutes() {
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/workspace" element={<WorkspacePage />} />
         <Route path="/workspace/:id" element={<WorkspaceDetailPage />} />
+        <Route path="/invitations" element={<InvitationsPage />} />
+        <Route path="/invitations/:token" element={<InvitationsPage />} />
         <Route path="/github" element={<GitHubPage />} />
         <Route path="/ai/chat" element={<AiChatPage />} />
         <Route path="/ai/code-review" element={<CodeReviewPage />} />

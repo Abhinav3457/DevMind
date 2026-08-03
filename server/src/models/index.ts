@@ -22,6 +22,8 @@ export { default as Message } from './Message';
 export type { IMessage } from './Message';
 export { default as Notification } from './Notification';
 export type { INotification } from './Notification';
+export { default as WorkspaceInvite } from './WorkspaceInvite';
+export type { IWorkspaceInvite, InviteStatus } from './WorkspaceInvite';
 export { default as OAuthState } from './OAuthState';
 export type { IOAuthState } from './OAuthState';
 export { default as Upload } from './Upload';

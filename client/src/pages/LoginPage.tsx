@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -17,6 +17,7 @@ type LoginFormData = z.infer<typeof loginSchema>;
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { setUser } = useAuthStore();
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
@@ -40,7 +41,10 @@ export function LoginPage() {
         name: user.name,
         role: user.role,
       });
-      navigate('/dashboard', { replace: true });
+      // Return to the page the user originally tried to visit
+      // (e.g. an invitation link that required login).
+      const from = (location.state as { from?: { pathname?: string; search?: string } })?.from;
+      navigate(from?.pathname ? from.pathname + (from.search || '') : '/dashboard', { replace: true });
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } } };
       setServerError(error?.response?.data?.message || 'Login failed. Please check your credentials.');
@@ -158,7 +162,7 @@ export function LoginPage() {
           {/* Register Link */}
           <p className="mt-6 text-center text-sm text-surface-400">
             Don't have an account?{' '}
-            <Link to="/auth/register" className="font-medium text-blue-400 hover:text-blue-300 transition-colors">
+            <Link to="/auth/register" state={location.state} className="font-medium text-blue-400 hover:text-blue-300 transition-colors">
               Create one
             </Link>
           </p>
