@@ -11,6 +11,8 @@ import IndexedFile from '../models/IndexedFile';
 import IndexedChunk from '../models/IndexedChunk';
 import ImportedRepository from '../models/ImportedRepository';
 import GitHubAccount from '../models/GitHubAccount';
+import { logActivity } from '../services/activity.service';
+import { notificationService } from '../services/notification.service';
 import logger from '../utils/logger';
 import { ApiError } from '../utils/apiResponse';
 import AdmZip from 'adm-zip';
@@ -97,6 +99,31 @@ export class IndexerService {
       const duration = ((Date.now() - startTime) / 1000).toFixed(2);
       logger.info('Indexer: Repository indexed successfully - ' + report._id.toString() +
         ' (' + files.length + ' files, ' + report.chunkCount + ' chunks, ' + duration + 's)');
+
+      // Activity feed + in-app notification for the user (best-effort — a
+      // logging failure must never turn a successful index into a failed one)
+      try {
+        const importedRepo = await ImportedRepository.findOne({ _id: repositoryId, userId })
+          .select('workspaceId fullName')
+          .lean();
+        const repoLabel = importedRepo?.fullName || 'a repository';
+        void logActivity({
+          userId,
+          workspaceId: importedRepo?.workspaceId ? importedRepo.workspaceId.toString() : undefined,
+          type: 'repo_indexed',
+          description: 'Indexed ' + repoLabel + ' (' + report.fileCount + ' files, ' + report.chunkCount + ' chunks)',
+          metadata: { reportId: report._id.toString(), fileCount: report.fileCount, chunkCount: report.chunkCount },
+        });
+        await notificationService.create({
+          userId,
+          type: 'index_complete',
+          title: 'Indexing complete',
+          message: repoLabel + ' finished indexing — ' + report.fileCount + ' files, ' + report.chunkCount + ' chunks',
+          data: { reportId: report._id.toString() },
+        });
+      } catch (logError) {
+        logger.error('Indexer: Failed to record activity/notification after indexing', logError);
+      }
 
       return { reportId: report._id.toString(), summary: analysis.summary };
     } catch (error) {

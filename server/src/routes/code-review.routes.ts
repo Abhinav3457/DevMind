@@ -9,6 +9,11 @@ const router = Router();
 
 router.use(authenticate);
 
+// Review history (must be registered before the /:reportId route)
+router.get('/history', asyncHandler(codeReviewController.listHistory));
+router.get('/history/:id', asyncHandler(codeReviewController.getHistory));
+router.delete('/history/:id', asyncHandler(codeReviewController.deleteHistory));
+
 // Direct code review (send raw code, get AI review)
 router.post('/review', validate({ body: reviewCodeSchema }), asyncHandler(codeReviewController.reviewCode));
 

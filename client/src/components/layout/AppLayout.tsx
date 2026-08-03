@@ -1,14 +1,26 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, Code2, Brain, Bug, FileText,
   Github, BarChart3, LogOut, ChevronLeft,
   Bell, Menu, X, Users, Sun, Moon, Loader2,
+  Search, UserCircle, CheckCheck,
 } from 'lucide-react';
 import { useAuthStore, useUIStore } from '../../store';
 import { logout as logoutApi } from '../../services/auth';
+import { connectSocket, disconnectSocket, onNotificationNew } from '../../services/socket';
 import apiClient from '../../api/axios';
+
+interface AppNotification {
+  _id: string;
+  type: string;
+  title: string;
+  message: string;
+  read: boolean;
+  createdAt: string;
+  data?: Record<string, unknown>;
+}
 
 const navItems = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -18,6 +30,8 @@ const navItems = [
   { to: '/ai/code-review', icon: Bug, label: 'Code Review' },
   { to: '/ai/docs', icon: FileText, label: 'Documentation' },
   { to: '/analytics', icon: BarChart3, label: 'Analytics' },
+  { to: '/search', icon: Search, label: 'Search' },
+  { to: '/settings', icon: UserCircle, label: 'Profile' },
 ];
 
 export function AppLayout() {
@@ -27,13 +41,41 @@ export function AppLayout() {
   const { theme, setTheme, sidebarOpen, toggleSidebar } = useUIStore();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [inviteCount, setInviteCount] = useState(0);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [bellOpen, setBellOpen] = useState(false);
+  const [loadingNotifs, setLoadingNotifs] = useState(false);
 
-  // Fetch pending invitation count so the bell shows a badge
+  const fetchNotifications = useCallback(async () => {
+    setLoadingNotifs(true);
+    try {
+      const res = await apiClient.get('/notifications?limit=15');
+      setNotifications(res.data.data?.notifications || []);
+      setUnreadCount(res.data.data?.unreadCount || 0);
+    } catch {
+      /* ignore */
+    } finally {
+      setLoadingNotifs(false);
+    }
+  }, []);
+
+  // Fetch pending invitation count + notifications when the route changes
   useEffect(() => {
+    fetchNotifications();
     apiClient.get('/invitations')
       .then((res) => setInviteCount(res.data.data?.invitations?.length || 0))
       .catch(() => { /* ignore */ });
-  }, [location.pathname]);
+  }, [location.pathname, fetchNotifications]);
+
+  // Live notifications pushed over the socket
+  useEffect(() => {
+    connectSocket();
+    const unsubscribe = onNotificationNew(() => { fetchNotifications(); });
+    return () => {
+      unsubscribe();
+      disconnectSocket();
+    };
+  }, [fetchNotifications]);
 
   useEffect(() => {
     document.body.style.overflow = mobileOpen ? 'hidden' : '';
@@ -58,6 +100,37 @@ export function AppLayout() {
 
   const toggleTheme = () => {
     setTheme(theme === 'dark' ? 'light' : 'dark');
+  };
+
+  const timeAgo = (dateStr: string) => {
+    const d = new Date(dateStr);
+    const diff = Date.now() - d.getTime();
+    if (diff < 60000) return 'Just now';
+    if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+    return d.toLocaleDateString();
+  };
+
+  const handleMarkRead = async (notification: AppNotification) => {
+    if (!notification.read) {
+      apiClient.patch(`/notifications/${notification._id}/read`).catch(() => { /* ignore */ });
+      setNotifications((prev) => prev.map((n) => (n._id === notification._id ? { ...n, read: true } : n)));
+      setUnreadCount((c) => Math.max(0, c - 1));
+    }
+    const data = notification.data || {};
+    if (notification.type === 'workspace_invite') navigate('/invitations');
+    else if (typeof data.workspaceId === 'string') navigate('/workspace/' + data.workspaceId);
+    setBellOpen(false);
+  };
+
+  const handleMarkAllRead = async () => {
+    try {
+      await apiClient.patch('/notifications/read-all');
+    } catch {
+      /* ignore */
+    }
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    setUnreadCount(0);
   };
 
   return (
@@ -160,18 +233,86 @@ export function AppLayout() {
             >
               {theme === 'dark' ? <Sun className="h-4 w-4 sm:h-5 sm:w-5" /> : <Moon className="h-4 w-4 sm:h-5 sm:w-5" />}
             </button>
-            <button
-              onClick={() => navigate('/invitations')}
-              className="relative rounded-lg p-1.5 sm:p-2 text-surface-400 hover:bg-surface-800 hover:text-surface-200 transition-colors"
-              title="Invitations"
-            >
-              <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
-              {inviteCount > 0 && (
-                <span className="absolute right-0.5 sm:right-1 top-0.5 sm:top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-500 px-1 text-[9px] font-bold text-white">
-                  {inviteCount > 9 ? '9+' : inviteCount}
-                </span>
+            <div className="relative">
+              <button
+                onClick={() => setBellOpen((o) => !o)}
+                className="relative rounded-lg p-1.5 sm:p-2 text-surface-400 hover:bg-surface-800 hover:text-surface-200 transition-colors"
+                title="Notifications"
+              >
+                <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
+                {(unreadCount + inviteCount) > 0 && (
+                  <span className="absolute right-0.5 sm:right-1 top-0.5 sm:top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-500 px-1 text-[9px] font-bold text-white">
+                    {(unreadCount + inviteCount) > 9 ? '9+' : (unreadCount + inviteCount)}
+                  </span>
+                )}
+              </button>
+              {bellOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setBellOpen(false)} />
+                  <motion.div
+                    initial={{ opacity: 0, y: -8, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute right-0 z-50 mt-2 w-[320px] sm:w-96 overflow-hidden rounded-xl border border-surface-700 bg-surface-900 shadow-2xl shadow-black/50"
+                  >
+                    <div className="flex items-center justify-between border-b border-surface-700 px-4 py-3">
+                      <span className="text-sm font-semibold text-surface-200">Notifications</span>
+                      {unreadCount > 0 && (
+                        <button
+                          onClick={handleMarkAllRead}
+                          className="flex items-center gap-1 text-xs text-primary-400 hover:text-primary-300 transition-colors"
+                        >
+                          <CheckCheck className="h-3.5 w-3.5" />
+                          Mark all read
+                        </button>
+                      )}
+                    </div>
+                    <div className="max-h-80 overflow-y-auto">
+                      {loadingNotifs ? (
+                        <div className="flex items-center justify-center py-10">
+                          <Loader2 className="h-5 w-5 animate-spin text-surface-500" />
+                        </div>
+                      ) : notifications.length === 0 ? (
+                        <div className="px-4 py-10 text-center text-xs text-surface-500">
+                          No notifications yet
+                        </div>
+                      ) : (
+                        notifications.map((n) => (
+                          <button
+                            key={n._id}
+                            onClick={() => handleMarkRead(n)}
+                            className="flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-800/60"
+                          >
+                            <div className={
+                              'mt-1.5 h-2 w-2 flex-shrink-0 rounded-full ' +
+                              (n.read ? 'bg-surface-600' : 'bg-blue-500')
+                            } />
+                            <div className="min-w-0 flex-1">
+                              <p className={
+                                'truncate text-xs font-medium ' +
+                                (n.read ? 'text-surface-400' : 'text-surface-100')
+                              }>
+                                {n.title}
+                              </p>
+                              <p className="mt-0.5 text-[11px] leading-snug text-surface-400 break-words">{n.message}</p>
+                              <p className="mt-1 text-[10px] text-surface-500">{timeAgo(n.createdAt)}</p>
+                            </div>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                    <div className="border-t border-surface-700 p-2">
+                      <button
+                        onClick={() => { setBellOpen(false); navigate('/invitations'); }}
+                        className="flex w-full items-center justify-center gap-1 rounded-lg py-2 text-xs text-surface-300 transition-colors hover:bg-surface-800"
+                      >
+                        View invitations ({inviteCount})
+                      </button>
+                    </div>
+                  </motion.div>
+                </>
               )}
-            </button>
+            </div>
             <div className="flex h-7 w-7 sm:h-8 sm:w-8 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-[10px] sm:text-xs font-bold text-white ml-1 sm:ml-2">
               {user?.name?.charAt(0)?.toUpperCase() || 'D'}
             </div>

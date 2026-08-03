@@ -3,6 +3,51 @@ import WorkspaceMember from '../models/WorkspaceMember';
 import Project from '../models/Project';
 import logger from '../utils/logger';
 
+// ─── Online presence ────────────────────────────────────────────────
+// workspaceId -> set of online userIds
+const workspacePresence = new Map<string, Set<string>>();
+// socket.id -> set of workspaceIds that socket joined
+const socketWorkspaces = new Map<string, Set<string>>();
+
+export function getWorkspaceOnlineUsers(workspaceId: string): string[] {
+  return Array.from(workspacePresence.get(workspaceId) || new Set<string>());
+}
+
+function broadcastPresence(io: SocketServer, workspaceId: string): void {
+  io.to(`workspace:${workspaceId}`).emit('presence:update', {
+    workspaceId,
+    onlineUserIds: getWorkspaceOnlineUsers(workspaceId),
+  });
+}
+
+function addPresence(io: SocketServer, socketId: string, workspaceId: string, userId: string): void {
+  let users = workspacePresence.get(workspaceId);
+  if (!users) {
+    users = new Set();
+    workspacePresence.set(workspaceId, users);
+  }
+  users.add(userId);
+
+  let joined = socketWorkspaces.get(socketId);
+  if (!joined) {
+    joined = new Set();
+    socketWorkspaces.set(socketId, joined);
+  }
+  joined.add(workspaceId);
+
+  broadcastPresence(io, workspaceId);
+}
+
+function removePresence(io: SocketServer, socketId: string, workspaceId: string, userId: string): void {
+  const users = workspacePresence.get(workspaceId);
+  if (users) {
+    users.delete(userId);
+    if (users.size === 0) workspacePresence.delete(workspaceId);
+  }
+  socketWorkspaces.get(socketId)?.delete(workspaceId);
+  broadcastPresence(io, workspaceId);
+}
+
 export function handleSocketEvents(io: SocketServer, socket: Socket): void {
   const userId = (socket.data as Record<string, unknown>).userId as string;
 
@@ -65,6 +110,7 @@ export function handleSocketEvents(io: SocketServer, socket: Socket): void {
         return;
       }
       socket.join(`workspace:${workspaceId}`);
+      addPresence(io, socket.id, workspaceId, userId);
       logger.info('Socket ' + socket.id + ' joined workspace:' + workspaceId);
     } catch {
       socket.emit('error', 'Failed to verify workspace membership');
@@ -73,6 +119,7 @@ export function handleSocketEvents(io: SocketServer, socket: Socket): void {
 
   socket.on('leave-workspace', (workspaceId: string) => {
     socket.leave(`workspace:${workspaceId}`);
+    removePresence(io, socket.id, workspaceId, userId);
     logger.info('Socket ' + socket.id + ' left workspace:' + workspaceId);
   });
 
@@ -99,6 +146,18 @@ export function handleSocketEvents(io: SocketServer, socket: Socket): void {
   });
 
   socket.on('disconnect', () => {
+    const joined = socketWorkspaces.get(socket.id);
+    if (joined) {
+      for (const wsId of joined) {
+        const users = workspacePresence.get(wsId);
+        if (users) {
+          users.delete(userId);
+          if (users.size === 0) workspacePresence.delete(wsId);
+        }
+        broadcastPresence(io, wsId);
+      }
+      socketWorkspaces.delete(socket.id);
+    }
     logger.info('Socket disconnected: ' + socket.id + ' (user: ' + userId + ')');
   });
 }

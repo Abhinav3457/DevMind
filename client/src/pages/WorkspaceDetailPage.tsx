@@ -7,6 +7,7 @@ import {
   ShieldAlert, Clock, Activity, GitBranch, ExternalLink,
 } from 'lucide-react';
 import apiClient from '../api/axios';
+import { connectSocket, joinWorkspace, leaveWorkspace, onPresenceUpdate } from '../services/socket';
 import toast from 'react-hot-toast';
 
 type Tab = 'overview' | 'repos' | 'members' | 'settings';
@@ -102,6 +103,7 @@ export function WorkspaceDetailPage() {
   const [removeTarget, setRemoveTarget] = useState<{ id: string; name: string } | null>(null);
   const [removeRepo, setRemoveRepo] = useState<{ id: string; name: string } | null>(null);
   const [removingRepo, setRemovingRepo] = useState(false);
+  const [onlineUserIds, setOnlineUserIds] = useState<string[]>([]);
 
   const fetchWorkspace = useCallback(async () => {
     if (!id) return;
@@ -154,6 +156,20 @@ export function WorkspaceDetailPage() {
     Promise.all([fetchWorkspace(), fetchMembers(), fetchRepos(), fetchActivity(), fetchInvitations()])
       .finally(() => setLoading(false));
   }, [fetchWorkspace, fetchMembers, fetchRepos, fetchActivity, fetchInvitations]);
+
+  // Real-time presence: join the workspace room and watch who's online
+  useEffect(() => {
+    if (!id) return;
+    connectSocket();
+    joinWorkspace(id);
+    const unsubscribe = onPresenceUpdate((data) => {
+      if (data.workspaceId === id) setOnlineUserIds(data.onlineUserIds || []);
+    });
+    return () => {
+      unsubscribe();
+      leaveWorkspace(id);
+    };
+  }, [id]);
 
   const handleSaveSettings = async () => {
     if (!id || !editName.trim()) { toast.error('Name is required'); return; }
@@ -507,6 +523,17 @@ export function WorkspaceDetailPage() {
               </div>
             )}
 
+            <div className="flex items-center justify-between">
+              <h3 className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-surface-200">
+                <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-surface-400" />
+                Team Members
+              </h3>
+              <span className="flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-[10px] font-medium text-emerald-400">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                {onlineUserIds.length} online
+              </span>
+            </div>
+
             <div className="space-y-1.5 sm:space-y-2">
               {members.length === 0 ? (
                 <div className="flex flex-col items-center py-8 text-center">
@@ -516,8 +543,17 @@ export function WorkspaceDetailPage() {
               ) : (
                 members.map((member) => (
                   <div key={member.id} className="flex items-center gap-2 sm:gap-4 rounded-lg border border-surface-700 bg-surface-900/30 px-3 sm:px-4 py-2.5 sm:py-3 transition-all hover:border-surface-600">
-                    <div className="flex h-8 w-8 sm:h-9 sm:w-9 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-[10px] sm:text-xs font-medium text-white">
-                      {member.name.charAt(0).toUpperCase()}
+                    <div className="relative flex-shrink-0">
+                      <div className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-[10px] sm:text-xs font-medium text-white">
+                        {member.name.charAt(0).toUpperCase()}
+                      </div>
+                      <span
+                        className={
+                          'absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-surface-900 ' +
+                          (onlineUserIds.includes(member.userId) ? 'bg-emerald-500' : 'bg-surface-600')
+                        }
+                        title={onlineUserIds.includes(member.userId) ? 'Online' : 'Offline'}
+                      />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs sm:text-sm font-medium text-surface-200 truncate">{member.name}</p>

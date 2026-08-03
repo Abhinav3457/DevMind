@@ -5,6 +5,9 @@ import { ApiError } from '../../utils/apiResponse';
 import IndexReport from '../../models/IndexReport';
 import IndexedFile from '../../models/IndexedFile';
 import IndexedChunk from '../../models/IndexedChunk';
+import ImportedRepository from '../../models/ImportedRepository';
+import CodeReview from '../../models/CodeReview';
+import ActivityLog from '../../models/ActivityLog';
 
 vi.mock('../../models/IndexReport', () => ({
   default: { findOne: vi.fn(), countDocuments: vi.fn() },
@@ -14,6 +17,15 @@ vi.mock('../../models/IndexedFile', () => ({
 }));
 vi.mock('../../models/IndexedChunk', () => ({
   default: { find: vi.fn(), countDocuments: vi.fn() },
+}));
+vi.mock('../../models/ImportedRepository', () => ({
+  default: { findById: vi.fn() },
+}));
+vi.mock('../../models/CodeReview', () => ({
+  default: { create: vi.fn().mockResolvedValue({}), find: vi.fn(), findOne: vi.fn(), deleteOne: vi.fn(), countDocuments: vi.fn() },
+}));
+vi.mock('../../models/ActivityLog', () => ({
+  default: { create: vi.fn().mockResolvedValue({}) },
 }));
 
 vi.mock('../../config/ai', () => ({
@@ -43,6 +55,13 @@ describe('CodeReviewService', () => {
     vi.mocked(IndexedChunk.countDocuments).mockResolvedValue(0);
     vi.mocked(IndexedChunk.find).mockReturnValue(createQueryMock([]) as never);
     vi.mocked(IndexedFile.find).mockReturnValue(createQueryMock([]) as never);
+    vi.mocked(ImportedRepository.findById).mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        lean: vi.fn().mockResolvedValue({ fullName: 'test/repo', workspaceId: null }),
+      }),
+    } as never);
+    vi.mocked(CodeReview.create).mockResolvedValue({} as never);
+    vi.mocked(ActivityLog.create).mockResolvedValue({} as never);
   });
 
   afterEach(() => {

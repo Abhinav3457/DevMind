@@ -4,6 +4,7 @@ import ImportedRepository from '../models/ImportedRepository';
 import IndexReport from '../models/IndexReport';
 import IndexedFile from '../models/IndexedFile';
 import IndexedChunk from '../models/IndexedChunk';
+import { logActivity } from './activity.service';
 import logger from '../utils/logger';
 import { ApiError } from '../utils/apiResponse';
 
@@ -187,6 +188,15 @@ export class GitHubService {
     );
 
     logger.info(`Repository ${metadata.fullName} imported into MongoDB`);
+
+    void logActivity({
+      userId,
+      workspaceId,
+      type: 'repo_imported',
+      description: 'Imported repository ' + metadata.fullName + ' from GitHub',
+      metadata: { repoName: metadata.fullName },
+    });
+
     return { imported: true, metadata };
   }
 

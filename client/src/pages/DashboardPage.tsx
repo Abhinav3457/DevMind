@@ -62,11 +62,19 @@ export function DashboardPage() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const [analyticsRes, workspacesRes] = await Promise.all([
+        const [analyticsRes, workspacesRes, activityRes] = await Promise.all([
           apiClient.get('/analytics'),
           apiClient.get('/workspaces?limit=1'),
+          apiClient.get('/activity?limit=10'),
         ]);
         const overview: AnalyticsOverview = analyticsRes.data.data?.overview || {};
+        const recentActivity = (activityRes.data.data?.activities || []).map(
+          (a: { description: string; timestamp: string }) => ({
+            type: 'event',
+            description: a.description,
+            timestamp: a.timestamp,
+          }),
+        );
         setStats({
           projects: overview.projects || 0,
           workspaces: overview.workspaces || workspacesRes.data.meta?.pagination?.total || 0,
@@ -74,7 +82,7 @@ export function DashboardPage() {
           indexedFiles: overview.totalFiles || 0,
           healthScore: overview.healthScore || 0,
           stars: overview.stars || 0,
-          recentActivity: [],
+          recentActivity,
         });
       } catch {
         setStats({ projects: 0, workspaces: 0, repositories: 0, indexedFiles: 0, healthScore: 0, stars: 0, recentActivity: [] });

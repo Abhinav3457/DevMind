@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Bug, Loader2, Code2, BookOpen, Brain, Wand2, Sparkles, AlertCircle, ExternalLink, Database } from 'lucide-react';
+import { Bug, Loader2, Code2, BookOpen, Brain, Wand2, Sparkles, AlertCircle, ExternalLink, Database, Clock, Trash2 } from 'lucide-react';
 import apiClient from '../api/axios';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
@@ -12,6 +12,18 @@ interface IndexedReport {
   repoName: string;
   fileCount: number;
   status: string;
+}
+
+interface HistoryItem {
+  id: string;
+  repoName: string;
+  fileName: string;
+  language: string;
+  score: number;
+  summary: string;
+  filesReviewed: number;
+  totalIssues: number;
+  createdAt: string;
 }
 
 /**
@@ -242,7 +254,7 @@ function renderReviewMarkdown(data: Record<string, unknown>): string {
 }
 
 export function CodeReviewPage() {
-  const [mode, setMode] = useState<'snippet' | 'repo'>('snippet');
+  const [mode, setMode] = useState<'snippet' | 'repo' | 'history'>('snippet');
   const [code, setCode] = useState('');
   const [detectedLang, setDetectedLang] = useState('typescript');
   const [review, setReview] = useState<string | null>(null);
@@ -256,10 +268,13 @@ export function CodeReviewPage() {
   const [selectedReportId, setSelectedReportId] = useState<string>('');
   const [loadingReports, setLoadingReports] = useState(false);
 
-
+  // History state
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
 
   useEffect(() => {
     if (mode === 'repo') fetchReports();
+    if (mode === 'history') fetchHistory();
   }, [mode]);
 
   const fetchReports = async () => {
@@ -271,6 +286,43 @@ export function CodeReviewPage() {
       if (list.length > 0) setSelectedReportId(list[0].id);
     } catch { /* ignore */ }
     setLoadingReports(false);
+  };
+
+  const fetchHistory = async () => {
+    setLoadingHistory(true);
+    try {
+      const res = await apiClient.get('/ai/code-review/history');
+      setHistory(res.data.data?.reviews || []);
+    } catch { /* ignore */ }
+    setLoadingHistory(false);
+  };
+
+  const loadHistoryDetail = async (id: string) => {
+    setLoading(true);
+    setReview(null);
+    setScore(null);
+    try {
+      const res = await apiClient.get('/ai/code-review/history/' + id);
+      const data = res.data.data;
+      if (data) {
+        setReview(renderReviewMarkdown((data.details as Record<string, unknown>) || data));
+        setScore(typeof data.score === 'number' ? data.score : null);
+      }
+    } catch {
+      toast.error('Failed to load review');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteHistory = async (id: string) => {
+    try {
+      await apiClient.delete('/ai/code-review/history/' + id);
+      setHistory((prev) => prev.filter((h) => h.id !== id));
+      toast.success('Review deleted');
+    } catch {
+      toast.error('Failed to delete review');
+    }
   };
 
   const handleCodeChange = useCallback((value: string | undefined) => {
@@ -386,12 +438,74 @@ export function CodeReviewPage() {
               mode === 'repo' ? 'bg-primary-600 text-white shadow-sm' : 'text-surface-400 hover:text-surface-200'
             }`}
           ><BookOpen className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Repo</button>
+          <button onClick={() => setMode('history')}
+            className={`flex items-center gap-1 rounded-md px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium transition-all ${
+              mode === 'history' ? 'bg-primary-600 text-white shadow-sm' : 'text-surface-400 hover:text-surface-200'
+            }`}
+          ><Clock className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> History</button>
         </div>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
         <div className="space-y-4 w-full lg:w-1/2">
-          {mode === 'repo' ? (
+          {mode === 'history' ? (
+            <>
+              {loadingHistory ? (
+                <div className="flex items-center gap-2 text-sm text-surface-400">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Loading history...
+                </div>
+              ) : history.length === 0 ? (
+                <div className="rounded-xl border border-surface-700 bg-surface-900/50 p-8 text-center">
+                  <Clock className="mx-auto mb-3 h-8 w-8 text-surface-600" />
+                  <p className="text-sm font-medium text-surface-300">No past reviews yet</p>
+                  <p className="mt-1 text-xs text-surface-500">
+                    Run a code or repository review and it will show up here so you can revisit it later.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {history.map((item) => (
+                    <div
+                      key={item.id}
+                      className="group flex items-center gap-2 rounded-lg border border-surface-700 bg-surface-900/30 px-3 py-3 transition-all hover:border-surface-600"
+                    >
+                      <button
+                        onClick={() => loadHistoryDetail(item.id)}
+                        className="flex-1 min-w-0 text-left"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="truncate text-xs font-medium text-surface-200">
+                            {item.repoName || item.fileName || 'Code review'}
+                          </span>
+                          <span className={
+                            'flex-shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ' +
+                            (item.score >= 80 ? 'bg-emerald-500/10 text-emerald-400' :
+                             item.score >= 50 ? 'bg-amber-500/10 text-amber-400' :
+                             'bg-red-500/10 text-red-400')
+                          }>
+                            {item.score}/100
+                          </span>
+                        </div>
+                        {item.summary && (
+                          <p className="mt-1 truncate text-[11px] text-surface-400">{item.summary}</p>
+                        )}
+                        <p className="mt-1 text-[10px] text-surface-500">
+                          {new Date(item.createdAt).toLocaleDateString()} · {item.filesReviewed} file{item.filesReviewed === 1 ? '' : 's'} · {item.totalIssues} issues
+                        </p>
+                      </button>
+                      <button
+                        onClick={() => deleteHistory(item.id)}
+                        className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg text-surface-500 transition-colors hover:bg-red-500/10 hover:text-red-400"
+                        title="Delete review"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          ) : mode === 'repo' ? (
             <>
               {loadingReports ? (
                 <div className="flex items-center gap-2 text-sm text-surface-400">

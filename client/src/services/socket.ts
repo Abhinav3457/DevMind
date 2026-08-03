@@ -54,6 +54,24 @@ export function leaveProject(projectId: string): void {
   socket?.emit('leave-project', projectId);
 }
 
+export function joinWorkspace(workspaceId: string): void {
+  socket?.emit('join-workspace', workspaceId);
+}
+
+export function leaveWorkspace(workspaceId: string): void {
+  socket?.emit('leave-workspace', workspaceId);
+}
+
+export function onPresenceUpdate(callback: (data: { workspaceId: string; onlineUserIds: string[] }) => void): () => void {
+  socket?.on('presence:update', callback);
+  return () => { socket?.off('presence:update', callback); };
+}
+
+export function onNotificationNew(callback: (data: Record<string, unknown>) => void): () => void {
+  socket?.on('notification:new', callback);
+  return () => { socket?.off('notification:new', callback); };
+}
+
 export function emitCodeChange(projectId: string, content: string, filePath: string): void {
   socket?.emit('code-change', { projectId, content, filePath });
 }

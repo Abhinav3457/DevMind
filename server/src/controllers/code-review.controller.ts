@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { codeReviewService } from '../services/code-review.service';
 import { reviewerService } from '../code-review/reviewer.service';
 import { IIndexedFile } from '../models/IndexedFile';
+import CodeReview from '../models/CodeReview';
 import { sendSuccess } from '../utils/apiResponse';
 
 export class CodeReviewController {
@@ -48,6 +49,26 @@ export class CodeReviewController {
 
     const result = await reviewerService.reviewFiles([virtualFile]);
 
+    // Save to review history (best-effort, non-blocking)
+    CodeReview.create({
+      userId: req.user!.userId,
+      fileName: name,
+      language: language || 'typescript',
+      score: result.score,
+      summary: result.summary,
+      filesReviewed: 1,
+      totalIssues: result.totalIssues,
+      details: {
+        score: result.score,
+        summary: result.summary,
+        categories: result.categories,
+        refactoringSuggestions: result.refactoringSuggestions,
+        fixedVersion: result.fixedVersion,
+        totalIssues: result.totalIssues,
+        filesReviewed: 1,
+      },
+    }).catch(() => undefined);
+
     sendSuccess(res, {
       statusCode: 200,
       message: 'Code review completed',
@@ -60,6 +81,37 @@ export class CodeReviewController {
         totalIssues: result.totalIssues,
         filesReviewed: 1,
       },
+    });
+  }
+
+  async listHistory(req: Request, res: Response): Promise<void> {
+    const page = parseInt(req.query.page as string, 10) || 1;
+    const limit = parseInt(req.query.limit as string, 10) || 20;
+    const result = await codeReviewService.listHistory(req.user!.userId, { page, limit });
+
+    sendSuccess(res, {
+      statusCode: 200,
+      message: 'Review history retrieved',
+      data: result,
+    });
+  }
+
+  async getHistory(req: Request, res: Response): Promise<void> {
+    const result = await codeReviewService.getHistoryDetail(req.user!.userId, req.params.id);
+
+    sendSuccess(res, {
+      statusCode: 200,
+      message: 'Review retrieved',
+      data: result,
+    });
+  }
+
+  async deleteHistory(req: Request, res: Response): Promise<void> {
+    await codeReviewService.deleteHistory(req.user!.userId, req.params.id);
+
+    sendSuccess(res, {
+      statusCode: 200,
+      message: 'Review deleted',
     });
   }
 }

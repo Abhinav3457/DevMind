@@ -7,3 +7,5 @@ export { codeReviewController, CodeReviewController } from './code-review.contro
 export { docGeneratorController, DocGeneratorController } from './doc-generator.controller';
 export { analyticsController, AnalyticsController } from './analytics.controller';
 export { projectController, ProjectController } from './project.controller';
+export { activityController, ActivityController } from './activity.controller';
+export { notificationController, NotificationController } from './notification.controller';

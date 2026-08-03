@@ -3,19 +3,39 @@ import { contextRetrieverService } from '../repo-intelligence/retriever.service'
 import { promptBuilderService } from '../repo-intelligence/prompt-builder.service';
 import { generateFromAI } from '../config/ai';
 import IndexReport from '../models/IndexReport';
+import IndexedFile from '../models/IndexedFile';
+import IndexedChunk from '../models/IndexedChunk';
 import ImportedRepository from '../models/ImportedRepository';
 import { ApiError } from '../utils/apiResponse';
 import logger from '../utils/logger';
 
+interface SourceRef {
+  filePath: string;
+  startLine: number;
+  endLine: number;
+  type: string;
+}
+
 interface AskResult {
   answer: string;
   questionType: QuestionType;
+  sources: SourceRef[];
   contextSummary: {
     filesUsed: number;
     chunksUsed: number;
     hasTechStack: boolean;
     hasFolderStructure: boolean;
   };
+}
+
+interface CodeSearchResult {
+  id: string;
+  reportId: string;
+  repositoryId: string;
+  repoName: string;
+  filePath: string;
+  line: number;
+  snippet: string;
 }
 
 interface QuestionTemplate {
@@ -134,9 +154,24 @@ export class RepoIntelligenceService {
     logger.info('RepoIntelligence: Answered question (' + classification.type +
       ') in ' + duration + 's');
 
+    // Build precise citations from the retrieved chunks (deduped by file)
+    const sources: SourceRef[] = [];
+    const seenFiles = new Set<string>();
+    for (const chunk of context.relevantChunks) {
+      if (seenFiles.has(chunk.filePath)) continue;
+      seenFiles.add(chunk.filePath);
+      sources.push({
+        filePath: chunk.filePath,
+        startLine: chunk.startLine,
+        endLine: chunk.endLine,
+        type: chunk.type,
+      });
+    }
+
     return {
       answer,
       questionType: classification.type,
+      sources,
       contextSummary: {
         filesUsed: context.relevantFiles.length,
         chunksUsed: context.relevantChunks.length,
@@ -144,6 +179,78 @@ export class RepoIntelligenceService {
         hasFolderStructure: context.folderStructure !== '[]' && context.folderStructure !== '',
       },
     };
+  }
+
+  /**
+   * Grep-style search across the user's indexed repositories.
+   * Returns matching chunks with file path, line number, and a snippet.
+   */
+  async searchCode(userId: string, query: string, options: { limit?: number } = {}): Promise<{ results: CodeSearchResult[]; total: number }> {
+    const q = query.trim();
+    if (!q) return { results: [], total: 0 };
+    const limit = Math.min(options.limit || 30, 50);
+
+    const reports = await IndexReport.find({ userId, status: 'completed' }).select('_id repositoryId').lean();
+    if (reports.length === 0) return { results: [], total: 0 };
+
+    const reportIds = reports.map((r) => r._id);
+    const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const chunks = await IndexedChunk.find({
+      reportId: { $in: reportIds },
+      content: { $regex: escaped, $options: 'i' },
+    })
+      .sort({ tokenCount: -1 })
+      .limit(limit * 4)
+      .lean();
+
+    if (chunks.length === 0) return { results: [], total: 0 };
+
+    const fileIds = [...new Set(chunks.map((c) => c.fileId.toString()))];
+    const files = await IndexedFile.find({ _id: { $in: fileIds } }).select('_id path reportId').lean();
+    const fileMap = new Map(files.map((f) => [f._id.toString(), f]));
+
+    const repoIds = [...new Set(reports.map((r) => r.repositoryId.toString()))];
+    const repos = await ImportedRepository.find({ _id: { $in: repoIds } }).select('_id fullName').lean();
+    const repoNameMap = new Map(repos.map((r) => [r._id.toString(), r.fullName]));
+    const repoIdByReport = new Map(reports.map((r) => [r._id.toString(), r.repositoryId.toString()]));
+
+    const results: CodeSearchResult[] = [];
+    for (const chunk of chunks) {
+      if (results.length >= limit) break;
+      const file = fileMap.get(chunk.fileId.toString());
+      if (!file) continue;
+      const reportId = chunk.reportId.toString();
+      const repositoryId = repoIdByReport.get(reportId) || '';
+      const lines = chunk.content.split('\n');
+
+      // Find the first line that contains the query
+      let matchLine = chunk.startLine;
+      let matchIdx = 0;
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i]!.toLowerCase().includes(q.toLowerCase())) {
+          matchLine = chunk.startLine + i;
+          matchIdx = i;
+          break;
+        }
+      }
+
+      // Build a snippet: 2 lines above and below the match
+      const from = Math.max(0, matchIdx - 2);
+      const to = Math.min(lines.length, matchIdx + 3);
+      const snippet = lines.slice(from, to).join('\n');
+
+      results.push({
+        id: (chunk._id as unknown as string).toString(),
+        reportId,
+        repositoryId,
+        repoName: repoNameMap.get(repositoryId) || 'Unknown repository',
+        filePath: file.path,
+        line: matchLine,
+        snippet,
+      });
+    }
+
+    return { results, total: results.length };
   }
 
   async listReports(userId: string): Promise<{ id: string; repoName: string; fileCount: number; chunkCount: number; createdAt: string }[]> {

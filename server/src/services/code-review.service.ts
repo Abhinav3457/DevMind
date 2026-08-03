@@ -1,9 +1,14 @@
+import mongoose from 'mongoose';
 import IndexReport from '../models/IndexReport';
 import IndexedFile, { IIndexedFile } from '../models/IndexedFile';
 import IndexedChunk from '../models/IndexedChunk';
+import ImportedRepository from '../models/ImportedRepository';
+import CodeReview from '../models/CodeReview';
 import { complexityService, ComplexityReport } from '../code-review/complexity.service';
 import { duplicateService, DuplicateBlock } from '../code-review/duplicate.service';
 import { reviewerService, ReviewResult } from '../code-review/reviewer.service';
+import { logActivity } from './activity.service';
+import { notificationService } from './notification.service';
 import { ApiError } from '../utils/apiResponse';
 import logger from '../utils/logger';
 
@@ -134,7 +139,7 @@ export class CodeReviewService {
     logger.info('CodeReview: Completed review of ' + indexedFiles.length +
       ' files in ' + duration + 's. Score: ' + reviewResult.score);
 
-    return {
+    const result: CodeReviewResult = {
       score: reviewResult.score,
       summary: reviewResult.summary,
       categories: reviewResult.categories,
@@ -145,6 +150,113 @@ export class CodeReviewService {
       filesReviewed: indexedFiles.length,
       totalIssues: reviewResult.totalIssues,
     };
+
+    // Persist to review history + notify (best-effort — never break the review response)
+    try {
+      const importedRepo = await ImportedRepository.findById(report.repositoryId).select('fullName workspaceId').lean();
+      await CodeReview.create({
+        userId,
+        reportId,
+        repositoryId: report.repositoryId,
+        repoName: importedRepo?.fullName || '',
+        score: result.score,
+        summary: result.summary,
+        filesReviewed: result.filesReviewed,
+        totalIssues: result.totalIssues,
+        details: result,
+      });
+
+      void logActivity({
+        userId,
+        workspaceId: importedRepo?.workspaceId ? importedRepo.workspaceId.toString() : undefined,
+        type: 'review_completed',
+        description: 'Reviewed ' + (importedRepo?.fullName || 'a repository') + ' — score ' + result.score + '/100',
+        metadata: { score: result.score, totalIssues: result.totalIssues },
+      });
+
+      await notificationService.create({
+        userId,
+        type: 'review_complete',
+        title: 'Code review finished',
+        message: 'Review of "' + (importedRepo?.fullName || 'your repository') + '" scored ' + result.score + '/100 with ' + result.totalIssues + ' issues',
+        data: { score: result.score, totalIssues: result.totalIssues },
+      });
+    } catch (error) {
+      logger.error('CodeReview: Failed to persist review history', error);
+    }
+
+    return result;
+  }
+
+  // ─── Review History ───────────────────────────────────────
+
+  async listHistory(
+    userId: string,
+    options: { page?: number; limit?: number } = {},
+  ): Promise<{
+    reviews: {
+      id: string;
+      repoName: string;
+      fileName: string;
+      language: string;
+      score: number;
+      summary: string;
+      filesReviewed: number;
+      totalIssues: number;
+      createdAt: Date | undefined;
+    }[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const page = options.page || 1;
+    const limit = Math.min(options.limit || 20, 50);
+    const skip = (page - 1) * limit;
+
+    const [reviews, total] = await Promise.all([
+      CodeReview.find({ userId }).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+      CodeReview.countDocuments({ userId }),
+    ]);
+
+    return {
+      reviews: reviews.map((r) => ({
+        id: (r._id as mongoose.Types.ObjectId).toString(),
+        repoName: r.repoName || '',
+        fileName: r.fileName || '',
+        language: r.language || '',
+        score: r.score,
+        summary: r.summary || '',
+        filesReviewed: r.filesReviewed,
+        totalIssues: r.totalIssues,
+        createdAt: r.createdAt,
+      })),
+      total,
+      page,
+      limit,
+    };
+  }
+
+  async getHistoryDetail(
+    userId: string,
+    reviewId: string,
+  ): Promise<{ id: string; repoName: string; fileName: string; score: number; summary: string; createdAt: Date | undefined; details: Record<string, unknown> }> {
+    const review = await CodeReview.findOne({ _id: reviewId, userId }).lean();
+    if (!review) {
+      throw new ApiError(404, 'Review not found');
+    }
+    return {
+      id: (review._id as mongoose.Types.ObjectId).toString(),
+      repoName: review.repoName || '',
+      fileName: review.fileName || '',
+      score: review.score,
+      summary: review.summary || '',
+      createdAt: review.createdAt,
+      details: (review.details as Record<string, unknown>) || {},
+    };
+  }
+
+  async deleteHistory(userId: string, reviewId: string): Promise<void> {
+    await CodeReview.deleteOne({ _id: reviewId, userId });
   }
 }
 

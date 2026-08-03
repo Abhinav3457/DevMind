@@ -55,6 +55,9 @@ export function initializeSocket(httpServer: HttpServer): SocketServer {
     const userId = (socket.data as Record<string, unknown>).userId as string;
     logger.info('Socket connected: ' + socket.id + ' (user: ' + userId + ')');
 
+    // Join a personal room so the server can push notifications in real time
+    socket.join('user:' + userId);
+
     handleSocketEvents(io!, socket);
   });
 

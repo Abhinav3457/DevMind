@@ -14,6 +14,8 @@ import { DocGeneratorPage } from '../pages/DocGeneratorPage';
 import { GitHubPage } from '../pages/GitHubPage';
 import { GitHubCallback } from '../pages/GitHubCallback';
 import { AnalyticsPage } from '../pages/AnalyticsPage';
+import { CodeSearchPage } from '../pages/CodeSearchPage';
+import { ProfilePage } from '../pages/ProfilePage';
 import { AppLayout } from '../components/layout/AppLayout';
 import { AuthGuard } from '../components/layout/AuthGuard';
 
@@ -38,6 +40,8 @@ export function AppRoutes() {
         <Route path="/ai/code-review" element={<CodeReviewPage />} />
         <Route path="/ai/docs" element={<DocGeneratorPage />} />
         <Route path="/analytics" element={<AnalyticsPage />} />
+        <Route path="/search" element={<CodeSearchPage />} />
+        <Route path="/settings" element={<ProfilePage />} />
       </Route>
       <Route path="*" element={<Navigate to="/auth/login" replace />} />
     </Routes>

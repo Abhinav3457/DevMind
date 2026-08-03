@@ -5,6 +5,7 @@ import Workspace from '../../models/Workspace';
 import WorkspaceMember from '../../models/WorkspaceMember';
 import WorkspaceInvite from '../../models/WorkspaceInvite';
 import Notification from '../../models/Notification';
+import ActivityLog from '../../models/ActivityLog';
 import User from '../../models/User';
 import { sendWorkspaceInviteEmail } from '../../helpers/email.helper';
 
@@ -62,6 +63,10 @@ vi.mock('../../models/WorkspaceInvite', () => ({
 
 vi.mock('../../models/Notification', () => ({
   default: { create: vi.fn() },
+}));
+
+vi.mock('../../models/ActivityLog', () => ({
+  default: { create: vi.fn().mockResolvedValue({}), find: vi.fn(), countDocuments: vi.fn() },
 }));
 
 vi.mock('../../models/User', () => ({
@@ -276,14 +281,21 @@ describe('WorkspaceService', () => {
         },
       ];
       vi.mocked(WorkspaceMember.findOne).mockResolvedValue(createMockMember() as never);
-      vi.mocked(WorkspaceMember.countDocuments).mockResolvedValue(1);
+      vi.mocked(ActivityLog.find).mockReturnValue({
+        sort: vi.fn().mockReturnValue({
+          skip: vi.fn().mockReturnValue({
+            limit: vi.fn().mockReturnValue({
+              lean: vi.fn().mockResolvedValue([]),
+            }),
+          }),
+        }),
+      } as never);
+      vi.mocked(ActivityLog.countDocuments).mockResolvedValue(0);
       vi.mocked(WorkspaceMember.find).mockReturnValue({
         populate: vi.fn().mockReturnValue({
           sort: vi.fn().mockReturnValue({
-            skip: vi.fn().mockReturnValue({
-              limit: vi.fn().mockReturnValue({
-                lean: vi.fn().mockResolvedValue(populatedMembers),
-              }),
+            limit: vi.fn().mockReturnValue({
+              lean: vi.fn().mockResolvedValue(populatedMembers),
             }),
           }),
         }),
@@ -302,20 +314,27 @@ describe('WorkspaceService', () => {
 
     it('should fall back gracefully when populated user is null', async () => {
       vi.mocked(WorkspaceMember.findOne).mockResolvedValue(createMockMember() as never);
-      vi.mocked(WorkspaceMember.countDocuments).mockResolvedValue(1);
+      vi.mocked(ActivityLog.find).mockReturnValue({
+        sort: vi.fn().mockReturnValue({
+          skip: vi.fn().mockReturnValue({
+            limit: vi.fn().mockReturnValue({
+              lean: vi.fn().mockResolvedValue([]),
+            }),
+          }),
+        }),
+      } as never);
+      vi.mocked(ActivityLog.countDocuments).mockResolvedValue(0);
       vi.mocked(WorkspaceMember.find).mockReturnValue({
         populate: vi.fn().mockReturnValue({
           sort: vi.fn().mockReturnValue({
-            skip: vi.fn().mockReturnValue({
-              limit: vi.fn().mockReturnValue({
-                lean: vi.fn().mockResolvedValue([
-                  {
-                    workspaceId: WS_ID,
-                    userId: null,
-                    joinedAt: new Date(),
-                  },
-                ]),
-              }),
+            limit: vi.fn().mockReturnValue({
+              lean: vi.fn().mockResolvedValue([
+                {
+                  workspaceId: WS_ID,
+                  userId: null,
+                  joinedAt: new Date(),
+                },
+              ]),
             }),
           }),
         }),

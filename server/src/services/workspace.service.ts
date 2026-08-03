@@ -8,6 +8,8 @@ import ImportedRepository from '../models/ImportedRepository';
 import IndexReport from '../models/IndexReport';
 import Notification from '../models/Notification';
 import { sendWorkspaceInviteEmail } from '../helpers/email.helper';
+import { logActivity, activityService } from './activity.service';
+import { notificationService } from './notification.service';
 import { ApiError } from '../utils/apiResponse';
 
 const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
@@ -108,6 +110,14 @@ export class WorkspaceService {
       role: 'owner',
       invitedBy: new mongoose.Types.ObjectId(ownerId),
       joinedAt: new Date(),
+    });
+
+    void logActivity({
+      userId: ownerId,
+      workspaceId: workspace._id.toString(),
+      type: 'workspace_created',
+      description: 'Created workspace "' + name + '"',
+      metadata: { workspaceName: name },
     });
 
     const result = workspace.toJSON() as unknown as WorkspaceWithRole;
@@ -338,6 +348,14 @@ export class WorkspaceService {
     // even if they haven't created an account yet.
     await sendWorkspaceInviteEmail(normalizedEmail, inviterName, workspaceName, acceptUrl, declineUrl);
 
+    void logActivity({
+      userId: inviterId,
+      workspaceId,
+      type: 'invite_sent',
+      description: 'Invited ' + normalizedEmail + ' to join "' + workspaceName + '"',
+      metadata: { email: normalizedEmail, role },
+    });
+
     return {
       id: invite._id.toString(),
       workspaceId,
@@ -485,6 +503,25 @@ export class WorkspaceService {
     await invite.save();
 
     const user = await User.findById(userId);
+    const acceptedName = user?.name || 'A new member';
+
+    void logActivity({
+      userId,
+      workspaceId: invite.workspaceId.toString(),
+      type: 'member_joined',
+      description: acceptedName + ' joined the workspace',
+      metadata: { memberId: member._id.toString(), role: invite.role },
+    });
+
+    // Notify the inviter that their invite was accepted (best-effort)
+    void notificationService.create({
+      userId: invite.inviterId.toString(),
+      type: 'member_added',
+      title: 'Invitation accepted',
+      message: acceptedName + ' accepted your invitation to "' + workspace.name + '"',
+      data: { workspaceId: invite.workspaceId.toString() },
+    });
+
     return {
       id: member._id.toString(),
       userId,
@@ -534,6 +571,16 @@ export class WorkspaceService {
 
     member.role = newRole;
     await member.save();
+
+    // Notify the affected member about their new role (best-effort)
+    const workspace = await Workspace.findById(workspaceId).select('name').lean();
+    void notificationService.create({
+      userId: targetUserId,
+      type: 'role_changed',
+      title: 'Role updated',
+      message: 'Your role in "' + (workspace?.name || 'the workspace') + '" is now ' + newRole,
+      data: { workspaceId },
+    });
   }
 
   async removeMember(
@@ -627,17 +674,18 @@ export class WorkspaceService {
     const limit = Math.min(options.limit || 20, 100);
     const skip = (page - 1) * limit;
 
-    // For now, return member join dates as activity
-    const members = await WorkspaceMember.find({ workspaceId })
-      .populate('userId', 'name email')
-      .sort({ joinedAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .lean();
+    // Real activity events (workspace created, invites, repo imports,
+    // indexing, reviews...) merged with member join dates, newest first.
+    const [logPage, members] = await Promise.all([
+      activityService.listForWorkspace(workspaceId, { page: 1, limit: 100 }),
+      WorkspaceMember.find({ workspaceId })
+        .populate('userId', 'name email')
+        .sort({ joinedAt: -1 })
+        .limit(500)
+        .lean(),
+    ]);
 
-    const total = await WorkspaceMember.countDocuments({ workspaceId });
-
-    const activities = members.map((m) => {
+    const memberActivities = members.map((m) => {
       const user = m.userId as unknown as { _id?: mongoose.Types.ObjectId | string; name?: string; email?: string } | null;
       // m.userId is populated (User doc), so its _id is the real user id.
       // Calling .toString() on the populated doc would yield "[object Object]"
@@ -651,7 +699,12 @@ export class WorkspaceService {
       };
     });
 
-    return { activities, total, page, limit };
+    const toTime = (v: unknown) => new Date(v as string | number | Date).getTime();
+    const all = [...logPage.activities, ...memberActivities]
+      .sort((a, b) => toTime(b.timestamp) - toTime(a.timestamp));
+
+    const total = all.length;
+    return { activities: all.slice(skip, skip + limit), total, page, limit };
   }
 }
 

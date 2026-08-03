@@ -1,8 +1,10 @@
 import IndexReport from '../models/IndexReport';
 import IndexedFile from '../models/IndexedFile';
 import IndexedChunk from '../models/IndexedChunk';
+import ImportedRepository from '../models/ImportedRepository';
 import { generatorService } from '../doc-generator/generator.service';
 import { DocType } from '../doc-generator/generator.service';
+import { logActivity } from './activity.service';
 import { ApiError } from '../utils/apiResponse';
 import logger from '../utils/logger';
 
@@ -160,6 +162,20 @@ export class DocGeneratorService {
 
     const duration = ((Date.now() - startTime) / 1000).toFixed(2);
     logger.info('DocGenerator: Generated ' + result.fileName + ' in ' + duration + 's');
+
+    // Log to the activity feed (best-effort)
+    try {
+      const importedRepo = await ImportedRepository.findById(report.repositoryId).select('workspaceId fullName').lean();
+      void logActivity({
+        userId,
+        workspaceId: importedRepo?.workspaceId ? importedRepo.workspaceId.toString() : undefined,
+        type: 'doc_generated',
+        description: 'Generated ' + result.fileName + (importedRepo?.fullName ? ' for ' + importedRepo.fullName : ''),
+        metadata: { docType, fileName: result.fileName },
+      });
+    } catch (error) {
+      logger.error('DocGenerator: Failed to log activity', error);
+    }
 
     return result;
   }

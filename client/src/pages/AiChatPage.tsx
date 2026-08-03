@@ -9,10 +9,18 @@ import { useNavigate } from 'react-router-dom';
 import type { AxiosError } from 'axios';
 import { MarkdownRenderer } from '../components/ui/MarkdownRenderer';
 
+interface SourceRef {
+  filePath: string;
+  startLine: number;
+  endLine: number;
+  type: string;
+}
+
 interface Message {
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
+  sources?: SourceRef[];
 }
 
 interface ChatSession {
@@ -258,7 +266,8 @@ export function AiChatPage() {
         reportId: selectedReportId,
       });
       const answer = res.data.data?.answer || res.data.data?.response || 'No response received.';
-      setMessages((prev) => [...prev, { role: 'assistant', content: answer, timestamp: new Date() }]);
+      const sources: SourceRef[] = res.data.data?.sources || [];
+      setMessages((prev) => [...prev, { role: 'assistant', content: answer, sources, timestamp: new Date() }]);
     } catch (err: unknown) {
       const axiosErr = err as AxiosError<{ message?: string }>;
       const serverMsg = axiosErr?.response?.data?.message || 'Could not connect to the AI service. Make sure your API keys (GEMINI_API_KEY or GROQ_API_KEY) are configured in the server environment variables.';
@@ -583,6 +592,22 @@ export function AiChatPage() {
                       {msg.role === 'assistant' ? (
                         <div className="max-w-none text-xs sm:text-sm">
                           <MarkdownRenderer content={msg.content} />
+                          {msg.sources && msg.sources.length > 0 && (
+                            <div className="mt-2 rounded-lg border border-surface-700 bg-surface-900/60 p-2">
+                              <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-surface-500">
+                                <BookOpen className="h-3 w-3" />
+                                Sources
+                              </p>
+                              <ul className="mt-1.5 space-y-1">
+                                {msg.sources.map((src, i) => (
+                                  <li key={i} className="font-mono text-[10px] sm:text-[11px] text-emerald-400/90 break-all">
+                                    {src.filePath}
+                                    <span className="text-surface-500">:{src.startLine}-{src.endLine}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
                         </div>
                       ) : (
                         <p className="text-xs sm:text-sm whitespace-pre-wrap break-words">{msg.content}</p>
