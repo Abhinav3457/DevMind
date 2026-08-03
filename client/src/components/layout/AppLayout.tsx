@@ -133,7 +133,7 @@ export function AppLayout() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
+            className="fixed inset-0 z-40 bg-[color-mix(in_srgb,var(--surface-950)_60%,transparent)] backdrop-blur-sm lg:hidden"
             onClick={() => setMobileOpen(false)}
           />
         )}
@@ -144,7 +144,7 @@ export function AppLayout() {
         className={
           'fixed left-0 top-0 z-50 flex h-full flex-col border-r border-surface-700 bg-surface-900/95 backdrop-blur-xl safe-top shadow-2xl shadow-black/40 transition-all duration-200 ' +
           'lg:static lg:z-auto lg:shadow-none ' +
-          (sidebarOpen ? 'w-64' : 'w-0 lg:w-16') +
+          (sidebarOpen ? 'w-64 max-w-[85vw]' : 'w-0 lg:w-16') +
           (mobileOpen ? ' translate-x-0' : ' -translate-x-full lg:translate-x-0')
         }
       >
@@ -243,7 +243,7 @@ export function AppLayout() {
                     initial={{ opacity: 0, y: -8, scale: 0.98 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     transition={{ duration: 0.15 }}
-                    className="absolute right-0 z-50 mt-2 w-[320px] sm:w-96 overflow-hidden rounded-xl border border-surface-700 bg-surface-900 shadow-2xl shadow-black/50"
+                    className="absolute right-0 z-50 mt-2 w-[320px] sm:w-96 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-surface-700 bg-surface-900 shadow-2xl shadow-black/50"
                   >
                     <div className="flex items-center justify-between border-b border-surface-700 px-4 py-3">
                       <span className="text-sm font-semibold text-surface-200">Notifications</span>

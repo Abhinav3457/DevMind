@@ -384,7 +384,7 @@ export function AiChatPage() {
             initial="hidden"
             animate="visible"
             exit="exit"
-            className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
+            className="fixed inset-0 z-40 bg-[color-mix(in_srgb,var(--surface-950)_60%,transparent)] backdrop-blur-sm lg:hidden"
             onClick={() => setShowSidebar(false)}
           />
         )}
@@ -402,7 +402,7 @@ export function AiChatPage() {
               exit="closed"
               className="flex-shrink-0 overflow-hidden lg:relative lg:z-auto fixed left-0 top-0 z-50 h-full pt-14 lg:pt-0"
             >
-              <div className="flex h-full w-[240px] flex-col rounded-none lg:rounded-xl border-0 lg:border border-surface-700 bg-surface-900/95 lg:bg-surface-900/50 backdrop-blur-xl lg:backdrop-blur-sm shadow-2xl shadow-black/40">
+              <div className="flex h-full w-[240px] max-w-[85vw] flex-col rounded-none lg:rounded-xl border-0 lg:border border-surface-700 bg-surface-900/95 lg:bg-surface-900/50 backdrop-blur-xl lg:backdrop-blur-sm shadow-2xl shadow-black/40">
                 {/* Sidebar Header */}
                 <div className="flex items-center justify-between border-b border-surface-700/50 p-2.5 sm:p-3">
                   <motion.h2
