@@ -97,15 +97,6 @@ export function AiChatPage() {
     fetchReports();
   }, []);
 
-  // Load latest session or show welcome
-  useEffect(() => {
-    if (!loadingSessions && sessions.length > 0 && !activeChatId && sessions[0]) {
-      loadChatMessages(sessions[0]._id);
-    } else if (!loadingSessions && sessions.length === 0 && messages.length === 0) {
-      setMessages([{ role: 'assistant', content: WELCOME_MSG, timestamp: new Date() }]);
-    }
-  }, [loadingSessions]);
-
   // Load reports when switching to repo mode
   useEffect(() => {
     if (mode === 'repo') {
@@ -113,8 +104,6 @@ export function AiChatPage() {
       fetchReports();
     }
   }, [mode]);
-
-
 
   const loadSessions = async () => {
     setLoadingSessions(true);
@@ -137,7 +126,7 @@ export function AiChatPage() {
     } catch { /* ignore */ }
   };
 
-  const loadChatMessages = async (chatId: string) => {
+  const loadChatMessages = useCallback(async (chatId: string) => {
     setLoading(true);
     try {
       const res = await apiClient.get(`/ai/chat/sessions/${chatId}`);
@@ -158,7 +147,20 @@ export function AiChatPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  // Load latest session or show welcome — runs once after sessions finish
+  // loading (the didInit ref guards against re-runs from new state identities).
+  const didInit = useRef(false);
+  useEffect(() => {
+    if (loadingSessions || didInit.current) return;
+    didInit.current = true;
+    if (sessions.length > 0 && !activeChatId && sessions[0]) {
+      loadChatMessages(sessions[0]._id);
+    } else if (sessions.length === 0 && messages.length === 0) {
+      setMessages([{ role: 'assistant', content: WELCOME_MSG, timestamp: new Date() }]);
+    }
+  }, [loadingSessions, sessions, activeChatId, messages.length, loadChatMessages]);
 
   const deleteChat = async (chatId: string, e: React.MouseEvent) => {
     e.stopPropagation();

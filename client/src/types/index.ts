@@ -88,3 +88,22 @@ export type FileLanguage =
   | 'python'
   | 'json'
   | 'markdown';
+
+export type AIProviderName = 'gemini' | 'groq';
+
+export type AIHealthOverall = 'unconfigured' | 'all' | 'partial' | 'none';
+
+export interface AIProviderHealth {
+  provider: AIProviderName;
+  configured: boolean;
+  available: boolean;
+  latencyMs: number | null;
+  error?: string;
+}
+
+export interface AIHealthReport {
+  overall: AIHealthOverall;
+  ready: boolean;
+  checkedAt: string;
+  providers: AIProviderHealth[];
+}

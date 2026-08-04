@@ -43,18 +43,30 @@ const MAX_ATTEMPTS = 3;
 const RETRY_DELAY_MS = 3000;
 
 function isTransientError(message: string): boolean {
-  return (
-    /503|429|5\d\d|quota|too many requests|high demand|temporar|overloaded|unavailable|busy/i.test(
-      message,
-    )
-  );
+  const transportOrQuota =
+    /503|429|5\d\d|quota|too many requests|high demand|temporar|overloaded|unavailable|busy/i;
+  // Note: deliberately NOT matching "per minute" — Groq reports quota
+  // exceeded as "Request too large ... on tokens per minute limit", and a
+  // per-minute budget will not reset within our retry window, so retrying
+  // it only delays the fallback to the next provider.
+  const rateLimit = /rate limit|try again/i;
+  return transportOrQuota.test(message) || rateLimit.test(message);
+}
+
+// Some failures deserve an in-place retry even though they are not classic
+// transport errors. Gemini intermittently returns an EMPTY payload (no
+// candidate text) during free-tier load spikes, and that empty response
+// usually resolves on a retry — it must not be treated as a permanent
+// failure of the whole provider.
+function isRetryableError(message: string): boolean {
+  return isTransientError(message) || /empty response/i.test(message);
 }
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function attemptGroq(params: AIGenerateParams): Promise<string> {
+export async function attemptGroq(params: AIGenerateParams): Promise<string> {
   const { systemInstruction, prompt, temperature = 0.3, maxTokens = 4096 } = params;
   const client = getGroqClient();
   let lastError = 'All Groq models failed';
@@ -72,7 +84,7 @@ async function attemptGroq(params: AIGenerateParams): Promise<string> {
         max_tokens: Math.min(maxTokens, 8192),
       });
       const content = response.choices[0]?.message?.content || '';
-      if (content) {
+      if (content && content.trim()) {
         logger.info('AI: Groq response received (' + content.length + ' chars)');
         return content;
       }
@@ -85,7 +97,7 @@ async function attemptGroq(params: AIGenerateParams): Promise<string> {
   throw new Error(lastError);
 }
 
-async function attemptGemini(params: AIGenerateParams): Promise<string> {
+export async function attemptGemini(params: AIGenerateParams): Promise<string> {
   const { systemInstruction, prompt, temperature = 0.3, maxTokens = 4096 } = params;
 
   logger.info('AI: Using Gemini (model: ' + GEMINI_MODEL + ')');
@@ -100,8 +112,20 @@ async function attemptGemini(params: AIGenerateParams): Promise<string> {
   });
 
   const content = result.response.text();
-  if (!content) {
-    throw new Error('Gemini returned an empty response');
+  if (!content || !content.trim()) {
+    // Attach response metadata so an empty result is diagnosable — e.g.
+    // finishReason=MAX_TOKENS (output truncated to nothing) or a safety
+    // block that produced no text parts.
+    const firstCandidate = result.response.candidates?.[0];
+    const details = [
+      firstCandidate?.finishReason ? 'finishReason=' + firstCandidate.finishReason : '',
+      result.response.promptFeedback?.blockReason
+        ? 'blockReason=' + result.response.promptFeedback.blockReason
+        : '',
+    ]
+      .filter(Boolean)
+      .join(', ');
+    throw new Error('Gemini returned an empty response' + (details ? ' (' + details + ')' : ''));
   }
   logger.info('AI: Gemini response received (' + content.length + ' chars)');
   return content;
@@ -135,29 +159,34 @@ export async function generateFromAI(params: AIGenerateParams): Promise<string> 
     throw new Error('All AI providers failed. Configure GEMINI_API_KEY for a fallback, or check your GROQ_API_KEY.');
   }
 
-  let lastError: unknown = new Error('All AI providers failed');
+  const providerErrors: string[] = [];
 
   for (const attempt of providers) {
     for (let tryCount = 0; tryCount < MAX_ATTEMPTS; tryCount++) {
       try {
         return await attempt();
       } catch (error) {
-        lastError = error;
         const errMsg = error instanceof Error ? error.message : String(error);
-        const transient = isTransientError(errMsg);
+        if (!providerErrors.includes(errMsg)) {
+          providerErrors.push(errMsg);
+        }
+        const retryable = isRetryableError(errMsg);
         logger.warn('AI: provider attempt failed (' + errMsg.slice(0, 180) + ')');
 
-        // Transient errors (429/503/quota) are worth retrying; permanent errors
-        // (invalid model, auth failure) should fall through to the next provider.
-        if (transient && tryCount < MAX_ATTEMPTS - 1) {
+        // Retryable failures (429/503/quota/empty responses) are worth retrying
+        // with backoff; permanent errors (invalid model, auth failure) should
+        // fall through to the next provider.
+        if (retryable && tryCount < MAX_ATTEMPTS - 1) {
           await sleep(RETRY_DELAY_MS * (tryCount + 1));
-        } else if (!transient) {
+        } else if (!retryable) {
           break;
         }
       }
     }
   }
 
-  const finalMessage = lastError instanceof Error ? lastError.message : String(lastError);
-  throw new Error('All AI providers failed. ' + finalMessage.slice(0, 300));
+  // Report EVERY provider's failure so the root cause is visible (e.g. both
+  // "Gemini returned an empty response" AND Groq's underlying error).
+  const detail = providerErrors.join(' | ');
+  throw new Error('All AI providers failed. ' + (detail || 'unknown').slice(0, 300));
 }

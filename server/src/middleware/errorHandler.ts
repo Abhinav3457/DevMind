@@ -70,10 +70,11 @@ export function globalErrorHandler(
     });
   }
 
+  // Never send the stack trace to the client — it leaks absolute server paths
+  // and internals. Stacks are logged server-side above for debugging instead.
   res.status(statusCode).json({
     success: false,
     message,
     ...(errors ? { errors } : {}),
-    ...(process.env.NODE_ENV === 'development' ? { stack: error.stack } : {}),
   });
 }

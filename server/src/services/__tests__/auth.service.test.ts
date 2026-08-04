@@ -73,14 +73,6 @@ function mockFindByIdToUser(user: unknown) {
   } as never);
 }
 
-/** Sets jwt.verify to return { userId: 'user-123' } — call at start of each test that needs jwt */
-function mockJwtVerifyValid() {
-  const jwtMod = { verify: vi.fn() };
-  // We need to access the mocked jwt module to set verify
-  // Since it's mocked, we import it which returns the factory's value
-  // The verify function is shared via the factory closure
-}
-
 describe('AuthService', () => {
   let authService: AuthService;
   // Access the shared jwt.verify mock

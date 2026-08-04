@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { RepoIntelligenceService } from '../repo-intelligence.service';
-import { ApiError } from '../../utils/apiResponse';
 
 const { mockGenerateFromAI, mockClassify, mockRetrieve, mockBuildPrompt, mockIndexReport } = vi.hoisted(() => ({
   mockGenerateFromAI: vi.fn().mockResolvedValue('AI response'),

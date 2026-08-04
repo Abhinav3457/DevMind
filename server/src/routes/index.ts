@@ -10,11 +10,13 @@ import docGeneratorRoutes from './doc-generator.routes';
 import chatRoutes from './chat.routes';
 import analyticsRoutes from './analytics.routes';
 import healthRoutes from './health.routes';
+import aiHealthRoutes from './ai-health.routes';
 import uploadRoutes from './upload.routes';
 
 const router = Router();
 
 router.use('/health', healthRoutes);
+router.use('/ai', aiHealthRoutes);
 router.use('/auth', authRoutes);
 router.use('/activity', activityRoutes);
 router.use('/notifications', notificationRoutes);

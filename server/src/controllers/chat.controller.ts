@@ -4,7 +4,6 @@ import { sendSuccess, sendCreated, ApiError } from '../utils/apiResponse';
 import Chat from '../models/Chat';
 import Message from '../models/Message';
 import { repoIntelligenceService } from '../services/repo-intelligence.service';
-import logger from '../utils/logger';
 
 interface ChatMessage {
   role: 'user' | 'assistant';

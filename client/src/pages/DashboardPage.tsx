@@ -7,6 +7,7 @@ import {
   TrendingUp, Zap, ChevronRight,
 } from 'lucide-react';
 import { StatCard } from '../components/dashboard/StatCard';
+import { AIProviderBanner } from '../components/dashboard/AIProviderBanner';
 import { useAuthStore } from '../store';
 import apiClient from '../api/axios';
 
@@ -99,6 +100,9 @@ export function DashboardPage() {
       animate="show"
       className="space-y-8"
     >
+      {/* ── AI Provider Status Banner ──────────────────────── */}
+      <AIProviderBanner />
+
       {/* ── Hero / Welcome Section ─────────────────────────── */}
       <motion.div variants={item} className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-surface-700/30 bg-gradient-to-br from-surface-900/60 via-surface-900/30 to-surface-950/60 p-4 sm:p-6 md:p-8">
         {/* Decorative gradient blobs - hidden on mobile */}

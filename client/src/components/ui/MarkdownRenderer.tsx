@@ -1,5 +1,6 @@
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
+import type { Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
 import { CodeBlock } from './CodeBlock';
@@ -46,18 +47,18 @@ function CustomHeading({ level, children, node: _node }: { level: number; childr
   }
 }
 
-const components: Record<string, React.ComponentType<any>> = {
+const components: Components = {
   code: ({ className, children }) => {
     const isInline = !(className || '').includes('language-');
     return React.createElement(CodeBlock, { className, inline: isInline }, children);
   },
   pre: ({ children }) => React.createElement(React.Fragment, null, children),
-  h1: (props: any) => React.createElement(CustomHeading, { level: 1, ...props }),
-  h2: (props: any) => React.createElement(CustomHeading, { level: 2, ...props }),
-  h3: (props: any) => React.createElement(CustomHeading, { level: 3, ...props }),
-  h4: (props: any) => React.createElement(CustomHeading, { level: 4, ...props }),
-  h5: (props: any) => React.createElement(CustomHeading, { level: 5, ...props }),
-  h6: (props: any) => React.createElement(CustomHeading, { level: 6, ...props }),
+  h1: (props) => React.createElement(CustomHeading, { level: 1, ...props }),
+  h2: (props) => React.createElement(CustomHeading, { level: 2, ...props }),
+  h3: (props) => React.createElement(CustomHeading, { level: 3, ...props }),
+  h4: (props) => React.createElement(CustomHeading, { level: 4, ...props }),
+  h5: (props) => React.createElement(CustomHeading, { level: 5, ...props }),
+  h6: (props) => React.createElement(CustomHeading, { level: 6, ...props }),
   a: ({ href, children }) => {
     const isExternal = href?.startsWith('http');
     return React.createElement('a', {
@@ -102,7 +103,7 @@ const components: Record<string, React.ComponentType<any>> = {
 
 export function MarkdownRenderer({ content, className = '' }: MarkdownRendererProps) {
   return React.createElement('div', { className: `markdown-content ${className}` },
-    React.createElement(ReactMarkdown as any, {
+    React.createElement(ReactMarkdown, {
       remarkPlugins: [remarkGfm],
       rehypePlugins: [rehypeHighlight],
       components,
