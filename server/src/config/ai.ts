@@ -38,8 +38,9 @@ const GEMINI_MODEL = 'gemini-3.5-flash';
 
 // How many times to retry a single provider on transient failures (429/503/5xx),
 // and the base delay between attempts (grows with each retry).
-const MAX_ATTEMPTS = 2;
-const RETRY_DELAY_MS = 1500;
+// Gemini free-tier 503 spikes are common and usually resolve within 5-10s.
+const MAX_ATTEMPTS = 3;
+const RETRY_DELAY_MS = 3000;
 
 function isTransientError(message: string): boolean {
   return (
