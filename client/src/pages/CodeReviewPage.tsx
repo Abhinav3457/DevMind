@@ -228,7 +228,7 @@ export function CodeReviewPage() {
         setLastShareToken(data.shareToken || null);
       }
     } catch {
-      toast.error('Failed to load review');
+      // Error toast is already shown by the axios interceptor
     } finally {
       setLoading(false);
     }
@@ -240,7 +240,7 @@ export function CodeReviewPage() {
       setHistory((prev) => prev.filter((h) => h.id !== id));
       toast.success('Review deleted');
     } catch {
-      toast.error('Failed to delete review');
+      // Error toast is already shown by the axios interceptor
     }
   };
 
@@ -291,7 +291,7 @@ export function CodeReviewPage() {
       setLastShareToken(typeof data?.shareToken === 'string' ? data.shareToken : null);
       toast.success('Code review complete!');
     } catch {
-      toast.error('Failed to review code. Please try again.');
+      // Error toast is already shown by the axios interceptor
     } finally { setLoading(false); }
   };
 
@@ -312,7 +312,7 @@ export function CodeReviewPage() {
       setLastShareToken(typeof data?.shareToken === 'string' ? data.shareToken : null);
       toast.success('Repository review complete!');
     } catch {
-      toast.error('Failed to review repository. Make sure it is indexed and try again.');
+      // Error toast is already shown by the axios interceptor
     } finally { setLoading(false); }
   };
 
