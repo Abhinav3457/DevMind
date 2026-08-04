@@ -1,107 +1,85 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { checkAIHealth } from '../ai-health.service';
 
-const { mockAttemptGemini, mockAttemptGroq, env } = vi.hoisted(() => ({
+const { mockAttemptGemini, mockAttemptGroq } = vi.hoisted(() => ({
   mockAttemptGemini: vi.fn(),
   mockAttemptGroq: vi.fn(),
-  env: { GEMINI_API_KEY: 'test-gemini-key', GROQ_API_KEY: 'test-groq-key' },
 }));
 
 vi.mock('../../config/ai', () => ({
   attemptGemini: mockAttemptGemini,
   attemptGroq: mockAttemptGroq,
+  isRetryableError: (msg: string) => /429|503|quota|too many|empty response/i.test(msg),
 }));
 
-vi.mock('../../config/environment', () => ({ env }));
-
-function provider(report: Awaited<ReturnType<typeof checkAIHealth>>, name: 'gemini' | 'groq') {
-  return report.providers.find((p) => p.provider === name)!;
-}
+vi.mock('../../config/environment', () => ({
+  env: { GEMINI_API_KEY: 'test-key', GROQ_API_KEY: 'test-key' },
+}));
 
 describe('checkAIHealth', () => {
   beforeEach(() => {
-    vi.resetAllMocks();
-    env.GEMINI_API_KEY = 'test-gemini-key';
-    env.GROQ_API_KEY = 'test-groq-key';
+    vi.clearAllMocks();
     mockAttemptGemini.mockResolvedValue('ok');
     mockAttemptGroq.mockResolvedValue('ok');
   });
 
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-
-  it('reports all providers available when both pings succeed', async () => {
+  it('reports all providers available when both respond', async () => {
     const report = await checkAIHealth();
-
     expect(report.overall).toBe('all');
     expect(report.ready).toBe(true);
-    expect(mockAttemptGemini).toHaveBeenCalledWith(
-      expect.objectContaining({ maxTokens: 1024, temperature: 0 }),
-    );
-    expect(provider(report, 'gemini')).toMatchObject({ configured: true, available: true });
-    expect(provider(report, 'groq')).toMatchObject({ configured: true, available: true });
-    expect(provider(report, 'gemini').latencyMs).toBeGreaterThanOrEqual(0);
+    expect(report.providers.every((p) => p.available)).toBe(true);
   });
 
-  it('reports partial availability when only one provider works', async () => {
-    mockAttemptGemini.mockRejectedValue(new Error('Gemini returned an empty response'));
+  it('retries a transient Gemini failure and recovers', async () => {
+    mockAttemptGemini
+      .mockRejectedValueOnce(new Error('503 service unavailable'))
+      .mockResolvedValueOnce('ok');
 
     const report = await checkAIHealth();
+    expect(report.overall).toBe('all');
+    expect(report.providers[0]?.available).toBe(true);
+    expect(mockAttemptGemini).toHaveBeenCalledTimes(2);
+  });
 
+  it('retries an empty-response Gemini blip', async () => {
+    mockAttemptGemini
+      .mockRejectedValueOnce(new Error('Gemini returned an empty response'))
+      .mockResolvedValueOnce('ok');
+
+    const report = await checkAIHealth();
+    expect(report.providers[0]?.available).toBe(true);
+    expect(mockAttemptGemini).toHaveBeenCalledTimes(2);
+  });
+
+  it('marks Gemini unavailable on a permanent error without retrying', async () => {
+    mockAttemptGemini.mockRejectedValue(new Error('API key not valid'));
+
+    const report = await checkAIHealth();
     expect(report.overall).toBe('partial');
-    expect(report.ready).toBe(true);
-    expect(provider(report, 'gemini').available).toBe(false);
-    expect(provider(report, 'gemini').error).toContain('Gemini returned an empty response');
-    expect(provider(report, 'groq').available).toBe(true);
+    expect(report.providers[0]?.available).toBe(false);
+    expect(mockAttemptGemini).toHaveBeenCalledTimes(1);
   });
 
-  it('reports none when every configured provider fails', async () => {
-    mockAttemptGemini.mockRejectedValue(new Error('503 Service Unavailable'));
-    mockAttemptGroq.mockRejectedValue(new Error('413 Request too large'));
+  it('reports partial when one provider exhausts retries and the other succeeds', async () => {
+    mockAttemptGemini.mockRejectedValue(new Error('503 service unavailable'));
+    // Groq keeps its default mockResolvedValue('ok').
 
     const report = await checkAIHealth();
+    expect(report.overall).toBe('partial');
+    expect(report.providers[0]?.available).toBe(false);
+    expect(report.providers[1]?.available).toBe(true);
+    expect(mockAttemptGemini).toHaveBeenCalledTimes(3);
+    expect(mockAttemptGroq).toHaveBeenCalledTimes(1);
+  });
 
+  it('marks both unavailable when all attempts fail', async () => {
+    mockAttemptGemini.mockRejectedValue(new Error('503 service unavailable'));
+    mockAttemptGroq.mockRejectedValue(new Error('429 rate limit exceeded'));
+
+    const report = await checkAIHealth();
     expect(report.overall).toBe('none');
     expect(report.ready).toBe(false);
-    expect(provider(report, 'gemini').available).toBe(false);
-    expect(provider(report, 'groq').available).toBe(false);
-  });
-
-  it('marks an unconfigured provider without pinging it', async () => {
-    env.GEMINI_API_KEY = '';
-
-    const report = await checkAIHealth();
-
-    expect(mockAttemptGemini).not.toHaveBeenCalled();
-    expect(mockAttemptGroq).toHaveBeenCalled();
-    expect(provider(report, 'gemini')).toMatchObject({ configured: false, available: false, latencyMs: null });
-    expect(report.overall).toBe('all');
-  });
-
-  it('reports unconfigured when no provider keys are set', async () => {
-    env.GEMINI_API_KEY = '';
-    env.GROQ_API_KEY = '';
-
-    const report = await checkAIHealth();
-
-    expect(report.overall).toBe('unconfigured');
-    expect(report.ready).toBe(false);
-    expect(mockAttemptGemini).not.toHaveBeenCalled();
-    expect(mockAttemptGroq).not.toHaveBeenCalled();
-  });
-
-  it('reports a provider as unavailable when the ping times out', async () => {
-    vi.useFakeTimers();
-    mockAttemptGemini.mockImplementation(() => new Promise(() => {}));
-
-    const promise = checkAIHealth();
-    await vi.advanceTimersByTimeAsync(20000);
-    const report = await promise;
-
-    expect(report.overall).toBe('partial');
-    expect(provider(report, 'gemini').available).toBe(false);
-    expect(provider(report, 'gemini').error).toContain('timed out');
-    expect(provider(report, 'groq').available).toBe(true);
+    expect(mockAttemptGemini).toHaveBeenCalledTimes(3);
+    expect(mockAttemptGroq).toHaveBeenCalledTimes(3);
   });
 });

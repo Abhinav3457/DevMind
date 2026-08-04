@@ -58,7 +58,7 @@ function isTransientError(message: string): boolean {
 // candidate text) during free-tier load spikes, and that empty response
 // usually resolves on a retry — it must not be treated as a permanent
 // failure of the whole provider.
-function isRetryableError(message: string): boolean {
+export function isRetryableError(message: string): boolean {
   return isTransientError(message) || /empty response/i.test(message);
 }
 
