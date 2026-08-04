@@ -24,3 +24,5 @@ export { default as OAuthState } from './OAuthState';
 export type { IOAuthState } from './OAuthState';
 export { default as Upload } from './Upload';
 export type { IUpload } from './Upload';
+export { default as AgentRun } from './AgentRun';
+export type { IAgentRun, IAgentStep, IAgentPlanStep, IAgentChange, IAgentSolution, AgentToolName } from './AgentRun';

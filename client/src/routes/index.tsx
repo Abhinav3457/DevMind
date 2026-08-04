@@ -6,6 +6,7 @@ import { ResetPasswordPage } from '../pages/ResetPasswordPage';
 import { VerifyEmailPage } from '../pages/VerifyEmailPage';
 import { DashboardPage } from '../pages/DashboardPage';
 import { AiChatPage } from '../pages/AiChatPage';
+import { AgentPage } from '../pages/AgentPage';
 import { CodeReviewPage } from '../pages/CodeReviewPage';
 import { DocGeneratorPage } from '../pages/DocGeneratorPage';
 import { GitHubPage } from '../pages/GitHubPage';
@@ -29,6 +30,7 @@ export function AppRoutes() {
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/github" element={<GitHubPage />} />
+        <Route path="/ai/agent" element={<AgentPage />} />
         <Route path="/ai/chat" element={<AiChatPage />} />
         <Route path="/ai/code-review" element={<CodeReviewPage />} />
         <Route path="/ai/docs" element={<DocGeneratorPage />} />

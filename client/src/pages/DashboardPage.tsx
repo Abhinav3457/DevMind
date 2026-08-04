@@ -31,7 +31,8 @@ interface DashboardStats {
 
 const quickActions = [
   { to: '/github', label: 'Import Repository', icon: Github, color: 'purple', desc: 'Analyze your codebase' },
-  { to: '/ai/chat', label: 'AI Chat', icon: Bot, color: 'green', desc: 'Get coding assistance' },
+  { to: '/ai/agent', label: 'AI Agent', icon: Bot, color: 'green', desc: 'Autonomous coding tasks' },
+  { to: '/ai/chat', label: 'AI Chat', icon: Bot, color: 'cyan', desc: 'Get coding assistance' },
   { to: '/ai/code-review', label: 'Code Review', icon: Bug, color: 'amber', desc: 'Review code quality' },
   { to: '/ai/docs', label: 'Documentation', icon: FileText, color: 'cyan', desc: 'Generate project docs' },
   { to: '/analytics', label: 'Analytics', icon: TrendingUp, color: 'indigo', desc: 'View detailed metrics' },

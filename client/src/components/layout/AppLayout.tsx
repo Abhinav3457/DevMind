@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  LayoutDashboard, Code2, Brain, Bug, FileText,
+  LayoutDashboard, Code2, Brain, Bug, FileText, Bot,
   Github, BarChart3, LogOut, ChevronLeft,
   Bell, Menu, X, Sun, Moon, Loader2,
   CheckCheck, Search,
@@ -26,6 +26,7 @@ interface AppNotification {
 const navItems = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/github', icon: Github, label: 'GitHub' },
+  { to: '/ai/agent', icon: Bot, label: 'AI Agent' },
   { to: '/ai/chat', icon: Brain, label: 'AI Chat' },
   { to: '/ai/code-review', icon: Bug, label: 'Code Review' },
   { to: '/ai/docs', icon: FileText, label: 'Documentation' },
