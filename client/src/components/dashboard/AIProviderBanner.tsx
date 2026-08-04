@@ -6,7 +6,7 @@ import {
 import { fetchAIHealth } from '../../services/aiHealth';
 import { AIHealthReport, AIProviderHealth } from '../../types';
 
-const POLL_INTERVAL_MS = 60000;
+const POLL_INTERVAL_MS = 120000;
 
 function ProviderChip(provider: AIProviderHealth) {
   const dotClass = !provider.configured
@@ -65,9 +65,21 @@ export function AIProviderBanner() {
     }
   }, []);
 
+  // Refresh immediately when the tab becomes visible again, and pause the
+  // interval while hidden so an open-but-unfocused tab never burns API quota.
+  useEffect(() => {
+    const onVisible = () => {
+      if (!document.hidden) void check();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [check]);
+
   useEffect(() => {
     check();
-    const interval = setInterval(check, POLL_INTERVAL_MS);
+    const interval = setInterval(() => {
+      if (!document.hidden) void check();
+    }, POLL_INTERVAL_MS);
     return () => clearInterval(interval);
   }, [check]);
 

@@ -154,23 +154,38 @@ export function AgentPage() {
     loadRuns();
   }, [loadRuns]);
 
-  // Poll the selected run while it is actively working
+  // Poll the selected run while it is actively working. Poll at 3s — fast enough
+  // to feel live, but light on the API (a full run uses ~10-20 requests instead
+  // of 40+). Paused while the tab is hidden so background tabs never burn quota,
+  // and refreshes instantly when the tab becomes visible again.
   const activeRunId = selected && selected.status !== 'completed' && selected.status !== 'failed'
     ? selected.id
     : null;
+  const pollActiveRun = useCallback(async () => {
+    if (!activeRunId || document.hidden) return;
+    try {
+      const fresh = await fetchAgentRun(activeRunId);
+      setSelected(fresh);
+      setRuns((prev) => prev.map((r) => (r.id === fresh.id ? fresh : r)));
+    } catch {
+      /* ignore transient poll failures */
+    }
+  }, [activeRunId]);
+
   useEffect(() => {
     if (!activeRunId) return;
-    const timer = setInterval(async () => {
-      try {
-        const fresh = await fetchAgentRun(activeRunId);
-        setSelected(fresh);
-        setRuns((prev) => prev.map((r) => (r.id === fresh.id ? fresh : r)));
-      } catch {
-        /* ignore transient poll failures */
-      }
-    }, 1500);
+    const timer = setInterval(() => void pollActiveRun(), 3000);
     return () => clearInterval(timer);
-  }, [activeRunId]);
+  }, [activeRunId, pollActiveRun]);
+
+  useEffect(() => {
+    if (!activeRunId) return;
+    const onVisible = () => {
+      if (!document.hidden) void pollActiveRun();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [activeRunId, pollActiveRun]);
 
   const handleCreate = async () => {
     if (!reportId || task.trim().length < 10 || submitting) return;

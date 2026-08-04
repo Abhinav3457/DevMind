@@ -38,12 +38,16 @@ app.get('/api/v1/health', (_req: Request, res: Response) => {
   });
 });
 
-// General API rate limiting
+// General API rate limiting. Kept generous (200/15min) because the client
+// polls (agent progress every 3s, AI health every 2min) and a few minutes of
+// active use would otherwise trip a tight limit. Auth endpoints stay strict.
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: 200,
   standardHeaders: true,
   legacyHeaders: false,
+  // Health checks are monitoring, not user traffic — never let them eat quota.
+  skip: (req: Request) => req.path === '/ai/health',
   message: { success: false, message: 'Too many requests, please try again later.' },
 });
 app.use('/api/v1', generalLimiter);
