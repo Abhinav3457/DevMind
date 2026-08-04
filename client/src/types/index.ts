@@ -89,25 +89,6 @@ export type FileLanguage =
   | 'json'
   | 'markdown';
 
-export type AIProviderName = 'gemini' | 'groq';
-
-export type AIHealthOverall = 'unconfigured' | 'all' | 'partial' | 'none';
-
-export interface AIProviderHealth {
-  provider: AIProviderName;
-  configured: boolean;
-  available: boolean;
-  latencyMs: number | null;
-  error?: string;
-}
-
-export interface AIHealthReport {
-  overall: AIHealthOverall;
-  ready: boolean;
-  checkedAt: string;
-  providers: AIProviderHealth[];
-}
-
 export type AgentToolName = 'search' | 'read_file' | 'list_files' | 'analyze' | 'propose_change';
 
 export type AgentRunStatus = 'queued' | 'running' | 'completed' | 'failed';
