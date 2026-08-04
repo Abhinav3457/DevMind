@@ -4,7 +4,12 @@ import { sendSuccess } from '../utils/apiResponse';
 
 export class AIHealthController {
   async check(req: Request, res: Response): Promise<void> {
-    const data = await checkAIHealth();
+    // ?refresh=1 (manual "Check" clicks) and ?strict=1 (uptime monitoring)
+    // force a live probe; the default client poll reuses the cached report so
+    // background checks don't burn provider quota.
+    const refresh = req.query.refresh === '1' || req.query.refresh === 'true';
+    const strict = req.query.strict === '1' || req.query.strict === 'true';
+    const data = await checkAIHealth(refresh || strict);
 
     // Default (client polling): always 200 — provider availability is conveyed
     // in the payload so expected "down" states don't trigger client error

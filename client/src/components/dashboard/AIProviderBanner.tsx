@@ -6,7 +6,10 @@ import {
 import { fetchAIHealth } from '../../services/aiHealth';
 import { AIHealthReport, AIProviderHealth } from '../../types';
 
-const POLL_INTERVAL_MS = 120000;
+// Matches the server-side health cache TTL (5 min): background polls reuse the
+// cached report instead of firing real generation requests, so the banner never
+// burns provider quota (Gemini free tier can cap at ~20 requests/day).
+const POLL_INTERVAL_MS = 300000;
 
 function ProviderChip(provider: AIProviderHealth) {
   const dotClass = !provider.configured
@@ -50,12 +53,15 @@ export function AIProviderBanner() {
   const [fetchFailed, setFetchFailed] = useState(false);
   const inFlight = useRef(false);
 
-  const check = useCallback(async () => {
+  // Live probes (fetchAIHealth(true)) only happen on explicit user action — the
+  // initial page load and manual "Check" clicks. Background polls and tab
+  // refocuses reuse the server-cached report so they never cost provider quota.
+  const check = useCallback(async (refresh = false) => {
     if (inFlight.current) return;
     inFlight.current = true;
     setLoading(true);
     try {
-      setReport(await fetchAIHealth());
+      setReport(await fetchAIHealth(refresh));
       setFetchFailed(false);
     } catch {
       setFetchFailed(true);
@@ -69,16 +75,16 @@ export function AIProviderBanner() {
   // interval while hidden so an open-but-unfocused tab never burns API quota.
   useEffect(() => {
     const onVisible = () => {
-      if (!document.hidden) void check();
+      if (!document.hidden) void check(false);
     };
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, [check]);
 
   useEffect(() => {
-    check();
+    void check(true);
     const interval = setInterval(() => {
-      if (!document.hidden) void check();
+      if (!document.hidden) void check(false);
     }, POLL_INTERVAL_MS);
     return () => clearInterval(interval);
   }, [check]);
@@ -98,7 +104,7 @@ export function AIProviderBanner() {
           Could not reach the AI health service — the server may be offline.
         </p>
         <button
-          onClick={check}
+          onClick={() => check(true)}
           disabled={loading}
           className="flex items-center gap-1 rounded-lg border border-surface-700 bg-surface-800/70 px-2 py-1 text-[10px] font-medium text-surface-300 transition-colors hover:text-surface-100 disabled:opacity-50"
         >
@@ -174,7 +180,7 @@ export function AIProviderBanner() {
       </div>
       <span className="hidden lg:inline text-[10px] text-surface-500">updated {lastChecked}</span>
       <button
-        onClick={check}
+        onClick={() => check(true)}
         disabled={loading}
         title="Check again"
         aria-label="Re-check AI providers"

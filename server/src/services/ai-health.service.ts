@@ -24,6 +24,32 @@ const PING_TIMEOUT_MS = 15000;
 const PING_MAX_ATTEMPTS = 3;
 const PING_RETRY_DELAY_MS = 1000;
 
+// Gemini free-tier keys can be capped as low as ~20 requests/day per model,
+// and each health probe is a real generation request. Cache results so the
+// client's background polling, page loads, and tab-refocuses reuse one probe
+// instead of hammering the API. Healthy results are cached briefly; degraded
+// results (a provider down/quota-exhausted) are cached longer because a
+// failure won't clear within the poll window anyway.
+const CACHE_TTL_MS = 300000; // 5 min — matches the client poll interval
+const CACHE_TTL_DEGRADED_MS = 600000; // 10 min when any provider is unavailable
+
+let cachedReport: AIHealthReport | null = null;
+let cacheExpiresAt = 0;
+
+// Exported for tests (and any callers that need to invalidate the cache).
+export function resetAIHealthCache(): void {
+  cachedReport = null;
+  cacheExpiresAt = 0;
+}
+
+// Free-tier quota exhaustion (e.g. "Quota exceeded for metric ...
+// GenerateRequestsPerDayPerProjectPerModel-FreeTier, limit: 20") will not
+// reset within the probe deadline, so retrying only re-hits the API.
+// Plain transient 429s (short burst limits) are still retried normally.
+function isQuotaExhausted(message: string): boolean {
+  return /quota exceeded|per (day|minute|hour)|daily quota|GenerateRequestsPerDay/i.test(message);
+}
+
 const PING_PARAMS: AIGenerateParams = {
   systemInstruction: 'You are a health-check probe. Reply with exactly the single word ok.',
   prompt: 'Reply with exactly the single word ok.',
@@ -69,7 +95,10 @@ async function pingProvider(
       lastError = error instanceof Error ? error.message : String(error);
       // Mirrors generateFromAI: transient 429/503/quota/empty blips get retried
       // with backoff so the banner doesn't cry wolf on a single bad response.
-      if (attempt >= PING_MAX_ATTEMPTS - 1 || !isRetryableError(lastError)) break;
+      // Exhausted quotas are NOT retried — they burn requests without clearing.
+      if (attempt >= PING_MAX_ATTEMPTS - 1 || !isRetryableError(lastError) || isQuotaExhausted(lastError)) {
+        break;
+      }
       // Never sleep past the overall deadline.
       const backoffMs = Math.min(PING_RETRY_DELAY_MS * (attempt + 1), deadline - Date.now());
       if (backoffMs > 0) await sleep(backoffMs);
@@ -85,7 +114,12 @@ async function pingProvider(
   };
 }
 
-export async function checkAIHealth(): Promise<AIHealthReport> {
+export async function checkAIHealth(refresh = false): Promise<AIHealthReport> {
+  const now = Date.now();
+  if (!refresh && cachedReport && now < cacheExpiresAt) {
+    return cachedReport;
+  }
+
   const geminiConfigured = !!env.GEMINI_API_KEY;
   const groqConfigured = !!env.GROQ_API_KEY;
 
@@ -110,10 +144,18 @@ export async function checkAIHealth(): Promise<AIHealthReport> {
   else if (available === 0) overall = 'none';
   else overall = 'partial';
 
-  return {
+  const report: AIHealthReport = {
     overall,
     ready: available > 0,
     checkedAt: new Date().toISOString(),
     providers,
   };
+
+  // Degraded results are cached longer: a down provider is unlikely to recover
+  // between polls, so re-probing it every cycle just wastes requests.
+  const degraded = providers.some((p) => p.configured && !p.available);
+  cachedReport = report;
+  cacheExpiresAt = now + (degraded ? CACHE_TTL_DEGRADED_MS : CACHE_TTL_MS);
+
+  return report;
 }

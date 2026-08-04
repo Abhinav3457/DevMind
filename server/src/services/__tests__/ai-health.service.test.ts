@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { checkAIHealth } from '../ai-health.service';
+import { checkAIHealth, resetAIHealthCache } from '../ai-health.service';
 
 const { mockAttemptGemini, mockAttemptGroq } = vi.hoisted(() => ({
   mockAttemptGemini: vi.fn(),
@@ -19,6 +19,7 @@ vi.mock('../../config/environment', () => ({
 describe('checkAIHealth', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resetAIHealthCache();
     mockAttemptGemini.mockResolvedValue('ok');
     mockAttemptGroq.mockResolvedValue('ok');
   });
@@ -81,5 +82,32 @@ describe('checkAIHealth', () => {
     expect(report.ready).toBe(false);
     expect(mockAttemptGemini).toHaveBeenCalledTimes(3);
     expect(mockAttemptGroq).toHaveBeenCalledTimes(3);
+  });
+
+  it('does not retry an exhausted quota error', async () => {
+    mockAttemptGemini.mockRejectedValue(
+      new Error('Quota exceeded for metric: generate_content_free_tier_requests, limit: 20'),
+    );
+
+    const report = await checkAIHealth();
+    expect(report.providers[0]?.available).toBe(false);
+    expect(mockAttemptGemini).toHaveBeenCalledTimes(1);
+  });
+
+  it('reuses a cached report on subsequent non-refresh checks', async () => {
+    const first = await checkAIHealth();
+    const second = await checkAIHealth();
+
+    expect(second).toBe(first);
+    expect(mockAttemptGemini).toHaveBeenCalledTimes(1);
+    expect(mockAttemptGroq).toHaveBeenCalledTimes(1);
+  });
+
+  it('forces a fresh probe when refresh is requested', async () => {
+    await checkAIHealth();
+    await checkAIHealth(true);
+
+    expect(mockAttemptGemini).toHaveBeenCalledTimes(2);
+    expect(mockAttemptGroq).toHaveBeenCalledTimes(2);
   });
 });
