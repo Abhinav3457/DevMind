@@ -30,16 +30,24 @@ const PING_RETRY_DELAY_MS = 1000;
 // instead of hammering the API. Healthy results are cached briefly; degraded
 // results (a provider down/quota-exhausted) are cached longer because a
 // failure won't clear within the poll window anyway.
-const CACHE_TTL_MS = 300000; // 5 min — matches the client poll interval
+// Healthy results are cached for 6 min — strictly longer than the client poll
+// interval (5 min), so background polls land inside the cache window instead of
+// racing its expiry and re-probing every cycle.
+const CACHE_TTL_MS = 360000; // 6 min
 const CACHE_TTL_DEGRADED_MS = 600000; // 10 min when any provider is unavailable
+// Forced refreshes (?refresh=1) are still throttled so a chatty client or
+// misconfigured monitor can't hammer the provider with live probes.
+const MIN_REFRESH_INTERVAL_MS = 60000;
 
 let cachedReport: AIHealthReport | null = null;
 let cacheExpiresAt = 0;
+let lastForcedProbeAt = 0;
 
 // Exported for tests (and any callers that need to invalidate the cache).
 export function resetAIHealthCache(): void {
   cachedReport = null;
   cacheExpiresAt = 0;
+  lastForcedProbeAt = 0;
 }
 
 // Free-tier quota exhaustion (e.g. "Quota exceeded for metric ...
@@ -116,7 +124,8 @@ async function pingProvider(
 
 export async function checkAIHealth(refresh = false): Promise<AIHealthReport> {
   const now = Date.now();
-  if (!refresh && cachedReport && now < cacheExpiresAt) {
+  const forced = refresh && now - lastForcedProbeAt >= MIN_REFRESH_INTERVAL_MS;
+  if (!forced && cachedReport && now < cacheExpiresAt) {
     return cachedReport;
   }
 
@@ -156,6 +165,7 @@ export async function checkAIHealth(refresh = false): Promise<AIHealthReport> {
   const degraded = providers.some((p) => p.configured && !p.available);
   cachedReport = report;
   cacheExpiresAt = now + (degraded ? CACHE_TTL_DEGRADED_MS : CACHE_TTL_MS);
+  if (forced) lastForcedProbeAt = now;
 
   return report;
 }

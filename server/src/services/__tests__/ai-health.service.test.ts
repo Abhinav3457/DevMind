@@ -110,4 +110,12 @@ describe('checkAIHealth', () => {
     expect(mockAttemptGemini).toHaveBeenCalledTimes(2);
     expect(mockAttemptGroq).toHaveBeenCalledTimes(2);
   });
+
+  it('throttles forced refreshes within the cooldown window', async () => {
+    await checkAIHealth(true);
+    await checkAIHealth(true);
+
+    expect(mockAttemptGemini).toHaveBeenCalledTimes(1);
+    expect(mockAttemptGroq).toHaveBeenCalledTimes(1);
+  });
 });

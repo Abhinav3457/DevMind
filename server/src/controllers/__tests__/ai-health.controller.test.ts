@@ -58,6 +58,34 @@ describe('AIHealthController', () => {
     );
   });
 
+  it('reuses the cached report (no live probe) by default', async () => {
+    mockCheckAIHealth.mockResolvedValue(healthyReport);
+    const res = createMockRes();
+
+    await controller.check(createMockReq(), res);
+
+    expect(mockCheckAIHealth).toHaveBeenCalledWith(false);
+  });
+
+  it('requests a live probe only when refresh is set', async () => {
+    mockCheckAIHealth.mockResolvedValue(healthyReport);
+    const res = createMockRes();
+
+    await controller.check(createMockReq({ refresh: '1' }), res);
+
+    expect(mockCheckAIHealth).toHaveBeenCalledWith(true);
+  });
+
+  it('strict mode reuses the cached report too', async () => {
+    mockCheckAIHealth.mockResolvedValue(unhealthyReport);
+    const res = createMockRes();
+
+    await controller.check(createMockReq({ strict: '1' }), res);
+
+    expect(mockCheckAIHealth).toHaveBeenCalledWith(false);
+    expect(res.status).toHaveBeenCalledWith(503);
+  });
+
   it('still returns 200 when providers are down unless strict is set', async () => {
     mockCheckAIHealth.mockResolvedValue(unhealthyReport);
     const res = createMockRes();
