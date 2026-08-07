@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-  FileCode, Activity,
+  FileCode,
   Github, Bot, Bug, FileText,
   TrendingUp, Star,
   ArrowRight, Check,
@@ -28,7 +28,6 @@ interface DashboardStats {
   healthScore: number;
   aiOperations: number;
   stars: number;
-  recentActivity: { type: string; description: string; timestamp: string }[];
 }
 
 const quickActions = [
@@ -104,18 +103,8 @@ export function DashboardPage() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const [analyticsRes, activityRes] = await Promise.all([
-          apiClient.get('/analytics'),
-          apiClient.get('/activity?limit=6'),
-        ]);
-        const overview: AnalyticsOverview = analyticsRes.data.data?.overview || {};
-        const recentActivity = (activityRes.data.data?.activities || []).map(
-          (a: { description: string; timestamp: string }) => ({
-            type: 'event',
-            description: a.description,
-            timestamp: a.timestamp,
-          }),
-        );
+        const res = await apiClient.get('/analytics');
+        const overview: AnalyticsOverview = res.data.data?.overview || {};
         setStats({
           repositories: overview.repositories || 0,
           indexedRepos: overview.indexedRepos || 0,
@@ -123,10 +112,9 @@ export function DashboardPage() {
           healthScore: overview.healthScore || 0,
           aiOperations: overview.aiOperations || 0,
           stars: overview.stars || 0,
-          recentActivity,
         });
       } catch {
-        setStats({ repositories: 0, indexedRepos: 0, indexedFiles: 0, healthScore: 0, aiOperations: 0, stars: 0, recentActivity: [] });
+        setStats({ repositories: 0, indexedRepos: 0, indexedFiles: 0, healthScore: 0, aiOperations: 0, stars: 0 });
       } finally {
         setLoading(false);
       }
@@ -199,42 +187,7 @@ export function DashboardPage() {
         </motion.div>
       )}
 
-      {/* ── Recent Activity ────────────────────────────────── */}
-      {!loading && stats && (
-        <motion.div variants={item}>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-surface-200">Recent Activity</h2>
-            {stats.recentActivity.length > 0 && (
-              <Link to="/analytics" className="text-xs text-primary-400 hover:text-primary-300 transition-colors">View all</Link>
-            )}
-          </div>
 
-          <div className="rounded-xl border border-surface-700/40 bg-surface-900/40">
-            {stats.recentActivity.length > 0 ? (
-              <div className="divide-y divide-surface-700/40">
-                {stats.recentActivity.map((activity, i) => (
-                  <div key={i} className="flex items-center gap-3 px-4 py-3 hover:bg-surface-800/30 transition-colors">
-                    <Activity className="h-4 w-4 text-surface-500 flex-shrink-0" />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm text-surface-300 truncate">{activity.description}</p>
-                    </div>
-                    <span className="text-xs text-surface-500 flex-shrink-0">
-                      {new Date(activity.timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="py-8 text-center">
-                <p className="text-sm text-surface-500">No recent activity</p>
-                <Link to="/github" className="mt-2 inline-flex items-center gap-1 text-xs text-primary-400 hover:text-primary-300">
-                  Import a repository <ArrowRight className="h-3 w-3" />
-                </Link>
-              </div>
-            )}
-          </div>
-        </motion.div>
-      )}
     </motion.div>
   );
 }
