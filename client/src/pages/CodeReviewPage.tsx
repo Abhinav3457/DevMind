@@ -356,7 +356,7 @@ export function CodeReviewPage() {
             <Brain className="h-5 w-5 sm:h-6 sm:w-6 text-primary-400" />
             AI Code Review
           </h1>
-          <p className="mt-0.5 text-xs sm:text-sm text-surface-400">Get instant feedback on your code quality, security, and performance</p>
+          <p className="mt-0.5 text-xs sm:text-sm text-surface-400">Instant AI feedback on code quality, security, and performance</p>
         </div>
         <div className="flex rounded-lg border border-surface-700 bg-surface-800 p-0.5 self-start sm:self-auto">
           <button onClick={() => setMode('snippet')}
@@ -388,9 +388,9 @@ export function CodeReviewPage() {
               ) : history.length === 0 ? (
                 <div className="rounded-xl border border-surface-700 bg-surface-900/50 p-8 text-center">
                   <Clock className="mx-auto mb-3 h-8 w-8 text-surface-600" />
-                  <p className="text-sm font-medium text-surface-300">No past reviews yet</p>
+                  <p className="text-sm font-medium text-surface-300">No reviews yet</p>
                   <p className="mt-1 text-xs text-surface-500">
-                    Run a code or repository review and it will show up here so you can revisit it later.
+                    Your completed code and repository reviews will appear here for future reference.
                   </p>
                 </div>
               ) : (
@@ -478,7 +478,7 @@ export function CodeReviewPage() {
                     </select>
                   </div>
                   <p className="mt-2 text-xs text-surface-500">
-                    The AI will analyze all indexed files in this repository.
+                    The AI will analyze every indexed file in this repository.
                   </p>
                 </div>
               )}
@@ -532,7 +532,7 @@ export function CodeReviewPage() {
                   />
                 </div>
                 {!code.trim() && (
-                  <p className="mt-1.5 text-[10px] text-surface-500">Start typing or paste code — language is detected automatically</p>
+                  <p className="mt-1.5 text-[10px] text-surface-500">Start typing or paste code — the language is detected automatically</p>
                 )}
               </div>
 
@@ -592,9 +592,9 @@ export function CodeReviewPage() {
                 <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 ring-1 ring-blue-500/20">
                   <Brain className="h-7 w-7 text-primary-400" />
                 </div>
-                <p className="text-sm font-medium text-surface-300">Ready to Review</p>
+                <p className="text-sm font-medium text-surface-300">Ready to review</p>
                 <p className="mt-1 text-xs text-surface-500 max-w-xs">
-                  Paste your code on the left, then click <span className="text-primary-400 font-medium">Review Code</span> to get AI-powered feedback
+                  Paste code on the left, then click <span className="text-primary-400 font-medium">Review Code</span> for AI-powered feedback
                 </p>
                 <div className="mt-5 grid grid-cols-1 gap-2 text-[10px] text-surface-500 min-[420px]:grid-cols-3">
                   <div className="rounded-lg bg-surface-800/50 p-2 text-center">

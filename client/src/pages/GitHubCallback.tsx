@@ -43,8 +43,8 @@ export function GitHubCallback() {
       try {
         await apiClient.post('/github/auth/callback', { code, state });
         setStatus('success');
-        setMessage('GitHub account connected successfully! You can close this window.');
-        toast.success('GitHub connected!');
+        setMessage('GitHub account connected successfully. You can close this window.');
+        toast.success('GitHub connected.');
         setTimeout(() => window.close(), 1500);
       } catch (err: unknown) {
         const serverMsg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
@@ -85,7 +85,7 @@ export function GitHubCallback() {
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-amber-500/20">
               <AlertTriangle className="h-6 w-6 text-amber-400" />
             </div>
-            <h2 className="text-lg font-semibold text-surface-100">Connection Failed</h2>
+            <h2 className="text-lg font-semibold text-surface-100">Connection failed</h2>
             <p className="mt-3 text-sm text-surface-300 leading-relaxed">{message}</p>
             <div className="mt-5 flex justify-center gap-3">
               <button

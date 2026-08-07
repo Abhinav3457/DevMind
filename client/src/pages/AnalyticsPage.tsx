@@ -128,7 +128,7 @@ export function AnalyticsPage() {
           </div>
           <div className="text-center">
             <p className="text-sm font-medium text-surface-200">Loading analytics</p>
-            <p className="mt-1 text-xs text-surface-400">Crunching the numbers…</p>
+            <p className="mt-1 text-xs text-surface-400">Compiling your workspace metrics…</p>
           </div>
         </motion.div>
       </div>
@@ -143,7 +143,7 @@ export function AnalyticsPage() {
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-rose-500/10">
             <Activity className="h-8 w-8 text-rose-400" />
           </div>
-          <p className="text-lg font-medium text-surface-200">Failed to load analytics</p>
+          <p className="text-lg font-medium text-surface-200">Unable to load analytics</p>
           <p className="mt-1 text-sm text-surface-400">Please check your connection and try again</p>
           <button onClick={() => refetch()} className="mt-5 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 px-5 py-2.5 text-sm font-medium text-white shadow-lg shadow-blue-500/25 transition-all hover:scale-105 hover:shadow-blue-500/40">
             <RefreshCw className="h-4 w-4" /> Retry
@@ -180,7 +180,7 @@ export function AnalyticsPage() {
                 <h1 className="truncate text-xl font-bold tracking-tight text-surface-100 sm:text-2xl">Analytics Dashboard</h1>
               </div>
               <p className="pl-[46px] text-xs text-surface-400 sm:pl-[52px] sm:text-sm">
-                Overview of your repositories and AI operations
+                Insights across your repositories and AI operations
               </p>
             </div>
 
@@ -282,7 +282,7 @@ export function AnalyticsPage() {
               </div>
               <div className="mb-5 rounded-xl border border-blue-500/20 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 p-4 sm:mb-6">
                 <p className="text-2xl font-bold tracking-tight text-surface-100 sm:text-3xl">{linesOfCode.total.toLocaleString()}</p>
-                <p className="mt-1 text-xs text-surface-400">Estimated total lines across all indexed repositories</p>
+                <p className="mt-1 text-xs text-surface-400">Estimated lines of code across all indexed repositories</p>
               </div>
               {locBarData.length > 0 && (
                 <div>
@@ -304,7 +304,7 @@ export function AnalyticsPage() {
                     <span className="rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] font-medium text-blue-400">Indexing</span>
                   </div>
                   <p className="text-2xl font-bold text-blue-100 sm:text-3xl">{activity.recentIndexes}</p>
-                  <p className="mt-1 text-xs text-surface-400">Total indexed reports</p>
+                  <p className="mt-1 text-xs text-surface-400">Repositories indexed</p>
                 </div>
                 <div className="group rounded-xl border border-purple-500/20 bg-gradient-to-br from-purple-500/10 to-purple-500/5 p-4 transition-all hover:border-purple-500/40">
                   <div className="mb-3 flex items-center justify-between">
@@ -312,7 +312,7 @@ export function AnalyticsPage() {
                     <span className="rounded-full bg-purple-500/10 px-2 py-0.5 text-[10px] font-medium text-purple-400">AI</span>
                   </div>
                   <p className="text-2xl font-bold text-purple-100 sm:text-3xl">{activity.totalAiQueries}</p>
-                  <p className="mt-1 text-xs text-surface-400">Total AI operations performed</p>
+                  <p className="mt-1 text-xs text-surface-400">AI operations performed</p>
                 </div>
                 <div className="group rounded-xl border border-amber-500/20 bg-gradient-to-br from-amber-500/10 to-amber-500/5 p-4 transition-all hover:border-amber-500/40">
                   <div className="mb-3 flex items-center justify-between">
@@ -320,7 +320,7 @@ export function AnalyticsPage() {
                     <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-400">Quality</span>
                   </div>
                   <p className="text-2xl font-bold text-amber-100 sm:text-3xl">{activity.avgReviewScore}<span className="text-base text-surface-400 sm:text-lg">/100</span></p>
-                  <p className="mt-1 text-xs text-surface-400">Average across all reviews</p>
+                  <p className="mt-1 text-xs text-surface-400">Average review score</p>
                 </div>
                 <div className="group rounded-xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 p-4 transition-all hover:border-emerald-500/40">
                   <div className="mb-3 flex items-center justify-between">
@@ -328,7 +328,7 @@ export function AnalyticsPage() {
                     <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-400">Engagement</span>
                   </div>
                   <p className="text-2xl font-bold text-emerald-100 sm:text-3xl">{activity.activityScore.toLocaleString()}</p>
-                  <p className="mt-1 text-xs text-surface-400">Stars + forks + issues across all repos</p>
+                  <p className="mt-1 text-xs text-surface-400">Stars, forks, and issues across all repositories</p>
                 </div>
               </div>
             </motion.div>

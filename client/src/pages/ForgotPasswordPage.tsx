@@ -33,7 +33,7 @@ export function ForgotPasswordPage() {
       setIsSent(true);
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } } };
-      setServerError(error?.response?.data?.message || 'Failed to send reset email. Please try again.');
+      setServerError(error?.response?.data?.message || 'We could not send a reset email. Please try again.');
     }
   };
 
@@ -56,8 +56,8 @@ export function ForgotPasswordPage() {
               <Code2 className="h-8 w-8 text-white" />
             </div>
           </motion.div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-surface-100">Reset Password</h1>
-          <p className="mt-1 sm:mt-2 text-xs sm:text-sm text-surface-400">Enter your email and we'll send you a reset link</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-surface-100">Reset password</h1>
+          <p className="mt-1 sm:mt-2 text-xs sm:text-sm text-surface-400">Enter your email and we&apos;ll send you a secure reset link</p>
         </div>
 
         <div className="rounded-xl sm:rounded-2xl border border-surface-700 bg-surface-800/50 p-5 sm:p-8 backdrop-blur-xl">
@@ -70,12 +70,12 @@ export function ForgotPasswordPage() {
               <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/10">
                 <CheckCircle2 className="h-8 w-8 text-emerald-400" />
               </div>
-              <h2 className="text-lg font-semibold text-surface-100">Check Your Email</h2>
+              <h2 className="text-lg font-semibold text-surface-100">Check your email</h2>
               <p className="mt-2 text-sm text-surface-400">
-                If an account with that email exists, a password reset link has been sent. It expires in 1 hour.
+                If an account exists for that email, a password reset link has been sent. The link expires in 1 hour.
               </p>
               <Link to="/auth/login" className="mt-6 inline-flex items-center gap-2 text-sm font-medium text-blue-400 hover:text-blue-300 transition-colors">
-                <ArrowLeft className="h-4 w-4" /> Back to Login
+                <ArrowLeft className="h-4 w-4" /> Back to Sign In
               </Link>
             </motion.div>
           ) : (

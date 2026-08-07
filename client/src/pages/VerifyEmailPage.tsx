@@ -15,7 +15,7 @@ export function VerifyEmailPage() {
   useEffect(() => {
     if (!token) {
       setStatus('error');
-      setMessage('No verification token provided.');
+      setMessage('No verification token was provided.');
       return;
     }
 
@@ -23,12 +23,12 @@ export function VerifyEmailPage() {
       try {
         await verifyEmail(token);
         setStatus('success');
-        setMessage('Your email has been verified successfully!');
+        setMessage('Your email has been verified successfully.');
         setTimeout(() => navigate('/auth/login', { replace: true }), 3000);
       } catch (err: unknown) {
         const error = err as { response?: { data?: { message?: string } } };
         setStatus('error');
-        setMessage(error?.response?.data?.message || 'Verification failed. The link may have expired.');
+        setMessage(error?.response?.data?.message || 'Verification failed. The link may have expired or already been used.');
       }
     };
 
@@ -60,7 +60,7 @@ export function VerifyEmailPage() {
               <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-500/10">
                 <Loader2 className="h-8 w-8 animate-spin text-blue-400" />
               </div>
-              <h2 className="text-xl font-semibold text-surface-100">Verifying Your Email</h2>
+              <h2 className="text-xl font-semibold text-surface-100">Verifying your email</h2>
               <p className="mt-2 text-sm text-surface-400">Please wait while we verify your email address...</p>
             </motion.div>
           )}
@@ -70,11 +70,11 @@ export function VerifyEmailPage() {
               <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/10">
                 <CheckCircle2 className="h-8 w-8 text-emerald-400" />
               </div>
-              <h2 className="text-xl font-semibold text-surface-100">Email Verified!</h2>
+              <h2 className="text-xl font-semibold text-surface-100">Email verified</h2>
               <p className="mt-2 text-sm text-surface-400">{message}</p>
-              <p className="mt-1 text-xs text-surface-500">Redirecting to login...</p>
+              <p className="mt-1 text-xs text-surface-500">Redirecting to sign in...</p>
               <Link to="/auth/login" className="mt-6 inline-flex items-center gap-2 rounded-lg bg-primary-600 px-5 py-2.5 text-sm font-medium text-white transition-all hover:bg-primary-700">
-                Go to Login <ArrowRight className="h-4 w-4" />
+                Go to Sign In <ArrowRight className="h-4 w-4" />
               </Link>
             </motion.div>
           )}
@@ -84,11 +84,11 @@ export function VerifyEmailPage() {
               <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-500/10">
                 <XCircle className="h-8 w-8 text-red-400" />
               </div>
-              <h2 className="text-xl font-semibold text-surface-100">Verification Failed</h2>
+              <h2 className="text-xl font-semibold text-surface-100">Verification failed</h2>
               <p className="mt-2 text-sm text-surface-400">{message}</p>
               <div className="mt-6 flex gap-3">
                 <Link to="/auth/login" className="rounded-lg border border-surface-600 px-4 py-2.5 text-sm text-surface-300 transition-all hover:bg-surface-800">
-                  Go to Login
+                  Go to Sign In
                 </Link>
                 <Link to="/auth/register" className="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-primary-700">
                   <Mail className="h-4 w-4" /> Register Again

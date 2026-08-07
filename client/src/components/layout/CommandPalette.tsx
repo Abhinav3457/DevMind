@@ -175,7 +175,7 @@ export function CommandPalette() {
             <div className="flex items-center gap-3 border-t border-surface-700 px-4 py-2 text-[10px] text-surface-500">
               <span className="flex items-center gap-1"><kbd className="rounded border border-surface-700 bg-surface-800 px-1 py-0.5">↑↓</kbd> navigate</span>
               <span className="flex items-center gap-1"><kbd className="rounded border border-surface-700 bg-surface-800 px-1 py-0.5">↵</kbd> select</span>
-              <span className="ml-auto">Ctrl K to toggle</span>
+              <span className="ml-auto">Ctrl K to open</span>
             </div>
           </motion.div>
         </motion.div>

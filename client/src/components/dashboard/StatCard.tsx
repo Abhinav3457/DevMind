@@ -160,7 +160,7 @@ export function StatCard({
                 ) : (
                   <Minus className="h-3 w-3" />
                 )}
-                <span>{trendValue || 'vs last period'}</span>
+                <span>{trendValue || 'vs. previous period'}</span>
               </div>
             ) : changePercent !== null && (
               <div className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
@@ -175,7 +175,7 @@ export function StatCard({
                 ) : (
                   <Minus className="h-3 w-3" />
                 )}
-                <span>{changePercent > 0 ? '+' : ''}{changePercent}% vs previous</span>
+                <span>{changePercent > 0 ? '+' : ''}{changePercent}% vs. previous</span>
               </div>
             )}
           </div>

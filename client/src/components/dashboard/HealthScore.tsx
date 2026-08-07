@@ -128,7 +128,7 @@ export function HealthScore({ score, level, metrics }: HealthScoreProps) {
             <span className={`text-sm font-semibold ${config.color}`}>{config.label}</span>
           </div>
           <p className="max-w-[220px] text-xs leading-relaxed text-surface-400">
-            Based on indexing completeness and documentation coverage
+            Derived from indexing completeness and documentation coverage
           </p>
         </div>
       </div>

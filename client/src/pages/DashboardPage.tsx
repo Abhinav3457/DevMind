@@ -63,7 +63,7 @@ function OnboardingChecklist({ stats }: { stats: DashboardStats }) {
   return (
     <div className="rounded-xl border border-surface-700/40 bg-surface-900/40 p-4">
       <div className="flex items-center justify-between mb-2">
-        <h3 className="text-sm font-semibold text-surface-200">Get Started</h3>
+        <h3 className="text-sm font-semibold text-surface-200">Getting Started</h3>
         <span className="text-[10px] text-surface-500">{completed}/{steps.length}</span>
       </div>
       <div className="h-1 rounded-full bg-surface-800 mb-3 overflow-hidden">
@@ -137,7 +137,7 @@ export function DashboardPage() {
           {greeting}, {user?.name || 'Developer'}
         </h1>
         <p className="mt-1 text-sm text-surface-400">
-          Here&apos;s an overview of your development activity.
+          A concise overview of your repositories, code quality, and AI activity.
         </p>
       </motion.div>
 

@@ -98,7 +98,7 @@ export function LanguageChart({ languages }: LanguageChartProps) {
             </svg>
           </div>
           <p className="text-sm text-surface-400">No language data available</p>
-          <p className="text-xs text-surface-500 mt-1">Index a repository to see language breakdown</p>
+          <p className="text-xs text-surface-500 mt-1">Index a repository to view its language breakdown</p>
         </div>
       </div>
     );

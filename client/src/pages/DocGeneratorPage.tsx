@@ -24,7 +24,7 @@ export function DocGeneratorPage() {
   const [loading, setLoading] = useState(false);
 
   const handleGenerate = async () => {
-    if (!context.trim()) { toast.error('Please provide project context'); return; }
+    if (!context.trim()) { toast.error('Please provide project context to continue'); return; }
     setLoading(true);
     setDocumentation(null);
     try {
@@ -55,13 +55,13 @@ export function DocGeneratorPage() {
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4 sm:space-y-6">
       <div>
         <h1 className="text-xl sm:text-2xl font-bold text-surface-100">Documentation Generator</h1>
-        <p className="mt-0.5 text-xs sm:text-sm text-surface-400">Generate professional project documentation using AI</p>
+        <p className="mt-0.5 text-xs sm:text-sm text-surface-400">Generate professional project documentation with AI</p>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
         <div className="space-y-4 w-full lg:w-1/2">
           <div>
-            <label className="mb-1.5 block text-xs sm:text-sm font-medium text-surface-200">Document Type</label>
+            <label className="mb-1.5 block text-xs sm:text-sm font-medium text-surface-200">Document type</label>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 sm:gap-2">
               {docTypes.map(dt => (
                 <button key={dt.value} onClick={() => setDocType(dt.value)}
@@ -71,7 +71,7 @@ export function DocGeneratorPage() {
             </div>
           </div>
           <div>
-            <label className="mb-1.5 block text-xs sm:text-sm font-medium text-surface-200">Project Context</label>
+            <label className="mb-1.5 block text-xs sm:text-sm font-medium text-surface-200">Project context</label>
             <textarea
               value={context} onChange={e => setContext(e.target.value)}
               placeholder={'Describe your project:\n- Tech stack: React, Node.js, TypeScript\n- Key features: Authentication, API, Database\n- Structure: Monorepo with client/server'}
@@ -104,7 +104,7 @@ export function DocGeneratorPage() {
               <div className="flex h-full flex-col items-center justify-center text-center">
                 <FileText className="mb-3 h-10 w-10 text-surface-600" />
                 <p className="text-sm text-surface-400">Generated documentation will appear here</p>
-                <p className="mt-1 text-xs text-surface-500">Select a document type and describe your project</p>
+                <p className="mt-1 text-xs text-surface-500">Select a document type and provide your project context</p>
               </div>
             )}
           </div>

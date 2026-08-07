@@ -15,7 +15,7 @@ const EXAMPLE_TASKS = [
   'Find and fix the bug in the JWT generation code',
   'Add input validation to the login endpoint',
   'Explain the authentication flow and suggest improvements',
-  'Find potential security issues in the auth module',
+  'Identify potential security issues in the auth module',
 ];
 
 const TOOL_META: Record<string, { label: string; icon: typeof Search }> = {
@@ -223,7 +223,7 @@ export function AgentPage() {
         <div>
           <h1 className="text-lg font-semibold tracking-tight text-surface-100">AI Agent</h1>
           <p className="mt-0.5 text-xs text-surface-400">
-            Describe a task and the agent will plan, search, and propose changes across your indexed repositories.
+            Describe a task and the agent will plan, explore, and propose changes across your indexed repositories.
           </p>
         </div>
         <div className="flex items-center gap-3 text-[11px] text-surface-500">
@@ -243,7 +243,7 @@ export function AgentPage() {
           {/* New task */}
           <div className="rounded-xl border border-surface-700/40 bg-surface-900/40 p-4">
             <div className="mb-3 flex items-center gap-2">
-              <Bot className="h-4 w-4 text-blue-400" />
+              <Bot className="h-4 w-4 text-primary-400" />
               <h2 className="text-sm font-semibold text-surface-200">New task</h2>
             </div>
 
@@ -253,7 +253,7 @@ export function AgentPage() {
                 id="agent-repo"
                 value={reportId}
                 onChange={(e) => setReportId(e.target.value)}
-                className="w-full appearance-none rounded-lg border border-surface-700 bg-surface-800/60 px-3 py-2 pr-8 text-xs text-surface-200 outline-none transition-colors focus:border-blue-500/60"
+                className="w-full appearance-none rounded-lg border border-surface-700 bg-surface-800/60 px-3 py-2 pr-8 text-xs text-surface-200 outline-none transition-colors focus:border-primary-500/60"
               >
                 {loadingReports ? (
                   <option>Loading repositories...</option>
@@ -278,7 +278,7 @@ export function AgentPage() {
               rows={4}
               maxLength={2000}
               placeholder="Describe what you want the agent to do..."
-              className="w-full resize-none rounded-lg border border-surface-700 bg-surface-800/60 px-3 py-2 text-xs leading-relaxed text-surface-200 placeholder:text-surface-600 outline-none transition-colors focus:border-blue-500/60"
+              className="w-full resize-none rounded-lg border border-surface-700 bg-surface-800/60 px-3 py-2 text-xs leading-relaxed text-surface-200 placeholder:text-surface-600 outline-none transition-colors focus:border-primary-500/60"
             />
             <div className="mt-1 flex justify-end">
               <span className="text-[10px] text-surface-600">{task.length}/2000</span>
@@ -289,7 +289,7 @@ export function AgentPage() {
                 <button
                   key={t}
                   onClick={() => setTask(t)}
-                  className="rounded-md border border-surface-700 bg-surface-800/50 px-2 py-1 text-[10px] text-surface-400 transition-colors hover:border-blue-500/50 hover:text-blue-300"
+                  className="rounded-md border border-surface-700 bg-surface-800/50 px-2 py-1 text-[10px] text-surface-400 transition-colors hover:border-primary-500/50 hover:text-primary-300"
                 >
                   {t}
                 </button>
@@ -299,7 +299,7 @@ export function AgentPage() {
             <button
               onClick={handleCreate}
               disabled={!reportId || task.trim().length < 10 || submitting}
-              className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-blue-600"
+              className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-primary-600 px-4 py-2.5 text-xs font-semibold text-white transition-colors hover:bg-primary-500 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-primary-600"
             >
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
               {submitting ? 'Starting agent...' : 'Run agent'}
@@ -321,7 +321,7 @@ export function AgentPage() {
               </div>
             ) : runs.length === 0 ? (
               <p className="py-8 text-center text-xs text-surface-500">
-                No agent runs yet. Start your first task above.
+                No agent runs yet. Launch your first task above.
               </p>
             ) : (
               <div className="max-h-[320px] space-y-1.5 overflow-y-auto pr-1">
@@ -377,7 +377,7 @@ function EmptyState() {
       </div>
       <h3 className="mt-4 text-sm font-semibold text-surface-200">No run selected</h3>
       <p className="mt-1.5 max-w-sm text-xs leading-relaxed text-surface-500">
-        Pick a repository, describe a task, and run the agent. Its plan, progress, and solution
+        Select a repository, describe a task, and run the agent. Its plan, progress, and solution
         will appear here.
       </p>
     </div>
@@ -458,7 +458,7 @@ function RunDetail({ run }: { run: AgentRun }) {
         <h2 className="mt-2.5 text-sm font-medium leading-relaxed text-surface-100">{run.task}</h2>
         {running && (
           <div className="mt-3 flex items-center gap-2 text-[11px] text-surface-500">
-            <span className="flex items-center gap-1.5 font-medium text-blue-400">
+            <span className="flex items-center gap-1.5 font-medium text-primary-400">
               <Loader2 className="h-3 w-3 animate-spin" /> Working…
             </span>
             <span className="text-surface-600">
@@ -523,12 +523,12 @@ function RunDetail({ run }: { run: AgentRun }) {
           </div>
 
           {!atBottom && (
-            <button
-              onClick={jumpToLatest}
-              className="absolute bottom-3 right-4 z-10 inline-flex items-center gap-1.5 rounded-full border border-surface-700 bg-surface-800/90 px-3 py-1.5 text-[11px] font-medium text-blue-400 shadow-lg backdrop-blur transition-colors hover:bg-surface-700"
-            >
-              <ArrowDown className="h-3 w-3" /> Latest
-            </button>
+          <button
+            onClick={jumpToLatest}
+            className="absolute bottom-3 right-4 z-10 inline-flex items-center gap-1.5 rounded-full border border-surface-700 bg-surface-800/90 px-3 py-1.5 text-[11px] font-medium text-primary-400 shadow-lg backdrop-blur transition-colors hover:bg-surface-700"
+          >
+            <ArrowDown className="h-3 w-3" /> Latest
+          </button>
           )}
         </div>
       )}

@@ -49,24 +49,24 @@ const initialState: IndexStatus = {
 };
 
 const generalSuggestions = [
-  'Write a React hook for debouncing user input',
-  'Explain the difference between REST and GraphQL with code',
+  'Write a React hook that debounces user input',
+  'Compare REST and GraphQL with practical code examples',
   'Show me how to implement JWT authentication in Node.js',
   'Create a TypeScript utility type for deep partial objects',
-  'How do I optimize database queries in MongoDB?',
-  'Write a Python function to merge two sorted arrays',
+  'How can I optimize database queries in MongoDB?',
+  'Write a Python function that merges two sorted arrays',
 ];
 
 const repoSuggestions = [
   'Explain the project architecture in detail',
-  'How is authentication implemented? Show the code flow',
+  'How is authentication implemented? Walk me through the code flow',
   'Where is the database connected? Show the connection code',
-  'List all API endpoints and their middleware',
+  'List all API endpoints and the middleware they use',
   'Explain the folder structure and key modules',
-  'What technologies and libraries are used?',
+  'Which technologies and libraries does this project use?',
 ];
 
-const WELCOME_MSG = 'Hello! I am your AI coding assistant. Ask me anything about coding, or select **Repo Q&A** to ask questions about your indexed repositories.';
+const WELCOME_MSG = 'Hello! I\'m your AI coding assistant. Ask me any development question, or switch to **Repo Q&A** to explore your indexed repositories.';
 
 export function AiChatPage() {
   const [mode, setMode] = useState<ChatMode>('general');
@@ -121,7 +121,7 @@ export function AiChatPage() {
       if (chat) {
         setActiveChatId(chat._id);
         setSessions((prev) => [chat, ...prev]);
-        setMessages([{ role: 'assistant', content: 'New chat. Ask me anything!', timestamp: new Date() }]);
+        setMessages([{ role: 'assistant', content: 'New conversation. What would you like to work on?', timestamp: new Date() }]);
       }
     } catch { /* ignore */ }
   };
@@ -139,7 +139,7 @@ export function AiChatPage() {
           timestamp: new Date(m.createdAt),
         })));
       } else {
-        setMessages([{ role: 'assistant', content: 'New chat. Ask me anything!', timestamp: new Date() }]);
+        setMessages([{ role: 'assistant', content: 'New conversation. What would you like to work on?', timestamp: new Date() }]);
       }
     } catch {
       setActiveChatId(null);
@@ -307,7 +307,7 @@ export function AiChatPage() {
         <div className="mb-3 sm:mb-4 flex items-center gap-2 rounded-lg border border-emerald-700/50 bg-emerald-900/20 px-3 sm:px-4 py-2">
           <Database className="h-4 w-4 text-emerald-400 flex-shrink-0" />
           <span className="text-xs text-emerald-400 truncate">
-            Repository indexed{indexStatus.fileCount ? ` (${indexStatus.fileCount} files)` : ''} — ready!
+            Repository indexed{indexStatus.fileCount ? ` · ${indexStatus.fileCount} files` : ''} — ready for questions
           </span>
           <RefreshCw className="ml-auto h-3.5 w-3.5 flex-shrink-0 cursor-pointer text-surface-500 hover:text-surface-300" onClick={checkIndexStatus} />
         </div>
@@ -318,7 +318,7 @@ export function AiChatPage() {
         <div className="mb-3 sm:mb-4 flex items-center gap-2 rounded-lg border border-amber-700/50 bg-amber-900/20 px-3 sm:px-4 py-2">
           <AlertCircle className="h-4 w-4 flex-shrink-0 text-amber-400" />
           <span className="text-xs text-amber-300">
-            No repository has been indexed.{' '}
+            No repository has been indexed yet.{' '}
             <button onClick={() => navigate('/github')} className="inline-flex items-center gap-1 font-medium text-primary-400 underline hover:text-primary-300 whitespace-nowrap">
               GitHub <ExternalLink className="h-3 w-3" />
             </button>
@@ -459,7 +459,7 @@ export function AiChatPage() {
                       variants={sessionItemVariants}
                       className="px-2 py-8 text-center text-[10px] sm:text-xs text-surface-500"
                     >
-                      No chats yet.<br />Start a new conversation!
+                      No conversations yet.<br />Start a new chat to get going.
                     </motion.p>
                   ) : (
                     sessions.map((session) => (
@@ -481,7 +481,7 @@ export function AiChatPage() {
                             <p className={`truncate text-xs sm:text-sm font-medium ${
                               activeChatId === session._id ? 'text-primary-300' : 'text-surface-200'
                             }`}>
-                              {session.title || 'New Chat'}
+                              {session.title || 'Untitled conversation'}
                             </p>
                             {session.lastMessage && (
                               <p className="mt-0.5 truncate text-[10px] sm:text-[11px] text-surface-500">
@@ -532,7 +532,7 @@ export function AiChatPage() {
               <div className="min-w-0">
                 <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-surface-100 truncate">AI Assistant</h1>
                 <p className="text-[10px] sm:text-xs lg:text-sm text-surface-400 truncate">
-                  {mode === 'general' ? 'Your personal coding assistant' : 'Ask questions about your codebase'}
+                  {mode === 'general' ? 'Your personal coding assistant' : 'Ask questions grounded in your codebase'}
                 </p>
               </div>
             </div>
@@ -670,7 +670,7 @@ export function AiChatPage() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSend())}
-              placeholder={mode === 'general' ? 'Ask a coding question...' : indexStatus.hasReport ? 'Ask about your code...' : 'Index a repo first...'}
+              placeholder={mode === 'general' ? 'Ask a coding question...' : indexStatus.hasReport ? 'Ask about your code...' : 'Index a repository first...'}
               className="input-field"
             />
             <button onClick={handleSend} disabled={loading || !input.trim()}

@@ -173,7 +173,11 @@
   }
 
   .btn-primary {
-    @apply btn bg-blue-600 text-white hover:bg-blue-500 active:bg-blue-700;
+    @apply btn bg-primary-600 text-white hover:bg-primary-500 active:bg-primary-700;
+  }
+
+  .btn-gradient {
+    @apply flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 py-3 text-sm font-medium text-white shadow-lg shadow-blue-500/20 transition-all duration-200 hover:from-blue-500 hover:to-purple-500 hover:shadow-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
   .btn-secondary {
@@ -185,7 +189,7 @@
   }
 
   .input-field {
-    @apply w-full bg-surface-800 border border-surface-700 rounded-lg px-4 py-2.5 text-surface-100 placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-200;
+    @apply w-full bg-surface-800 border border-surface-700 rounded-lg px-4 py-2.5 text-surface-100 placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500/50 transition-all duration-200;
   }
 
   .nav-link {
@@ -195,7 +199,7 @@
     @apply bg-surface-800 text-surface-200;
   }
   .nav-link.active {
-    @apply bg-blue-500/10 text-blue-400;
+    @apply bg-primary-500/10 text-primary-400;
   }
 
   .sidebar-item {
@@ -205,16 +209,16 @@
     @apply bg-surface-800/80 text-surface-200;
   }
   .sidebar-item.active {
-    @apply bg-blue-500/10 text-blue-400;
+    @apply bg-primary-500/10 text-primary-400;
   }
   .sidebar-item.active::before {
     content: '';
-    @apply absolute left-0 top-1/2 -translate-y-1/2 h-5 w-0.5 rounded-full bg-blue-400;
+    @apply absolute left-0 top-1/2 -translate-y-1/2 h-5 w-0.5 rounded-full bg-primary-400;
   }
 
   /* ── Focus Ring ────────────────────────────────────────── */
   :focus-visible {
-    @apply outline-none ring-2 ring-blue-500/50 ring-offset-2 ring-offset-surface-950;
+    @apply outline-none ring-2 ring-primary-500/50 ring-offset-2 ring-offset-surface-950;
   }
 
   /* ── Selection ─────────────────────────────────────────── */

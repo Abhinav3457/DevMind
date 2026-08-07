@@ -72,7 +72,7 @@ export function GitHubPage() {
       }
 
       if (githubStatus === 'success') {
-        toast.success('GitHub account connected successfully!');
+        toast.success('GitHub account connected successfully.');
       } else if (githubStatus === 'error' && errorMsg) {
         const decoded = decodeURIComponent(errorMsg);
         toast.error(formatConnectionError(decoded));
@@ -148,7 +148,7 @@ export function GitHubPage() {
     try {
       const res = await apiClient.get('/github/repos');
       setRepos(res.data.data?.repositories || res.data.data?.repos || []);
-      toast.success('Repositories fetched!');
+      toast.success('Repositories loaded successfully.');
     } catch { toast.error('Failed to fetch repositories'); }
     finally { setLoading(false); }
   };
@@ -161,7 +161,7 @@ export function GitHubPage() {
       const repo = parts.slice(1).join('/') || parts[0]!;
       const body: Record<string, string> = { owner, repo };
       await apiClient.post('/github/repos/import', body);
-      toast.success('Repository imported! You can now index it from anywhere.');
+      toast.success('Repository imported. You can now index it to unlock AI features.');
       fetchImportedRepos();
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } } };
@@ -189,7 +189,7 @@ export function GitHubPage() {
     try {
       // Use a longer timeout for indexing — downloading + parsing can take several minutes
       await apiClient.post('/indexer/repos/' + indexModal.repoId + '/index', {}, { timeout: 300000 });
-      toast.success('Repository indexed successfully!');
+      toast.success('Repository indexed successfully.');
       setIndexModal(null);
       fetchImportedRepos();
     } catch (err: unknown) {
@@ -207,7 +207,7 @@ export function GitHubPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="min-w-0 flex-1">
           <h1 className="text-xl sm:text-2xl font-bold text-surface-100 truncate">GitHub Integration</h1>
-          <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-surface-400 truncate">Connect your GitHub account and import repositories</p>
+          <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-surface-400 truncate">Connect your GitHub account and import repositories to analyze</p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
           {connected && (
@@ -232,9 +232,9 @@ export function GitHubPage() {
           <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-xl bg-surface-800">
             <Github className="h-7 w-7 text-surface-400" />
           </div>
-          <h2 className="text-lg font-semibold text-surface-200">Connect Your GitHub Account</h2>
+          <h2 className="text-lg font-semibold text-surface-200">Connect your GitHub account</h2>
           <p className="mt-1.5 max-w-sm text-sm text-surface-400">
-            Import repositories, analyze your codebase, and generate documentation.
+            Import repositories to analyze, document, and review your codebase with AI.
           </p>
           <button onClick={handleConnect} className="mt-5 flex items-center gap-2 rounded-lg bg-surface-800 px-5 py-2.5 text-sm font-medium text-surface-200 transition-colors hover:bg-surface-700">
             <Github className="h-4 w-4" />
@@ -247,7 +247,7 @@ export function GitHubPage() {
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
               <div className="relative w-full sm:max-w-xs">
                 <Search className="absolute left-2.5 sm:left-3 top-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 -translate-y-1/2 text-surface-400" />
-                <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search repos..."
+                <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search repositories..."
                   className="w-full rounded-lg border border-surface-700 bg-surface-900 py-2 sm:py-2.5 pl-8 sm:pl-10 pr-3 sm:pr-4 text-xs sm:text-sm text-surface-100 placeholder-surface-500 focus:border-primary-500/50 focus:outline-none"
                 />
               </div>
@@ -264,7 +264,7 @@ export function GitHubPage() {
             <div className="flex flex-col items-center py-12 text-center">
               <GitBranch className="mb-3 h-8 w-8 text-surface-600" />
               <p className="text-sm text-surface-400">No repositories found</p>
-              <p className="text-xs text-surface-500">Click Refresh to fetch your GitHub repositories</p>
+              <p className="text-xs text-surface-500">Click Refresh to load your GitHub repositories</p>
             </div>
           ) : (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -299,7 +299,7 @@ export function GitHubPage() {
             <div className="mt-8">
               <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold text-surface-200">
                 <Database className="h-4 w-4 text-surface-400" />
-                Imported Repositories ({importedRepos.length})
+                Imported repositories ({importedRepos.length})
               </h2>
               <div className="space-y-2">
                 {importedRepos.map((ir) => {
@@ -360,9 +360,9 @@ export function GitHubPage() {
           <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }}
             className="w-full max-w-sm rounded-xl border border-surface-700 bg-surface-900 p-6 shadow-2xl" onClick={e => e.stopPropagation()}
           >
-            <h3 className="text-lg font-semibold text-red-400">Remove Repository?</h3>
+            <h3 className="text-lg font-semibold text-red-400">Remove repository?</h3>
             <p className="mt-2 text-sm text-surface-300">
-              This will permanently remove the repository and <strong>all its indexed data</strong> (files, chunks, reports).
+              This will permanently remove the repository and <strong>all of its indexed data</strong>, including files, chunks, and reports.
             </p>
             <div className="mt-5 flex justify-end gap-3">
               <button onClick={() => setShowRemoveConfirm(null)}
@@ -387,7 +387,7 @@ export function GitHubPage() {
           <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="w-full max-w-md rounded-xl border border-surface-700 bg-surface-900 p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="flex items-center gap-3">
               <Database className="h-5 w-5 text-emerald-400" />
-              <h2 className="text-lg font-semibold text-surface-200">Index Repository</h2>
+              <h2 className="text-lg font-semibold text-surface-200">Index repository</h2>
             </div>
             <p className="mt-3 text-sm text-surface-300">
               The repository <span className="font-medium text-surface-100">{indexModal.repoName}</span> will be downloaded from GitHub and indexed. This may take a few moments depending on the repository size.

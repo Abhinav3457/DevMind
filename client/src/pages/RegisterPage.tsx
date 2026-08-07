@@ -72,16 +72,16 @@ export function RegisterPage() {
               <UserPlus className="h-10 w-10 text-emerald-400" />
             </div>
           </div>
-          <h2 className="mb-2 text-2xl font-bold text-surface-100">Registration Successful!</h2>
+          <h2 className="mb-2 text-2xl font-bold text-surface-100">Registration successful</h2>
           <p className="mb-6 text-sm text-surface-400">
-            Please check your email to verify your account. Redirecting to login...
+            Please check your email to verify your account. Redirecting to sign in...
           </p>
           <Link
             to="/auth/login"
             state={location.state}
             className="text-sm font-medium text-blue-400 hover:text-blue-300 transition-colors"
           >
-            Go to Login
+            Go to Sign In
           </Link>
         </motion.div>
       </div>
@@ -108,8 +108,8 @@ export function RegisterPage() {
               <Code2 className="h-8 w-8 text-white" />
             </div>
           </motion.div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-surface-100">Create Account</h1>
-          <p className="mt-1 sm:mt-2 text-xs sm:text-sm text-surface-400">Join DevMind AI and start building</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-surface-100">Create account</h1>
+          <p className="mt-1 sm:mt-2 text-xs sm:text-sm text-surface-400">Join DevMind AI and start building with confidence</p>
         </div>
 
         {/* Register Form */}

@@ -360,7 +360,7 @@ export function AppLayout() {
               >
                 <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
                 {unreadCount > 0 && (
-                  <span className="absolute right-0.5 sm:right-1 top-0.5 sm:top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-500 px-1 text-[9px] font-bold text-white">
+                  <span className="absolute right-0.5 sm:right-1 top-0.5 sm:top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary-500 px-1 text-[9px] font-bold text-white">
                     {unreadCount > 9 ? '9+' : unreadCount}
                   </span>
                 )}
@@ -393,7 +393,7 @@ export function AppLayout() {
                         </div>
                       ) : notifications.length === 0 ? (
                         <div className="px-4 py-10 text-center text-xs text-surface-500">
-                          No notifications yet
+                          You&apos;re all caught up
                         </div>
                       ) : (
                         notifications.map((n) => (
@@ -404,7 +404,7 @@ export function AppLayout() {
                           >
                             <div className={
                               'mt-1.5 h-2 w-2 flex-shrink-0 rounded-full ' +
-                              (n.read ? 'bg-surface-600' : 'bg-blue-500')
+                              (n.read ? 'bg-surface-600' : 'bg-primary-500')
                             } />
                             <div className="min-w-0 flex-1">
                               <p className={
@@ -429,7 +429,7 @@ export function AppLayout() {
             <div className="relative">
               <button
                 onClick={() => { setProfileOpen((o) => !o); setBellOpen(false); }}
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-[10px] sm:text-xs font-bold text-white ml-1 sm:ml-2 transition-all hover:bg-blue-500"
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-600 text-[10px] sm:text-xs font-bold text-white ml-1 sm:ml-2 transition-all hover:bg-primary-500"
                 title="Profile & Settings"
               >
                 {initials}

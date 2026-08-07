@@ -46,7 +46,7 @@ export function ResetPasswordPage() {
       setTimeout(() => navigate('/auth/login', { replace: true }), 3000);
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } } };
-      setServerError(error?.response?.data?.message || 'Failed to reset password. The link may have expired.');
+      setServerError(error?.response?.data?.message || 'Unable to reset your password. The link may have expired.');
     }
   };
 
@@ -55,8 +55,8 @@ export function ResetPasswordPage() {
       <div className="flex min-h-screen items-center justify-center bg-surface-950 px-4">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md text-center">
           <div className="rounded-xl border border-surface-700 bg-surface-800/50 p-8 backdrop-blur-xl">
-            <h2 className="text-xl font-semibold text-red-400">Invalid Reset Link</h2>
-            <p className="mt-2 text-sm text-surface-400">No reset token provided. The link may be invalid or expired.</p>
+            <h2 className="text-xl font-semibold text-red-400">Invalid reset link</h2>
+            <p className="mt-2 text-sm text-surface-400">No reset token was provided. The link may be invalid or expired.</p>
             <Link to="/auth/forgot-password" className="mt-6 inline-block text-sm font-medium text-blue-400 hover:text-blue-300 transition-colors">
               Request a new reset link
             </Link>
@@ -85,8 +85,8 @@ export function ResetPasswordPage() {
               <Code2 className="h-8 w-8 text-white" />
             </div>
           </motion.div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-surface-100">Set New Password</h1>
-          <p className="mt-1 sm:mt-2 text-xs sm:text-sm text-surface-400">Enter your new password below</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-surface-100">Set a new password</h1>
+          <p className="mt-1 sm:mt-2 text-xs sm:text-sm text-surface-400">Choose a strong password for your account</p>
         </div>
 
         <div className="rounded-xl sm:rounded-2xl border border-surface-700 bg-surface-800/50 p-5 sm:p-8 backdrop-blur-xl">
@@ -95,10 +95,10 @@ export function ResetPasswordPage() {
               <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/10">
                 <CheckCircle2 className="h-8 w-8 text-emerald-400" />
               </div>
-              <h2 className="text-lg font-semibold text-surface-100">Password Reset!</h2>
-              <p className="mt-2 text-sm text-surface-400">Your password has been reset successfully. Redirecting to login...</p>
+              <h2 className="text-lg font-semibold text-surface-100">Password updated</h2>
+              <p className="mt-2 text-sm text-surface-400">Your password has been reset successfully. Redirecting to sign in...</p>
               <Link to="/auth/login" className="mt-6 inline-flex items-center gap-2 rounded-lg bg-primary-600 px-5 py-2.5 text-sm font-medium text-white transition-all hover:bg-primary-700">
-                Go to Login <ArrowRight className="h-4 w-4" />
+                Go to Sign In <ArrowRight className="h-4 w-4" />
               </Link>
             </motion.div>
           ) : (

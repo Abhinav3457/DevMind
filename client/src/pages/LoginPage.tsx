@@ -16,10 +16,10 @@ const loginSchema = z.object({
 type LoginFormData = z.infer<typeof loginSchema>;
 
 const features = [
-  { icon: Bot, title: 'AI Agent', desc: 'Autonomous coding tasks with intelligent planning' },
-  { icon: Bug, title: 'Code Review', desc: 'Instant AI-powered feedback on quality and security' },
-  { icon: FileText, title: 'Documentation', desc: 'Generate professional docs for your projects' },
-  { icon: BarChart3, title: 'Analytics', desc: 'Deep insights into your codebase health' },
+  { icon: Bot, title: 'AI Agent', desc: 'Autonomous coding tasks executed with intelligent planning' },
+  { icon: Bug, title: 'Code Review', desc: 'Instant AI-powered feedback on quality, security, and performance' },
+  { icon: FileText, title: 'Documentation', desc: 'Generate professional documentation for your projects' },
+  { icon: BarChart3, title: 'Analytics', desc: 'Deep insights into your codebase health and activity' },
 ];
 
 export function LoginPage() {
@@ -52,7 +52,7 @@ export function LoginPage() {
       navigate(from?.pathname ? from.pathname + (from.search || '') : '/dashboard', { replace: true });
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } } };
-      setServerError(error?.response?.data?.message || 'Login failed. Please check your credentials.');
+      setServerError(error?.response?.data?.message || 'Unable to sign in. Please verify your credentials and try again.');
     }
   };
 
@@ -82,7 +82,7 @@ export function LoginPage() {
             transition={{ duration: 0.6, delay: 0.1 }}
             className="text-3xl xl:text-4xl font-bold leading-tight text-surface-100"
           >
-            AI-powered tools to supercharge your development workflow
+            AI-powered tools to elevate your development workflow
           </motion.h2>
 
           <motion.p
@@ -91,8 +91,8 @@ export function LoginPage() {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="mt-4 max-w-md text-sm text-surface-400 leading-relaxed"
           >
-            Import your repositories, get AI-powered code reviews, generate documentation,
-            and let an autonomous agent handle complex tasks.
+            Import your repositories, receive AI-powered code reviews, generate documentation,
+            and delegate complex tasks to an autonomous agent.
           </motion.p>
 
           {/* Feature List */}
@@ -128,7 +128,7 @@ export function LoginPage() {
             transition={{ duration: 0.6, delay: 0.8 }}
             className="mt-8 text-xs text-surface-500"
           >
-            Trusted by developers building with TypeScript, Python, Go, and more
+            Trusted by developers building with TypeScript, Python, Go, and beyond
           </motion.p>
         </div>
       </div>
@@ -153,14 +153,14 @@ export function LoginPage() {
                 <Code2 className="h-8 w-8 text-white" />
               </div>
             </motion.div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-surface-100">Welcome Back</h1>
-            <p className="mt-1 sm:mt-2 text-xs sm:text-sm text-surface-400">Sign in to your DevMind AI account</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-surface-100">Welcome back</h1>
+            <p className="mt-1 sm:mt-2 text-xs sm:text-sm text-surface-400">Sign in to continue to your DevMind AI workspace</p>
           </div>
 
           {/* Desktop-only heading */}
           <div className="hidden lg:block mb-8">
             <h1 className="text-2xl font-bold text-surface-100">Sign in</h1>
-            <p className="mt-1 text-sm text-surface-400">Enter your credentials to access your account</p>
+            <p className="mt-1 text-sm text-surface-400">Enter your credentials to access your workspace</p>
           </div>
 
           {/* Login Form */}
@@ -249,7 +249,7 @@ export function LoginPage() {
 
             {/* Register Link */}
             <p className="mt-6 text-center text-sm text-surface-400">
-              Don't have an account?{' '}
+              Don&apos;t have an account?{' '}
               <Link to="/auth/register" state={location.state} className="font-medium text-blue-400 hover:text-blue-300 transition-colors">
                 Create one
               </Link>
