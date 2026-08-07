@@ -233,7 +233,7 @@ export function AppLayout() {
       {/* Sidebar — single element, responsive with Tailwind */}
       <aside
         className={
-          'fixed left-0 top-0 z-50 flex h-full flex-col border-r border-surface-700 bg-surface-900/95 backdrop-blur-xl safe-top shadow-2xl shadow-black/40 transition-all duration-200 ' +
+          'fixed left-0 top-0 z-50 flex h-full flex-col border-r border-surface-700 bg-surface-900 safe-top transition-all duration-200 ' +
           'lg:static lg:z-auto lg:shadow-none ' +
           (sidebarOpen ? 'w-64 max-w-[85vw]' : 'w-0 lg:w-16') +
           (mobileOpen ? ' translate-x-0' : ' -translate-x-full lg:translate-x-0')
@@ -329,7 +329,7 @@ export function AppLayout() {
       {/* Main Content */}
       <div className="flex flex-1 flex-col min-w-0">
         {/* Top Bar */}
-        <header className="flex h-14 sm:h-16 items-center justify-between border-b border-surface-700 bg-surface-900/50 px-3 sm:px-4 lg:px-6 backdrop-blur-xl safe-top sticky top-0 z-30">
+        <header className="flex h-14 sm:h-16 items-center justify-between border-b border-surface-700 bg-surface-950/80 px-3 sm:px-4 lg:px-6 safe-top sticky top-0 z-30">
           <div className="flex flex-col gap-1 min-w-0">
             <div className="flex items-center gap-2 sm:gap-3">
               <button
@@ -432,7 +432,7 @@ export function AppLayout() {
             <div className="relative">
               <button
                 onClick={() => { setProfileOpen((o) => !o); setBellOpen(false); }}
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-[10px] sm:text-xs font-bold text-white ml-1 sm:ml-2 transition-all hover:ring-2 hover:ring-blue-500/30 hover:scale-105"
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-[10px] sm:text-xs font-bold text-white ml-1 sm:ml-2 transition-all hover:bg-blue-500"
                 title="Profile & Settings"
               >
                 {initials}
