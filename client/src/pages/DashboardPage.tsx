@@ -4,31 +4,16 @@ import { motion } from 'framer-motion';
 import {
   FileCode,
   Github, Bot, Bug, FileText,
-  TrendingUp, Star,
-  ArrowRight, Check,
+  TrendingUp, Star, Sparkles, Activity,
 } from 'lucide-react';
 import { StatCard } from '../components/dashboard/StatCard';
+import { TrendChart } from '../components/dashboard/TrendChart';
+import { EfficiencyDonut } from '../components/dashboard/EfficiencyDonut';
+import { PipelineActivity } from '../components/dashboard/PipelineActivity';
 import { useAuthStore } from '../store';
-import apiClient from '../api/axios';
-
-interface AnalyticsOverview {
-  repositories: number;
-  indexedRepos: number;
-  totalFiles: number;
-  totalChunks: number;
-  aiOperations: number;
-  stars?: number;
-  healthScore?: number;
-}
-
-interface DashboardStats {
-  repositories: number;
-  indexedRepos: number;
-  indexedFiles: number;
-  healthScore: number;
-  aiOperations: number;
-  stars: number;
-}
+import { fetchAnalytics } from '../services/analytics';
+import { fetchAgentRuns } from '../services/agent';
+import type { AnalyticsData, AgentRun } from '../types';
 
 const quickActions = [
   { to: '/github', label: 'Import Repository', icon: Github, color: 'purple' },
@@ -49,77 +34,30 @@ const item = {
   show: { opacity: 1, y: 0, transition: { duration: 0.4 } },
 };
 
-/* ── Onboarding Checklist ────────────────────────────────── */
-function OnboardingChecklist({ stats }: { stats: DashboardStats }) {
-  const steps = [
-    { label: 'Connect GitHub', done: stats.repositories > 0, to: '/github' },
-    { label: 'Import a repository', done: stats.indexedRepos > 0, to: '/github' },
-    { label: 'Index your codebase', done: stats.indexedFiles > 0, to: '/github' },
-    { label: 'Run a code review', done: false, to: '/ai/code-review' },
-  ];
-  const completed = steps.filter(s => s.done).length;
-  if (completed === steps.length) return null;
-
-  return (
-    <div className="rounded-xl border border-surface-700/40 bg-surface-900/40 p-4">
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="text-sm font-semibold text-surface-200">Getting Started</h3>
-        <span className="text-[10px] text-surface-500">{completed}/{steps.length}</span>
-      </div>
-      <div className="h-1 rounded-full bg-surface-800 mb-3 overflow-hidden">
-        <div
-          className="h-full rounded-full bg-blue-500 transition-all duration-500"
-          style={{ width: `${(completed / steps.length) * 100}%` }}
-        />
-      </div>
-      <div className="space-y-1">
-        {steps.map((step) => (
-          <Link
-            key={step.label}
-            to={step.to}
-            className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-xs transition-colors hover:bg-surface-800/50 group"
-          >
-            <div className={`flex h-4 w-4 items-center justify-center rounded-full border transition-colors ${
-              step.done
-                ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-400'
-                : 'border-surface-600 text-surface-500 group-hover:border-primary-500/50 group-hover:text-primary-400'
-            }`}>
-              {step.done && <Check className="h-2.5 w-2.5" />}
-            </div>
-            <span className={step.done ? 'text-surface-500 line-through' : 'text-surface-300'}>{step.label}</span>
-            {!step.done && <ArrowRight className="ml-auto h-3 w-3 text-surface-600 group-hover:text-primary-400 transition-colors" />}
-          </Link>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 export function DashboardPage() {
   const { user } = useAuthStore();
-  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [runs, setRuns] = useState<AgentRun[]>([]);
+  const [loadingRuns, setLoadingRuns] = useState(true);
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const res = await apiClient.get('/analytics');
-        const overview: AnalyticsOverview = res.data.data?.overview || {};
-        setStats({
-          repositories: overview.repositories || 0,
-          indexedRepos: overview.indexedRepos || 0,
-          indexedFiles: overview.totalFiles || 0,
-          healthScore: overview.healthScore || 0,
-          aiOperations: overview.aiOperations || 0,
-          stars: overview.stars || 0,
-        });
+        const data = await fetchAnalytics();
+        setAnalytics(data);
       } catch {
-        setStats({ repositories: 0, indexedRepos: 0, indexedFiles: 0, healthScore: 0, aiOperations: 0, stars: 0 });
+        setAnalytics(null);
       } finally {
         setLoading(false);
       }
     };
     fetchStats();
+
+    fetchAgentRuns()
+      .then((list) => setRuns(list))
+      .catch(() => { /* ignore */ })
+      .finally(() => setLoadingRuns(false));
   }, []);
 
   const greeting = useMemo(() => {
@@ -128,6 +66,53 @@ export function DashboardPage() {
     if (h < 18) return 'Good afternoon';
     return 'Good evening';
   }, []);
+
+  const overview = analytics?.overview;
+  const quality = analytics?.quality;
+  const activity = analytics?.activity;
+
+  // ── Code Quality Trend (real quality dimensions, normalized to 0-100) ──
+  const trendData = useMemo(() => {
+    if (!quality) return [];
+    const security = quality.securityIssues === 0 ? 100 : Math.max(0, 100 - quality.securityIssues * 15);
+    const stability = quality.bugCount === 0 ? 100 : Math.max(0, 100 - quality.bugCount * 10);
+    return [
+      { label: 'Security', value: security },
+      { label: 'Stability', value: stability },
+      { label: 'Review', value: quality.reviewScore },
+      { label: 'Docs', value: quality.documentationCoverage },
+    ];
+  }, [quality]);
+
+  // ── AI Efficiency donut (real activity mix) ──
+  const donutSegments = useMemo(() => {
+    if (!activity) return [];
+    return [
+      { label: 'AI Operations', value: activity.totalAiQueries, color: '#22d3ee' },
+      { label: 'Indexing', value: activity.recentIndexes, color: '#3b82f6' },
+      { label: 'Review Score', value: activity.avgReviewScore, color: '#a855f7' },
+      { label: 'Engagement', value: activity.activityScore, color: '#64748b' },
+    ];
+  }, [activity]);
+
+  // ── Dev Pipeline Activity (real proposed changes from agent runs) ──
+  const suggestions = useMemo(() => {
+    const out: { id: string; filePath: string; title: string; before: string; after: string }[] = [];
+    for (const run of runs) {
+      if (run.status !== 'completed' || !run.solution) continue;
+      for (const [i, change] of run.solution.changes.slice(0, 2).entries()) {
+        out.push({
+          id: run.id + '-' + i + '-' + change.filePath,
+          filePath: change.filePath,
+          title: change.title,
+          before: change.before,
+          after: change.after,
+        });
+      }
+      if (out.length >= 4) break;
+    }
+    return out;
+  }, [runs]);
 
   return (
     <motion.div variants={container} initial="hidden" animate="show" className="space-y-6">
@@ -150,21 +135,61 @@ export function DashboardPage() {
         </div>
       ) : (
         <motion.div variants={item} className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-          <StatCard title="Repositories" value={stats?.repositories || 0} icon={Github} color="green" delay={0} />
-          <StatCard title="Files Indexed" value={stats?.indexedFiles || 0} icon={FileCode} color="amber" delay={0.05} />
-          <StatCard title="AI Operations" value={stats?.aiOperations || 0} icon={Bot} color="cyan" delay={0.1} />
-          <StatCard title="Stars" value={stats?.stars || 0} icon={Star} color="purple" delay={0.15} />
+          <StatCard title="Repositories" value={overview?.repositories || 0} icon={Github} color="green" delay={0} />
+          <StatCard title="Files Indexed" value={overview?.totalFiles || 0} icon={FileCode} color="amber" delay={0.05} />
+          <StatCard title="AI Operations" value={overview?.aiOperations || 0} icon={Bot} color="cyan" delay={0.1} />
+          <StatCard title="Stars" value={activity?.activityScore || 0} icon={Star} color="purple" delay={0.15} />
         </motion.div>
       )}
 
-      {/* ── Onboarding + Quick Actions ─────────────────────── */}
-      {!loading && stats && (
+      {/* ── Key Insights (left) + Quick Actions (right) ────── */}
+      {!loading && (
         <motion.div variants={item} className="grid gap-4 lg:grid-cols-3">
-          <OnboardingChecklist stats={stats} />
+          {/* Key Insights */}
+          <div className="space-y-4 lg:col-span-2">
+            <div className="flex items-center gap-2">
+              <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-primary-500/10">
+                <Activity className="h-4 w-4 text-primary-400" />
+              </div>
+              <h2 className="text-sm font-semibold text-surface-200">Key Insights</h2>
+            </div>
 
-          <div className="lg:col-span-2 rounded-xl border border-surface-700/40 bg-surface-900/40 p-4">
-            <h3 className="text-sm font-semibold text-surface-200 mb-3">Quick Actions</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+            {/* Code Quality Trend */}
+            <div className="rounded-xl border border-surface-700/40 bg-surface-900/40 p-4 sm:p-5">
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <h3 className="text-sm font-semibold text-surface-200">Code Quality Trend</h3>
+                  <p className="text-[11px] text-surface-500">Security · Stability · Review · Documentation</p>
+                </div>
+                <span className="inline-flex flex-shrink-0 items-center gap-1.5 rounded-full bg-blue-500/10 px-2.5 py-1 text-[10px] font-medium text-blue-400">
+                  <Sparkles className="h-3 w-3" /> Live
+                </span>
+              </div>
+              <div className="rounded-lg bg-surface-950/40 p-3 sm:p-4">
+                <TrendChart data={trendData} />
+              </div>
+            </div>
+
+            {/* AI Efficiency */}
+            <div className="rounded-xl border border-surface-700/40 bg-surface-900/40 p-4 sm:p-5">
+              <div className="mb-4 flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <h3 className="text-sm font-semibold text-surface-200">AI Efficiency</h3>
+                  <p className="text-[11px] text-surface-500">Distribution of AI operations across your pipeline</p>
+                </div>
+              </div>
+              <EfficiencyDonut
+                segments={donutSegments}
+                centerLabel="AI Ops"
+                centerValue={String(activity?.totalAiQueries ?? 0)}
+              />
+            </div>
+          </div>
+
+          {/* Quick Actions */}
+          <div className="rounded-xl border border-surface-700/40 bg-surface-900/40 p-4 sm:p-5 lg:self-start">
+            <h2 className="mb-3 text-sm font-semibold text-surface-200">Quick Actions</h2>
+            <div className="grid grid-cols-2 gap-1.5">
               {quickActions.map((action) => (
                 <Link key={action.label} to={action.to}>
                   <div className="group flex items-center gap-2.5 rounded-lg px-2.5 py-2.5 transition-all duration-150 hover:bg-surface-800/60 hover:scale-[1.02] active:scale-[0.98]">
@@ -187,7 +212,12 @@ export function DashboardPage() {
         </motion.div>
       )}
 
-
+      {/* ── Dev Pipeline Activity ──────────────────────────── */}
+      {!loading && (
+        <motion.div variants={item}>
+          <PipelineActivity suggestions={suggestions} loading={loadingRuns} />
+        </motion.div>
+      )}
     </motion.div>
   );
 }

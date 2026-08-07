@@ -226,7 +226,7 @@ export function AgentPage() {
             Describe a task and the agent will plan, explore, and propose changes across your indexed repositories.
           </p>
         </div>
-        <div className="flex items-center gap-3 text-[11px] text-surface-500">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-surface-500">
           <span>{runs.length} runs</span>
           <span className="text-surface-700">·</span>
           <span>{completedCount} completed</span>

@@ -235,13 +235,13 @@ export function AppLayout() {
         className={
           'fixed left-0 top-0 z-50 flex h-full flex-col border-r border-surface-700 bg-surface-900 safe-top transition-all duration-200 ' +
           'lg:static lg:z-auto lg:shadow-none ' +
-          (sidebarOpen ? 'w-64 max-w-[85vw]' : 'w-0 lg:w-16') +
+          ((sidebarOpen || mobileOpen) ? 'w-64 max-w-[85vw]' : 'w-0 lg:w-16') +
           (mobileOpen ? ' translate-x-0' : ' -translate-x-full lg:translate-x-0')
         }
       >
         {/* Logo */}
-        <div className={`flex h-14 sm:h-16 items-center border-b border-surface-700 px-3 sm:px-4 ${sidebarOpen ? 'justify-between' : 'justify-center'}`}>
-          {sidebarOpen && (
+        <div className={`flex h-14 sm:h-16 items-center border-b border-surface-700 px-3 sm:px-4 ${(sidebarOpen || mobileOpen) ? 'justify-between' : 'justify-center'}`}>
+          {(sidebarOpen || mobileOpen) && (
             <NavLink to="/dashboard" className="flex items-center gap-2 min-w-0" onClick={() => setMobileOpen(false)}>
               <div className="flex h-7 w-7 sm:h-8 sm:w-8 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-purple-600">
                 <Code2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-white" />
@@ -252,7 +252,7 @@ export function AppLayout() {
           <button
             onClick={() => mobileOpen ? setMobileOpen(false) : toggleSidebar()}
             className="rounded-lg p-1.5 text-surface-400 hover:bg-surface-800 hover:text-surface-200 transition-colors"
-            aria-label={sidebarOpen ? 'Collapse sidebar' : 'Close menu'}
+            aria-label={(sidebarOpen || mobileOpen) ? 'Collapse sidebar' : 'Close menu'}
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
@@ -262,7 +262,7 @@ export function AppLayout() {
         <nav className="flex-1 space-y-5 overflow-y-auto px-2 sm:px-3 py-3">
           {navSections.map((section) => (
             <div key={section.label}>
-              {sidebarOpen && (
+              {(sidebarOpen || mobileOpen) && (
                 <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-wider text-surface-600">
                   {section.label}
                 </p>
@@ -276,10 +276,10 @@ export function AppLayout() {
                     className={({ isActive }) =>
                       'sidebar-item ' + (isActive ? 'active' : '')
                     }
-                    title={!sidebarOpen ? item.label : undefined}
+                    title={!(sidebarOpen || mobileOpen) ? item.label : undefined}
                   >
                     <item.icon className="h-[18px] w-[18px] flex-shrink-0" />
-                    {sidebarOpen && <span className="truncate">{item.label}</span>}
+                    {(sidebarOpen || mobileOpen) && <span className="truncate">{item.label}</span>}
                   </NavLink>
                 ))}
               </div>
@@ -288,7 +288,7 @@ export function AppLayout() {
         </nav>
 
         {/* Bottom section — collapsed icon-only view */}
-        {!sidebarOpen && (
+        {!sidebarOpen && !mobileOpen && (
           <div className="hidden lg:flex flex-col items-center gap-2 border-t border-surface-700 p-2">
             {navSections.flatMap(s => s.items).map((item) => (
               <NavLink
@@ -315,10 +315,10 @@ export function AppLayout() {
             onClick={() => { handleLogout(); setMobileOpen(false); }}
             className="sidebar-item text-surface-500 hover:text-red-400 hover:bg-red-500/10"
             disabled={loggingOut}
-            title={!sidebarOpen ? 'Sign Out' : undefined}
+            title={!(sidebarOpen || mobileOpen) ? 'Sign Out' : undefined}
           >
             {loggingOut ? <Loader2 className="h-[18px] w-[18px] flex-shrink-0 animate-spin" /> : <LogOut className="h-[18px] w-[18px] flex-shrink-0" />}
-            {sidebarOpen && <span className="truncate">{loggingOut ? 'Signing out...' : 'Sign Out'}</span>}
+            {(sidebarOpen || mobileOpen) && <span className="truncate">{loggingOut ? 'Signing out...' : 'Sign Out'}</span>}
           </button>
         </div>
       </aside>

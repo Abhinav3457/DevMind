@@ -192,6 +192,24 @@
     @apply bg-gradient-to-r from-surface-100 via-purple-400 to-purple-700 bg-clip-text text-transparent;
   }
 
+  /* Chat page viewport height — prefers dvh (mobile URL bar aware), falls back to vh */
+  .chat-viewport {
+    height: calc(100vh - 10rem);
+    height: calc(100dvh - 10rem);
+  }
+  @media (min-width: 640px) {
+    .chat-viewport {
+      height: calc(100vh - 12rem);
+      height: calc(100dvh - 12rem);
+    }
+  }
+  @media (min-width: 1024px) {
+    .chat-viewport {
+      height: calc(100vh - 8rem);
+      height: calc(100dvh - 8rem);
+    }
+  }
+
   /* Light theme: gradient stops need darker shades for contrast on light backgrounds */
   .light .text-gradient-brand {
     background-image: linear-gradient(90deg, #0f172a, #9333ea 55%, #6d28d9);

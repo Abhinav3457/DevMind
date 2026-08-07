@@ -386,7 +386,7 @@ export function AiChatPage() {
   };
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col h-[calc(100vh-10rem)] sm:h-[calc(100vh-12rem)] lg:h-[calc(100vh-8rem)]">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="chat-viewport flex flex-col">
       {/* Mobile sidebar overlay */}
       <AnimatePresence>
         {showSidebar && (

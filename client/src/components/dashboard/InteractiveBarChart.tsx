@@ -75,13 +75,13 @@ export function InteractiveBarChart({
 
           return (
             <div key={index} className="flex-1 flex flex-col items-center gap-1 h-full justify-end group">
-              {/* Tooltip */}
+              {/* Tooltip — clamped so edge bars never push it off-screen on small viewports */}
               {isActive && (
                 <motion.div
                   initial={{ opacity: 0, y: 5, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
-                  className="absolute -top-8 z-20 whitespace-nowrap rounded-lg bg-surface-900/95 border border-surface-600/50 px-2.5 py-1.5 text-xs shadow-xl backdrop-blur-sm"
-                  style={{ left: `${(index / data.length) * 100}%`, transform: 'translateX(-50%)' }}
+                  className="absolute -top-8 z-20 max-w-[min(16rem,75vw)] whitespace-normal rounded-lg bg-surface-900/95 border border-surface-600/50 px-2.5 py-1.5 text-xs shadow-xl backdrop-blur-sm"
+                  style={{ left: `clamp(8rem, ${(index / data.length) * 100}%, calc(100% - 8rem))`, transform: 'translateX(-50%)' }}
                 >
                   <p className="font-medium text-surface-200">{item.tooltip || item.label}</p>
                   <p className="text-surface-300">{item.value.toLocaleString()}</p>

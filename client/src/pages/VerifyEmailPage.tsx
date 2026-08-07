@@ -86,7 +86,7 @@ export function VerifyEmailPage() {
               </div>
               <h2 className="text-xl font-semibold text-surface-100">Verification failed</h2>
               <p className="mt-2 text-sm text-surface-400">{message}</p>
-              <div className="mt-6 flex gap-3">
+              <div className="mt-6 flex flex-wrap justify-center gap-3">
                 <Link to="/auth/login" className="rounded-lg border border-surface-600 px-4 py-2.5 text-sm text-surface-300 transition-all hover:bg-surface-800">
                   Go to Sign In
                 </Link>
