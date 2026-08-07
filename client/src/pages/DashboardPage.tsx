@@ -133,7 +133,7 @@ export function DashboardPage() {
     <motion.div variants={container} initial="hidden" animate="show" className="space-y-6">
       {/* ── Header ──────────────────────────────────────────── */}
       <motion.div variants={item}>
-        <h1 className="text-xl sm:text-2xl font-bold text-surface-100">
+        <h1 className="text-xl sm:text-2xl font-bold text-gradient-brand">
           {greeting}, {user?.name || 'Developer'}
         </h1>
         <p className="mt-1 text-sm text-surface-400">
