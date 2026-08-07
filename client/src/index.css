@@ -4,7 +4,6 @@
 
 @layer base {
   /* ── Theme Variables ───────────────────────────────────────────── */
-  /* Dark theme (default) */
   :root {
     color-scheme: dark;
     --surface-50: 248 250 252;
@@ -20,7 +19,6 @@
     --surface-950: 2 6 23;
   }
 
-  /* Light theme */
   .light {
     color-scheme: light;
     --surface-50: 2 6 23;
@@ -28,9 +26,7 @@
     --surface-200: 30 41 59;
     --surface-300: 51 65 85;
     --surface-400: 71 85 105;
-    /* Muted text / placeholders — darkened so they stay readable on light bg */
     --surface-500: 82 98 115;
-    /* Dim text / icons — darkened from #94a3b8 (was ~2.4:1 contrast) */
     --surface-600: 100 116 139;
     --surface-700: 203 213 225;
     --surface-800: 226 232 240;
@@ -42,7 +38,6 @@
     @apply border-surface-700;
   }
 
-  /* Default textarea/input/select foreground for theme */
   input, textarea, select {
     color: rgb(var(--surface-200));
     background-color: rgb(var(--surface-800));
@@ -60,14 +55,12 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
-    /* Prevent horizontal scroll / margin overflow on mobile */
     overflow-x: hidden;
     overflow-x: clip;
     width: 100%;
     max-width: 100%;
   }
 
-  /* Ensure root container fills viewport */
   #root {
     min-height: 100vh;
     min-height: 100dvh;
@@ -75,55 +68,46 @@
   }
 
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
   }
 
-  /* Thinner scrollbar on mobile */
   @media (max-width: 768px) {
-    ::-webkit-scrollbar {
-      width: 4px;
-      height: 4px;
-    }
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
   }
 
   ::-webkit-scrollbar-track {
-    @apply bg-surface-900;
+    @apply bg-transparent;
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply bg-surface-600 rounded-full;
+    @apply bg-surface-700 rounded-full;
   }
 
   ::-webkit-scrollbar-thumb:hover {
     @apply bg-surface-500;
   }
 
-  /* Responsive font sizes */
   html {
     font-size: 16px;
+    scroll-behavior: smooth;
   }
 
   @media (max-width: 480px) {
-    html {
-      font-size: 14px;
-    }
+    html { font-size: 14px; }
   }
 
-  /* Prevent horizontal overflow */
   img, video, svg {
     max-width: 100%;
     height: auto;
   }
 
-  /* Better tap targets on mobile */
   @media (hover: none) and (pointer: coarse) {
     button, a, select, input[type="button"], input[type="submit"] {
       min-height: 44px;
     }
   }
 
-  /* Safe area for modern mobile devices */
   .safe-bottom {
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
@@ -131,7 +115,6 @@
     padding-top: env(safe-area-inset-top, 0px);
   }
 
-  /* Theme-aware prose for markdown rendering */
   .prose-theme {
     --tw-prose-body: rgb(var(--surface-200));
     --tw-prose-headings: rgb(var(--surface-100));
@@ -153,13 +136,11 @@
 }
 
 @layer components {
-  /* Dark theme select options (native OS dropdowns) */
   select option {
     background-color: rgb(var(--surface-800));
     color: rgb(var(--surface-200));
   }
 
-  /* Theme-aware toast styling */
   .theme-toast {
     background: rgb(var(--surface-800)) !important;
     color: rgb(var(--surface-100)) !important;
@@ -169,37 +150,80 @@
     box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
   }
 
-  .glass-panel {
-    @apply bg-surface-900/80 backdrop-blur-xl border border-surface-700/50 rounded-xl;
+  /* ── Interactive Utilities ─────────────────────────────── */
+  .card {
+    @apply rounded-xl border border-surface-700/40 bg-surface-900/40 transition-all duration-200;
+  }
+  .card:hover {
+    @apply border-surface-600/60 bg-surface-800/40;
   }
 
-  .gradient-text {
-    @apply bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent;
+  .card-interactive {
+    @apply card cursor-pointer;
+  }
+  .card-interactive:hover {
+    @apply shadow-lg shadow-black/20 -translate-y-0.5;
+  }
+  .card-interactive:active {
+    @apply translate-y-0 shadow-none;
   }
 
-  /* Light theme: darker gradient stops so gradient headings stay readable */
-  .light .gradient-text {
-    background-image: linear-gradient(to right, #2563eb, #7c3aed);
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
   .btn-primary {
-    @apply bg-primary-600 hover:bg-primary-700 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply btn bg-blue-600 text-white hover:bg-blue-500 active:bg-blue-700;
   }
 
   .btn-secondary {
-    @apply bg-surface-800 hover:bg-surface-700 text-surface-200 font-medium py-2 px-4 rounded-lg transition-all duration-200 border border-surface-700;
+    @apply btn bg-surface-800 text-surface-200 border border-surface-700 hover:bg-surface-700 hover:border-surface-600 active:bg-surface-800;
+  }
+
+  .btn-ghost {
+    @apply btn text-surface-400 hover:bg-surface-800 hover:text-surface-200 active:bg-surface-700;
   }
 
   .input-field {
-    @apply w-full bg-surface-800 border border-surface-700 rounded-lg px-4 py-2.5 text-surface-100 placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200;
+    @apply w-full bg-surface-800 border border-surface-700 rounded-lg px-4 py-2.5 text-surface-100 placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-200;
+  }
+
+  .nav-link {
+    @apply flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-surface-400 transition-all duration-200;
+  }
+  .nav-link:hover {
+    @apply bg-surface-800 text-surface-200;
+  }
+  .nav-link.active {
+    @apply bg-blue-500/10 text-blue-400;
+  }
+
+  .sidebar-item {
+    @apply relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-surface-400 transition-all duration-150;
+  }
+  .sidebar-item:hover {
+    @apply bg-surface-800/80 text-surface-200;
+  }
+  .sidebar-item.active {
+    @apply bg-blue-500/10 text-blue-400;
+  }
+  .sidebar-item.active::before {
+    content: '';
+    @apply absolute left-0 top-1/2 -translate-y-1/2 h-5 w-0.5 rounded-full bg-blue-400;
+  }
+
+  /* ── Focus Ring ────────────────────────────────────────── */
+  :focus-visible {
+    @apply outline-none ring-2 ring-blue-500/50 ring-offset-2 ring-offset-surface-950;
+  }
+
+  /* ── Selection ─────────────────────────────────────────── */
+  ::selection {
+    @apply bg-blue-500/30 text-white;
   }
 }
 
 /* ── Light Theme Text Contrast Fixes ───────────────────── */
-/* Tailwind accent text colors (blue-400, emerald-400, ...) are tuned for dark
-   backgrounds. In light mode they wash out against light tints, so remap them
-   to darker (500-700 level) equivalents while the light theme is active.
-   Unlayered so they beat Tailwind's generated utilities. */
 .light .text-primary-400 { color: #1d4ed8; }
 .light .text-primary-300 { color: #1d4ed8; }
 .light .text-blue-400 { color: #2563eb; }
@@ -224,7 +248,6 @@
 .light .text-teal-400 { color: #0d9488; }
 .light .text-gray-400 { color: #4b5563; }
 
-/* Markdown links in light mode need a darker blue too */
 .light .prose-theme {
   --tw-prose-links: #2563eb;
 }
@@ -236,153 +259,33 @@
   color: #e2e8f0;
 }
 
-.light .hljs {
-  color: #1e293b;
-}
+.light .hljs { color: #1e293b; }
 
-/* Darken highlight.js token colors when the light theme is active so code
-   stays readable on light code blocks (e.g. in AI chat / code review). */
-.light .hljs-keyword,
-.light .hljs-selector-tag,
-.light .hljs-section,
-.light .hljs-link {
-  color: #7e22ce;
-}
+.light .hljs-keyword, .light .hljs-selector-tag, .light .hljs-section, .light .hljs-link { color: #7e22ce; }
+.light .hljs-string, .light .hljs-title, .light .hljs-name, .light .hljs-type, .light .hljs-attribute, .light .hljs-symbol, .light .hljs-bullet, .light .hljs-built_in, .light .hljs-addition, .light .hljs-variable, .light .hljs-template-tag, .light .hljs-template-variable { color: #047857; }
+.light .hljs-comment, .light .hljs-quote, .light .hljs-deletion, .light .hljs-meta { color: #64748b; }
+.light .hljs-number, .light .hljs-regexp, .light .hljs-literal { color: #b45309; }
+.light .hljs-function .hljs-title, .light .hljs-class .hljs-title { color: #1d4ed8; }
+.light .hljs-tag { color: #be185d; }
+.light .hljs-tag .hljs-name { color: #be185d; }
+.light .hljs-tag .hljs-attr { color: #1d4ed8; }
+.light .hljs-attr { color: #1d4ed8; }
+.light .hljs-punctuation { color: #475569; }
+.light .hljs-params { color: #334155; }
 
-.light .hljs-string,
-.light .hljs-title,
-.light .hljs-name,
-.light .hljs-type,
-.light .hljs-attribute,
-.light .hljs-symbol,
-.light .hljs-bullet,
-.light .hljs-built_in,
-.light .hljs-addition,
-.light .hljs-variable,
-.light .hljs-template-tag,
-.light .hljs-template-variable {
-  color: #047857;
-}
-
-.light .hljs-comment,
-.light .hljs-quote,
-.light .hljs-deletion,
-.light .hljs-meta {
-  color: #64748b;
-}
-
-.light .hljs-number,
-.light .hljs-regexp,
-.light .hljs-literal {
-  color: #b45309;
-}
-
-.light .hljs-function .hljs-title,
-.light .hljs-class .hljs-title {
-  color: #1d4ed8;
-}
-
-.light .hljs-tag {
-  color: #be185d;
-}
-
-.light .hljs-tag .hljs-name {
-  color: #be185d;
-}
-
-.light .hljs-tag .hljs-attr {
-  color: #1d4ed8;
-}
-
-.light .hljs-attr {
-  color: #1d4ed8;
-}
-
-.light .hljs-punctuation {
-  color: #475569;
-}
-
-.light .hljs-params {
-  color: #334155;
-}
-
-/* Keywords */
-.hljs-keyword,
-.hljs-selector-tag,
-.hljs-literal,
-.hljs-section,
-.hljs-link {
-  color: #c084fc;
-}
-
-/* Strings */
-.hljs-string,
-.hljs-title,
-.hljs-name,
-.hljs-type,
-.hljs-attribute,
-.hljs-symbol,
-.hljs-bullet,
-.hljs-built_in,
-.hljs-addition,
-.hljs-variable,
-.hljs-template-tag,
-.hljs-template-variable {
-  color: #34d399;
-}
-
-/* Comments */
-.hljs-comment,
-.hljs-quote,
-.hljs-deletion,
-.hljs-meta {
-  color: #64748b;
-  font-style: italic;
-}
-
-/* Numbers */
-.hljs-number,
-.hljs-regexp,
-.hljs-literal {
-  color: #fbbf24;
-}
-
-/* Functions */
-.hljs-function .hljs-title,
-.hljs-class .hljs-title {
-  color: #60a5fa;
-}
-
-/* Tags */
-.hljs-tag {
-  color: #f472b6;
-}
-
-.hljs-tag .hljs-name {
-  color: #f472b6;
-}
-
-.hljs-tag .hljs-attr {
-  color: #93c5fd;
-}
-
-/* Attributes */
-.hljs-attr {
-  color: #93c5fd;
-}
-
-/* Punctuation */
-.hljs-punctuation {
-  color: #94a3b8;
-}
-
-/* Params / Doctags */
-.hljs-params {
-  color: #e2e8f0;
-}
+.hljs-keyword, .hljs-selector-tag, .hljs-literal, .hljs-section, .hljs-link { color: #c084fc; }
+.hljs-string, .hljs-title, .hljs-name, .hljs-type, .hljs-attribute, .hljs-symbol, .hljs-bullet, .hljs-built_in, .hljs-addition, .hljs-variable, .hljs-template-tag, .hljs-template-variable { color: #34d399; }
+.hljs-comment, .hljs-quote, .hljs-deletion, .hljs-meta { color: #64748b; font-style: italic; }
+.hljs-number, .hljs-regexp, .hljs-literal { color: #fbbf24; }
+.hljs-function .hljs-title, .hljs-class .hljs-title { color: #60a5fa; }
+.hljs-tag { color: #f472b6; }
+.hljs-tag .hljs-name { color: #f472b6; }
+.hljs-tag .hljs-attr { color: #93c5fd; }
+.hljs-attr { color: #93c5fd; }
+.hljs-punctuation { color: #94a3b8; }
+.hljs-params { color: #e2e8f0; }
 
 @layer components {
-  /* Inline code */
   .inline-code {
     background-color: rgb(var(--surface-800));
     padding: 0.125rem 0.375rem;
@@ -393,7 +296,6 @@
     color: rgb(var(--surface-100));
   }
 
-  /* Table Styles */
   .markdown-content table th {
     @apply px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider;
     background-color: rgb(var(--surface-800));
@@ -410,7 +312,6 @@
     background-color: color-mix(in srgb, rgb(var(--surface-800)) 30%, transparent);
   }
 
-  /* List Styles */
   .markdown-content li::marker {
     color: rgb(var(--surface-500));
   }
@@ -420,13 +321,11 @@
     font-weight: 500;
   }
 
-  /* Image Styles */
   .markdown-content img {
     @apply rounded-xl my-4 max-w-full;
     border: 1px solid color-mix(in srgb, rgb(var(--surface-700)) 50%, transparent);
   }
 
-  /* Definition Lists */
   .markdown-content dt {
     font-weight: 600;
     color: rgb(var(--surface-100));
@@ -439,7 +338,6 @@
     color: rgb(var(--surface-300));
   }
 
-  /* Keyboard Shortcuts */
   .markdown-content kbd {
     @apply rounded-md px-1.5 py-0.5 text-xs font-mono;
     background-color: rgb(var(--surface-800));
@@ -447,7 +345,6 @@
     color: rgb(var(--surface-200));
   }
 
-  /* Task List (checkboxes) */
   .markdown-content input[type="checkbox"] {
     @apply mr-2 rounded;
     border-color: rgb(var(--surface-600));

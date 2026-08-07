@@ -259,11 +259,11 @@ export function AppLayout() {
         </div>
 
         {/* Navigation — Grouped Sections */}
-        <nav className="flex-1 space-y-4 overflow-y-auto px-2 sm:px-3 py-3">
+        <nav className="flex-1 space-y-5 overflow-y-auto px-2 sm:px-3 py-3">
           {navSections.map((section) => (
             <div key={section.label}>
               {sidebarOpen && (
-                <p className="mb-1.5 px-2.5 text-[10px] font-semibold uppercase tracking-wider text-surface-500">
+                <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-wider text-surface-600">
                   {section.label}
                 </p>
               )}
@@ -274,14 +274,11 @@ export function AppLayout() {
                     to={item.to}
                     onClick={() => setMobileOpen(false)}
                     className={({ isActive }) =>
-                      'group flex items-center gap-3 rounded-lg px-2.5 sm:px-3 py-2 sm:py-2.5 text-sm font-medium transition-all duration-200 ' +
-                      (isActive
-                        ? 'bg-primary-500/10 text-primary-400'
-                        : 'text-surface-400 hover:bg-surface-800 hover:text-surface-200')
+                      'sidebar-item ' + (isActive ? 'active' : '')
                     }
                     title={!sidebarOpen ? item.label : undefined}
                   >
-                    <item.icon className="h-4.5 w-4.5 sm:h-5 sm:w-5 flex-shrink-0" />
+                    <item.icon className="h-[18px] w-[18px] flex-shrink-0" />
                     {sidebarOpen && <span className="truncate">{item.label}</span>}
                   </NavLink>
                 ))}
@@ -313,15 +310,15 @@ export function AppLayout() {
         )}
 
         {/* Logout */}
-        <div className="border-t border-surface-700 p-2 sm:p-3 safe-bottom">
+        <div className="border-t border-surface-700/50 p-2 sm:p-3 safe-bottom">
           <button
             onClick={() => { handleLogout(); setMobileOpen(false); }}
-            className="flex w-full items-center gap-3 rounded-lg px-2.5 sm:px-3 py-2.5 text-sm font-medium text-surface-400 transition-all hover:bg-red-500/10 hover:text-red-400 disabled:opacity-50"
+            className="sidebar-item text-surface-500 hover:text-red-400 hover:bg-red-500/10"
             disabled={loggingOut}
             title={!sidebarOpen ? 'Sign Out' : undefined}
           >
-            {loggingOut ? <Loader2 className="h-5 w-5 flex-shrink-0 animate-spin" /> : <LogOut className="h-5 w-5 flex-shrink-0" />}
-            {sidebarOpen && <span>{loggingOut ? 'Signing out...' : 'Sign Out'}</span>}
+            {loggingOut ? <Loader2 className="h-[18px] w-[18px] flex-shrink-0 animate-spin" /> : <LogOut className="h-[18px] w-[18px] flex-shrink-0" />}
+            {sidebarOpen && <span className="truncate">{loggingOut ? 'Signing out...' : 'Sign Out'}</span>}
           </button>
         </div>
       </aside>
@@ -329,7 +326,7 @@ export function AppLayout() {
       {/* Main Content */}
       <div className="flex flex-1 flex-col min-w-0">
         {/* Top Bar */}
-        <header className="flex h-14 sm:h-16 items-center justify-between border-b border-surface-700 bg-surface-950/80 px-3 sm:px-4 lg:px-6 safe-top sticky top-0 z-30">
+        <header className="flex h-14 sm:h-16 items-center justify-between border-b border-surface-700/50 bg-surface-950/80 px-3 sm:px-4 lg:px-6 safe-top sticky top-0 z-30">
           <div className="flex flex-col gap-1 min-w-0">
             <div className="flex items-center gap-2 sm:gap-3">
               <button
@@ -347,11 +344,11 @@ export function AppLayout() {
           <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
             <button
               onClick={() => window.dispatchEvent(new Event('devmind:open-palette'))}
-              className="hidden sm:flex items-center gap-1.5 rounded-lg border border-surface-700 bg-surface-800/60 px-2.5 py-1.5 text-surface-400 hover:bg-surface-800 hover:text-surface-200 transition-colors"
+              className="hidden sm:flex items-center gap-2 rounded-lg border border-surface-700/50 bg-surface-800/40 px-3 py-1.5 text-surface-500 hover:border-surface-600 hover:bg-surface-800 hover:text-surface-300 transition-all duration-150"
               title="Search (Ctrl+K)"
             >
               <Search className="h-3.5 w-3.5" />
-              <span className="text-[10px] text-surface-500">Ctrl K</span>
+              <span className="text-[10px]">Ctrl K</span>
             </button>
 
             {/* Notification Bell */}

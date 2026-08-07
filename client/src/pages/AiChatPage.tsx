@@ -612,8 +612,8 @@ export function AiChatPage() {
                       </div>
                     )}
                     <div
-                      className={'max-w-[85%] sm:max-w-[75%] lg:max-w-[70%] rounded-xl px-3 sm:px-4 py-2 sm:py-3 ' +
-                        (msg.role === 'user' ? 'bg-primary-600/20 text-surface-100' : 'bg-surface-800/80 text-surface-200')}
+                      className={'max-w-[85%] sm:max-w-[75%] lg:max-w-[70%] px-3 sm:px-4 py-2 sm:py-3 ' +
+                        (msg.role === 'user' ? 'rounded-2xl rounded-br-md bg-blue-600 text-white' : 'rounded-2xl rounded-bl-md bg-surface-800 text-surface-200')}
                     >
                       {msg.role === 'assistant' ? (
                         <div className="max-w-none text-xs sm:text-sm">
@@ -651,8 +651,12 @@ export function AiChatPage() {
                 ))}
               </AnimatePresence>
               {loading && (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-2 text-xs sm:text-sm text-surface-400">
-                  <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" /> Thinking...
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-3 pl-10">
+                  <div className="flex gap-1">
+                    <span className="h-2 w-2 rounded-full bg-surface-500 animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <span className="h-2 w-2 rounded-full bg-surface-500 animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <span className="h-2 w-2 rounded-full bg-surface-500 animate-bounce" style={{ animationDelay: '300ms' }} />
+                  </div>
                 </motion.div>
               )}
               <div ref={messagesEndRef} />
@@ -660,20 +664,19 @@ export function AiChatPage() {
           </div>
 
           {/* Input */}
-          <div className="mt-2 sm:mt-3 lg:mt-4 flex gap-2">
+          <div className="mt-3 flex gap-2">
             <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSend())}
               placeholder={mode === 'general' ? 'Ask a coding question...' : indexStatus.hasReport ? 'Ask about your code...' : 'Index a repo first...'}
-              className="flex-1 min-w-0 rounded-xl border border-surface-700 bg-surface-900 px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm text-surface-100 placeholder-surface-500 focus:border-primary-500/50 focus:outline-none"
+              className="input-field"
             />
             <button onClick={handleSend} disabled={loading || !input.trim()}
-              className="flex items-center gap-1 sm:gap-2 rounded-xl bg-primary-600 px-3 sm:px-5 py-2.5 sm:py-3 text-xs sm:text-sm font-medium text-white transition-all hover:bg-primary-700 disabled:opacity-50 flex-shrink-0"
+              className="btn-primary px-4"
             >
-              {loading ? <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" /> : <Send className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
-              <span className="hidden sm:inline">Send</span>
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             </button>
           </div>
         </div>
