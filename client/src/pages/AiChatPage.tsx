@@ -585,12 +585,17 @@ export function AiChatPage() {
             {statusBanner()}
 
             {messages.length <= 1 && !loading && (
-              <div className="mb-3 sm:mb-4 grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-2">
-                {suggestions.map((s) => (
-                  <button key={s} onClick={() => setInput(s)}
-                    className="rounded-lg border border-surface-700 bg-surface-800/50 px-2.5 sm:px-3 py-2 text-left text-[10px] sm:text-xs text-surface-400 transition-all hover:border-primary-500/30 hover:text-surface-200 truncate"
-                  >{s}</button>
-                ))}
+              <div className="mb-3 sm:mb-4">
+                <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-surface-500">
+                  {mode === 'general' ? 'Try asking' : 'Example questions'}
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-2">
+                  {suggestions.map((s) => (
+                    <button key={s} onClick={() => setInput(s)}
+                      className="rounded-lg border border-surface-700 bg-surface-800/50 px-2.5 sm:px-3 py-2.5 text-left text-[10px] sm:text-xs text-surface-400 transition-all hover:border-primary-500/30 hover:bg-surface-800 hover:text-surface-200 truncate group"
+                    ><span className="text-primary-400/60 group-hover:text-primary-400 transition-colors">→</span> {s}</button>
+                  ))}
+                </div>
               </div>
             )}
 

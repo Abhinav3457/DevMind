@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Github, GitBranch, Globe, Lock, Loader2, ExternalLink, Search, RefreshCw, Database, Trash2, LogOut } from 'lucide-react';
+import { Github, GitBranch, Globe, Lock, Loader2, ExternalLink, Search, RefreshCw, Database, Trash2, LogOut, Bug, BarChart3, FileText } from 'lucide-react';
 import { isAxiosError } from 'axios';
 import apiClient from '../api/axios';
 import toast from 'react-hot-toast';
@@ -229,15 +229,31 @@ export function GitHubPage() {
 
       {!connected ? (
         <div className="flex flex-col items-center py-10 sm:py-16 text-center px-4">
-          <div className="mb-4 sm:mb-6 flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-xl sm:rounded-2xl bg-surface-800">
+          <div className="mb-4 sm:mb-6 flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-xl sm:rounded-2xl bg-gradient-to-br from-surface-800 to-surface-900 ring-1 ring-surface-700">
             <Github className="h-8 w-8 sm:h-10 sm:w-10 text-surface-400" />
           </div>
           <h2 className="text-lg sm:text-xl font-semibold text-surface-200">Connect Your GitHub Account</h2>
-          <p className="mt-1 sm:mt-2 max-w-xs sm:max-w-md text-xs sm:text-sm text-surface-400">Connect your GitHub account to import public and private repositories, analyze code, and generate documentation.</p>
-          <button onClick={handleConnect} className="mt-4 sm:mt-6 flex items-center gap-2 rounded-lg sm:rounded-xl bg-surface-800 px-5 sm:px-6 py-2.5 sm:py-3 text-xs sm:text-sm font-medium text-surface-200 transition-all hover:bg-surface-700">
+          <p className="mt-1 sm:mt-2 max-w-xs sm:max-w-md text-xs sm:text-sm text-surface-400 leading-relaxed">
+            Import public and private repositories, analyze your codebase with AI,
+            and generate documentation automatically.
+          </p>
+          <div className="mt-4 sm:mt-6 grid grid-cols-3 gap-3 max-w-sm">
+            {[
+              { icon: Bug, label: 'Code Review', color: 'text-amber-400' },
+              { icon: BarChart3, label: 'Analytics', color: 'text-indigo-400' },
+              { icon: FileText, label: 'Docs', color: 'text-cyan-400' },
+            ].map((item) => (
+              <div key={item.label} className="rounded-lg border border-surface-700/50 bg-surface-800/30 px-3 py-2 text-center">
+                <item.icon className={`h-4 w-4 mx-auto ${item.color}`} />
+                <p className="mt-1.5 text-[10px] font-medium text-surface-400">{item.label}</p>
+              </div>
+            ))}
+          </div>
+          <button onClick={handleConnect} className="mt-5 sm:mt-7 flex items-center gap-2 rounded-lg sm:rounded-xl bg-gradient-to-r from-surface-700 to-surface-800 px-6 sm:px-8 py-3 text-xs sm:text-sm font-semibold text-surface-100 transition-all hover:from-surface-600 hover:to-surface-700 hover:shadow-lg">
             <Github className="h-4 w-4 sm:h-5 sm:w-5" />
             Sign in with GitHub
           </button>
+          <p className="mt-3 text-[10px] text-surface-600">OAuth — no personal tokens needed</p>
         </div>
       ) : (
         <>
@@ -315,7 +331,7 @@ export function GitHubPage() {
                            status === 'failed' ? 'bg-red-500/10 text-red-400' :
                            'bg-surface-800 text-surface-400')
                         }>
-                          {status === 'completed' ? '✓ ' + (ir.indexedFiles || 0) + ' files' :
+                          {status === 'completed' ? (ir.indexedFiles || 0) + ' files' :
                            status === 'processing' ? 'Processing...' :
                            status === 'pending' ? 'Queued' :
                            status === 'failed' ? 'Failed' :

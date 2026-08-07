@@ -1,11 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, Code2, Brain, Bug, FileText, Bot,
   Github, BarChart3, LogOut, ChevronLeft,
   Bell, Menu, X, Sun, Moon, Loader2,
-  CheckCheck, Search,
+  CheckCheck, Search, Settings, ChevronRight,
 } from 'lucide-react';
 import { CommandPalette } from './CommandPalette';
 import { useAuthStore, useUIStore } from '../../store';
@@ -23,15 +23,86 @@ interface AppNotification {
   data?: Record<string, unknown>;
 }
 
-const navItems = [
-  { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/github', icon: Github, label: 'GitHub' },
-  { to: '/ai/agent', icon: Bot, label: 'AI Agent' },
-  { to: '/ai/chat', icon: Brain, label: 'AI Chat' },
-  { to: '/ai/code-review', icon: Bug, label: 'Code Review' },
-  { to: '/ai/docs', icon: FileText, label: 'Documentation' },
-  { to: '/analytics', icon: BarChart3, label: 'Analytics' },
+/* ── Navigation Structure ──────────────────────────────── */
+interface NavItem {
+  to: string;
+  icon: typeof LayoutDashboard;
+  label: string;
+}
+
+interface NavSection {
+  label: string;
+  items: NavItem[];
+}
+
+const navSections: NavSection[] = [
+  {
+    label: 'Core',
+    items: [
+      { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+      { to: '/github', icon: Github, label: 'GitHub' },
+    ],
+  },
+  {
+    label: 'AI Tools',
+    items: [
+      { to: '/ai/agent', icon: Bot, label: 'AI Agent' },
+      { to: '/ai/chat', icon: Brain, label: 'AI Chat' },
+      { to: '/ai/code-review', icon: Bug, label: 'Code Review' },
+      { to: '/ai/docs', icon: FileText, label: 'Documentation' },
+    ],
+  },
+  {
+    label: 'Insights',
+    items: [
+      { to: '/analytics', icon: BarChart3, label: 'Analytics' },
+    ],
+  },
 ];
+
+/* ── Breadcrumb Map ────────────────────────────────────── */
+const breadcrumbMap: Record<string, string> = {
+  dashboard: 'Dashboard',
+  github: 'GitHub',
+  ai: 'AI Tools',
+  agent: 'AI Agent',
+  chat: 'AI Chat',
+  'code-review': 'Code Review',
+  docs: 'Documentation',
+  analytics: 'Analytics',
+};
+
+function Breadcrumbs() {
+  const location = useLocation();
+  const segments = location.pathname.split('/').filter(Boolean);
+
+  if (segments.length === 0 || (segments.length === 1 && segments[0] === 'dashboard')) {
+    return null;
+  }
+
+  return (
+    <nav className="hidden sm:flex items-center gap-1.5 text-xs text-surface-500">
+      {segments.map((segment, i) => {
+        const label = breadcrumbMap[segment] || segment;
+        const isLast = i === segments.length - 1;
+        const path = '/' + segments.slice(0, i + 1).join('/');
+
+        return (
+          <span key={path} className="flex items-center gap-1.5">
+            {i > 0 && <ChevronRight className="h-3 w-3 text-surface-600" />}
+            {isLast ? (
+              <span className="font-medium text-surface-300">{label}</span>
+            ) : (
+              <NavLink to={path} className="hover:text-surface-300 transition-colors">
+                {label}
+              </NavLink>
+            )}
+          </span>
+        );
+      })}
+    </nav>
+  );
+}
 
 export function AppLayout() {
   const navigate = useNavigate();
@@ -43,6 +114,7 @@ export function AppLayout() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [bellOpen, setBellOpen] = useState(false);
   const [loadingNotifs, setLoadingNotifs] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
 
   const fetchNotifications = useCallback(async () => {
     setLoadingNotifs(true);
@@ -57,12 +129,10 @@ export function AppLayout() {
     }
   }, []);
 
-  // Fetch notifications when the route changes
   useEffect(() => {
     fetchNotifications();
   }, [location.pathname, fetchNotifications]);
 
-  // Live notifications pushed over the socket
   useEffect(() => {
     connectSocket();
     const unsubscribe = onNotificationNew(() => { fetchNotifications(); });
@@ -77,11 +147,18 @@ export function AppLayout() {
     return () => { document.body.style.overflow = ''; };
   }, [mobileOpen]);
 
+  // Close profile dropdown on route change
+  useEffect(() => {
+    setProfileOpen(false);
+    setBellOpen(false);
+  }, [location.pathname]);
+
   const [loggingOut, setLoggingOut] = useState(false);
 
   const handleLogout = async () => {
     if (loggingOut) return;
     setLoggingOut(true);
+    setProfileOpen(false);
     try {
       await logoutApi();
     } catch {
@@ -124,6 +201,18 @@ export function AppLayout() {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
     setUnreadCount(0);
   };
+
+  const initials = useMemo(() => {
+    const name = user?.name;
+    if (!name) return 'D';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length === 0) return 'D';
+    const a = parts[0];
+    const b = parts.length > 1 ? parts[parts.length - 1] : null;
+    if (a && b) return ((a[0] || '') + (b[0] || '')).toUpperCase();
+    if (a) return (a[0] || '').toUpperCase();
+    return 'D';
+  }, [user?.name]);
 
   return (
     <div className="flex min-h-screen min-h-dvh overflow-x-hidden bg-surface-950">
@@ -169,25 +258,59 @@ export function AppLayout() {
           </button>
         </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 space-y-1 overflow-y-auto p-2 sm:p-3">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              onClick={() => setMobileOpen(false)}
-              className={({ isActive }) =>
-                'group flex items-center gap-3 rounded-lg px-2.5 sm:px-3 py-2.5 sm:py-2.5 text-sm font-medium transition-all duration-200 ' +
-                (isActive
-                  ? 'bg-primary-500/10 text-primary-400'
-                  : 'text-surface-400 hover:bg-surface-800 hover:text-surface-200')
-              }
-            >
-              <item.icon className="h-5 w-5 flex-shrink-0" />
-              {sidebarOpen && <span className="truncate">{item.label}</span>}
-            </NavLink>
+        {/* Navigation — Grouped Sections */}
+        <nav className="flex-1 space-y-4 overflow-y-auto px-2 sm:px-3 py-3">
+          {navSections.map((section) => (
+            <div key={section.label}>
+              {sidebarOpen && (
+                <p className="mb-1.5 px-2.5 text-[10px] font-semibold uppercase tracking-wider text-surface-500">
+                  {section.label}
+                </p>
+              )}
+              <div className="space-y-0.5">
+                {section.items.map((item) => (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    onClick={() => setMobileOpen(false)}
+                    className={({ isActive }) =>
+                      'group flex items-center gap-3 rounded-lg px-2.5 sm:px-3 py-2 sm:py-2.5 text-sm font-medium transition-all duration-200 ' +
+                      (isActive
+                        ? 'bg-primary-500/10 text-primary-400'
+                        : 'text-surface-400 hover:bg-surface-800 hover:text-surface-200')
+                    }
+                    title={!sidebarOpen ? item.label : undefined}
+                  >
+                    <item.icon className="h-4.5 w-4.5 sm:h-5 sm:w-5 flex-shrink-0" />
+                    {sidebarOpen && <span className="truncate">{item.label}</span>}
+                  </NavLink>
+                ))}
+              </div>
+            </div>
           ))}
         </nav>
+
+        {/* Bottom section — collapsed icon-only view */}
+        {!sidebarOpen && (
+          <div className="hidden lg:flex flex-col items-center gap-2 border-t border-surface-700 p-2">
+            {navSections.flatMap(s => s.items).map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                onClick={() => setMobileOpen(false)}
+                className={({ isActive }) =>
+                  'rounded-lg p-2 transition-colors ' +
+                  (isActive
+                    ? 'text-primary-400 bg-primary-500/10'
+                    : 'text-surface-500 hover:text-surface-300 hover:bg-surface-800')
+                }
+                title={item.label}
+              >
+                <item.icon className="h-4.5 w-4.5" />
+              </NavLink>
+            ))}
+          </div>
+        )}
 
         {/* Logout */}
         <div className="border-t border-surface-700 p-2 sm:p-3 safe-bottom">
@@ -195,6 +318,7 @@ export function AppLayout() {
             onClick={() => { handleLogout(); setMobileOpen(false); }}
             className="flex w-full items-center gap-3 rounded-lg px-2.5 sm:px-3 py-2.5 text-sm font-medium text-surface-400 transition-all hover:bg-red-500/10 hover:text-red-400 disabled:opacity-50"
             disabled={loggingOut}
+            title={!sidebarOpen ? 'Sign Out' : undefined}
           >
             {loggingOut ? <Loader2 className="h-5 w-5 flex-shrink-0 animate-spin" /> : <LogOut className="h-5 w-5 flex-shrink-0" />}
             {sidebarOpen && <span>{loggingOut ? 'Signing out...' : 'Sign Out'}</span>}
@@ -202,20 +326,23 @@ export function AppLayout() {
         </div>
       </aside>
 
-      {/* Main Content — sidebar is lg:static on desktop so it pushes content naturally */}
+      {/* Main Content */}
       <div className="flex flex-1 flex-col min-w-0">
         {/* Top Bar */}
         <header className="flex h-14 sm:h-16 items-center justify-between border-b border-surface-700 bg-surface-900/50 px-3 sm:px-4 lg:px-6 backdrop-blur-xl safe-top sticky top-0 z-30">
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-            <button
-              onClick={() => setMobileOpen(!mobileOpen)}
-              className="rounded-lg p-1.5 sm:p-2 text-surface-400 hover:bg-surface-800 lg:hidden transition-colors"
-              aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
-            >
-              {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </button>
-            <span className="hidden sm:inline text-xs sm:text-sm text-surface-400">Welcome back,</span>
-            <span className="text-xs sm:text-sm font-medium text-surface-200 truncate max-w-[100px] sm:max-w-[150px]">{user?.name || 'Developer'}</span>
+          <div className="flex flex-col gap-1 min-w-0">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <button
+                onClick={() => setMobileOpen(!mobileOpen)}
+                className="rounded-lg p-1.5 sm:p-2 text-surface-400 hover:bg-surface-800 lg:hidden transition-colors"
+                aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+              >
+                {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              </button>
+              <span className="hidden sm:inline text-xs sm:text-sm text-surface-400">Welcome back,</span>
+              <span className="text-xs sm:text-sm font-medium text-surface-200 truncate max-w-[100px] sm:max-w-[150px]">{user?.name || 'Developer'}</span>
+            </div>
+            <Breadcrumbs />
           </div>
           <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
             <button
@@ -226,16 +353,11 @@ export function AppLayout() {
               <Search className="h-3.5 w-3.5" />
               <span className="text-[10px] text-surface-500">Ctrl K</span>
             </button>
-            <button
-              onClick={toggleTheme}
-              className="rounded-lg p-1.5 sm:p-2 text-surface-400 hover:bg-surface-800 hover:text-surface-200 transition-colors"
-              title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-            >
-              {theme === 'dark' ? <Sun className="h-4 w-4 sm:h-5 sm:w-5" /> : <Moon className="h-4 w-4 sm:h-5 sm:w-5" />}
-            </button>
+
+            {/* Notification Bell */}
             <div className="relative">
               <button
-                onClick={() => setBellOpen((o) => !o)}
+                onClick={() => { setBellOpen((o) => !o); setProfileOpen(false); }}
                 className="relative rounded-lg p-1.5 sm:p-2 text-surface-400 hover:bg-surface-800 hover:text-surface-200 transition-colors"
                 title="Notifications"
               >
@@ -301,13 +423,70 @@ export function AppLayout() {
                         ))
                       )}
                     </div>
-
                   </motion.div>
                 </>
               )}
             </div>
-            <div className="flex h-7 w-7 sm:h-8 sm:w-8 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-[10px] sm:text-xs font-bold text-white ml-1 sm:ml-2">
-              {user?.name?.charAt(0)?.toUpperCase() || 'D'}
+
+            {/* User Profile Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => { setProfileOpen((o) => !o); setBellOpen(false); }}
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-[10px] sm:text-xs font-bold text-white ml-1 sm:ml-2 transition-all hover:ring-2 hover:ring-blue-500/30 hover:scale-105"
+                title="Profile & Settings"
+              >
+                {initials}
+              </button>
+              {profileOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setProfileOpen(false)} />
+                  <motion.div
+                    initial={{ opacity: 0, y: -8, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute right-0 z-50 mt-2 w-64 overflow-hidden rounded-xl border border-surface-700 bg-surface-900 shadow-2xl shadow-black/50"
+                  >
+                    {/* User Info */}
+                    <div className="border-b border-surface-700 px-4 py-3">
+                      <p className="text-sm font-semibold text-surface-100 truncate">{user?.name || 'Developer'}</p>
+                      <p className="text-xs text-surface-400 truncate">{user?.email || ''}</p>
+                    </div>
+
+                    {/* Menu Items */}
+                    <div className="p-1.5">
+                      {/* Theme Toggle */}
+                      <button
+                        onClick={toggleTheme}
+                        className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-surface-300 transition-colors hover:bg-surface-800 hover:text-surface-100"
+                      >
+                        {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                        <span>{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
+                      </button>
+
+                      {/* Settings placeholder */}
+                      <button
+                        className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-surface-300 transition-colors hover:bg-surface-800 hover:text-surface-100"
+                        onClick={() => setProfileOpen(false)}
+                      >
+                        <Settings className="h-4 w-4" />
+                        <span>Settings</span>
+                      </button>
+
+                      <div className="my-1.5 h-px bg-surface-700" />
+
+                      {/* Sign Out */}
+                      <button
+                        onClick={handleLogout}
+                        disabled={loggingOut}
+                        className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-red-400 transition-colors hover:bg-red-500/10 disabled:opacity-50"
+                      >
+                        {loggingOut ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
+                        <span>{loggingOut ? 'Signing out...' : 'Sign Out'}</span>
+                      </button>
+                    </div>
+                  </motion.div>
+                </>
+              )}
             </div>
           </div>
         </header>
