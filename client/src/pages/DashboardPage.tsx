@@ -32,7 +32,6 @@ interface DashboardStats {
 
 const quickActions = [
   { to: '/github', label: 'Import Repository', icon: Github, color: 'purple' },
-  { to: '/ai/agent', label: 'AI Agent', icon: Bot, color: 'green' },
   { to: '/ai/chat', label: 'AI Chat', icon: Bot, color: 'cyan' },
   { to: '/ai/code-review', label: 'Code Review', icon: Bug, color: 'amber' },
   { to: '/ai/docs', label: 'Documentation', icon: FileText, color: 'cyan' },
@@ -165,8 +164,12 @@ export function DashboardPage() {
           <div className="lg:col-span-2 rounded-xl border border-surface-700/40 bg-surface-900/40 p-4">
             <h3 className="text-sm font-semibold text-surface-200 mb-3">Quick Actions</h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
-              {quickActions.map((action) => (
-                <Link key={action.label} to={action.to}>
+              {quickActions.map((action, index) => (
+                <Link
+                  key={action.label}
+                  to={action.to}
+                  className={index === quickActions.length - 1 ? 'col-span-2' : undefined}
+                >
                   <div className="group flex items-center gap-2.5 rounded-lg px-2.5 py-2.5 transition-all duration-150 hover:bg-surface-800/60 hover:scale-[1.02] active:scale-[0.98]">
                     <div className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg transition-colors duration-150 ${
                       action.color === 'purple' ? 'bg-purple-500/10 text-purple-400 group-hover:bg-purple-500/20' :

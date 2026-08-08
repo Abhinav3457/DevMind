@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion } from 'framer-motion';
-import { LogIn, Mail, Lock, Eye, EyeOff, Loader2, Code2, Bot, Bug, FileText, BarChart3 } from 'lucide-react';
+import { LogIn, Mail, Lock, Eye, EyeOff, Loader2, Code2, Bug, FileText, BarChart3 } from 'lucide-react';
 import { login } from '../services/auth';
 import { useAuthStore } from '../store';
 
@@ -16,7 +16,6 @@ const loginSchema = z.object({
 type LoginFormData = z.infer<typeof loginSchema>;
 
 const features = [
-  { icon: Bot, title: 'AI Agent', desc: 'Autonomous coding tasks executed with intelligent planning' },
   { icon: Bug, title: 'Code Review', desc: 'Instant AI-powered feedback on quality, security, and performance' },
   { icon: FileText, title: 'Documentation', desc: 'Generate professional documentation for your projects' },
   { icon: BarChart3, title: 'Analytics', desc: 'Deep insights into your codebase health and activity' },
@@ -91,8 +90,8 @@ export function LoginPage() {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="mt-4 max-w-md text-sm text-surface-400 leading-relaxed"
           >
-            Import your repositories, receive AI-powered code reviews, generate documentation,
-            and delegate complex tasks to an autonomous agent.
+            Import your repositories, receive AI-powered code reviews, and generate
+            professional documentation for your projects.
           </motion.p>
 
           {/* Feature List */}

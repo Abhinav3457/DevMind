@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  LayoutDashboard, Code2, Brain, Bug, FileText, Bot,
+  LayoutDashboard, Code2, Brain, Bug, FileText,
   Github, BarChart3, LogOut, ChevronLeft,
   Bell, Menu, X, Sun, Moon, Loader2,
   CheckCheck, Search, Settings, ChevronRight,
@@ -46,7 +46,6 @@ const navSections: NavSection[] = [
   {
     label: 'AI Tools',
     items: [
-      { to: '/ai/agent', icon: Bot, label: 'AI Agent' },
       { to: '/ai/chat', icon: Brain, label: 'AI Chat' },
       { to: '/ai/code-review', icon: Bug, label: 'Code Review' },
       { to: '/ai/docs', icon: FileText, label: 'Documentation' },
@@ -65,7 +64,6 @@ const breadcrumbMap: Record<string, string> = {
   dashboard: 'Dashboard',
   github: 'GitHub',
   ai: 'AI Tools',
-  agent: 'AI Agent',
   chat: 'AI Chat',
   'code-review': 'Code Review',
   docs: 'Documentation',

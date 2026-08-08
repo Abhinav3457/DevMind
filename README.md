@@ -4,6 +4,8 @@
 
 DevMind AI is a production-ready, full-stack monorepo that combines a **React 19 + Vite** frontend with an **Express + MongoDB** backend. Users can authenticate (email/JWT **and** GitHub OAuth), import GitHub repositories, index them into a searchable code corpus, and then ask an LLM (Gemini / Groq) questions about the code, run AI code reviews, and auto-generate documentation.
 
+> 📌 **Note:** The **AI Agent** feature (autonomous coding tasks with planning and proposed changes) has been **removed** from this codebase. Its API routes, frontend page, data model, and services have been deleted — existing `AgentRun` documents in MongoDB are no longer read or served.
+
 ---
 
 ## 📑 Table of Contents
@@ -26,6 +28,7 @@ DevMind AI is a production-ready, full-stack monorepo that combines a **React 19
 - [Getting Started](#-getting-started)
 - [Deployment](#-deployment)
 - [Security Measures](#-security-measures)
+- [Changelog](#-changelog)
 
 ---
 
@@ -666,6 +669,12 @@ npm run test:coverage
 ```
 
 Tests use `mongodb-memory-server` (in-memory MongoDB), so no external DB is needed. Coverage includes the service layer (`auth`, `github`, `analytics`, `code-review`, `doc-generator`, `repo-intelligence`, `upload`), and the chat controller.
+
+---
+
+## 📝 Changelog
+
+- **AI Agent removed** — The AI Agent feature (autonomous coding tasks) was removed from the codebase. This includes the `/ai/agent` API routes, the `AgentRun` MongoDB model, the agent engine services, the client-side `/ai/agent` page, and all related UI entries (sidebar navigation, dashboard quick actions, login feature list).
 
 ---
 

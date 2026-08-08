@@ -39,7 +39,7 @@ app.get('/api/v1/health', (_req: Request, res: Response) => {
 });
 
 // General API rate limiting. Kept generous (200/15min) because the client
-// polls (agent progress every 3s, AI health every 2min) and a few minutes of
+// polls (AI health every 2min) and a few minutes of
 // active use would otherwise trip a tight limit. Auth endpoints stay strict.
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
