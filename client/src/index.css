@@ -316,6 +316,32 @@
 .hljs-punctuation { color: #94a3b8; }
 .hljs-params { color: #e2e8f0; }
 
+/* ── Auth page ambient effects ────────────────────────── */
+@keyframes float-slow {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(36px, -28px, 0) scale(1.08); }
+}
+@keyframes float-slower {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  33% { transform: translate3d(-28px, 22px, 0) scale(0.94); }
+  66% { transform: translate3d(18px, -12px, 0) scale(1.05); }
+}
+@keyframes caret-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.animate-float-slow { animation: float-slow 9s ease-in-out infinite; }
+.animate-float-slower { animation: float-slower 14s ease-in-out infinite; }
+.animate-caret-blink { animation: caret-blink 1s step-end infinite; }
+
+.bg-auth-grid {
+  background-image:
+    linear-gradient(to right, rgba(51, 65, 85, 0.32) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(51, 65, 85, 0.32) 1px, transparent 1px);
+  background-size: 42px 42px;
+}
+
 @layer components {
   .inline-code {
     background-color: rgb(var(--surface-800));
