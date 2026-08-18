@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Send, Loader2, Bot, User, AlertCircle, Database, RefreshCw,
-  ExternalLink, MessageSquare, BookOpen, Plus, Trash2, Clock, ChevronLeft,
+  ExternalLink, MessageSquare, BookOpen, Plus, Trash2, Clock, ChevronLeft, Brain,
 } from 'lucide-react';
 import apiClient from '../api/axios';
 import { useNavigate } from 'react-router-dom';
@@ -529,11 +529,16 @@ export function AiChatPage() {
                   <ChevronLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 </motion.div>
               </motion.button>
-              <div className="min-w-0">
-                <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-surface-100 truncate">AI Assistant</h1>
-                <p className="text-[10px] sm:text-xs lg:text-sm text-surface-400 truncate">
-                  {mode === 'general' ? 'Your personal coding assistant' : 'Ask questions grounded in your codebase'}
-                </p>
+              <div className="min-w-0 flex items-center gap-2.5 sm:gap-3">
+                <div className="flex h-9 w-9 sm:h-10 sm:w-10 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 shadow-lg shadow-black/20">
+                  <Brain className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+                </div>
+                <div className="min-w-0">
+                  <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-surface-100 truncate">AI Assistant</h1>
+                  <p className="text-[10px] sm:text-xs lg:text-sm text-surface-400 truncate">
+                    {mode === 'general' ? 'Your personal coding assistant' : 'Ask questions grounded in your codebase'}
+                  </p>
+                </div>
               </div>
             </div>
 

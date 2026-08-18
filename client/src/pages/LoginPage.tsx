@@ -291,7 +291,7 @@ export function LoginPage() {
                       isActive ? 'bg-primary-500/20' : 'bg-blue-500/10'
                     }`}
                   >
-                    <feature.icon className={`h-4.5 w-4.5 ${isActive ? 'text-primary-300' : 'text-blue-400'}`} />
+                    <feature.icon className={`h-[18px] w-[18px] ${isActive ? 'text-primary-300' : 'text-blue-400'}`} />
                   </motion.div>
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-surface-100">{feature.title}</p>
@@ -529,7 +529,7 @@ export function LoginPage() {
                     className="peer sr-only"
                   />
                   <span
-                    className={`flex h-4.5 w-4.5 items-center justify-center rounded border transition-all duration-200 ${
+                    className={`flex h-[18px] w-[18px] items-center justify-center rounded border transition-all duration-200 ${
                       remember
                         ? 'border-primary-500 bg-primary-500'
                         : 'border-surface-600 bg-surface-800 peer-hover:border-surface-500'

@@ -342,6 +342,50 @@
   background-size: 42px 42px;
 }
 
+/* ── Dashboard design concept texture ─────────────────── */
+.bg-diagonal-lines {
+  background-image: repeating-linear-gradient(
+    135deg,
+    rgba(148, 163, 184, 0.045) 0px,
+    rgba(148, 163, 184, 0.045) 1px,
+    transparent 1px,
+    transparent 9px
+  );
+}
+
+.glow-text-purple {
+  text-shadow:
+    0 0 18px rgba(168, 85, 247, 0.55),
+    0 0 42px rgba(168, 85, 247, 0.28);
+}
+
+.glow-text-cyan {
+  text-shadow:
+    0 0 12px rgba(34, 211, 238, 0.6),
+    0 0 28px rgba(34, 211, 238, 0.3);
+}
+
+/* ── Dashboard charcoal palette (from design concept) ── */
+.bg-dash {
+  background-color: #111116;
+}
+.bg-dash-card {
+  background-color: #1a1a24;
+}
+.border-dash {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.light .bg-dash {
+  background-color: #eef0f4;
+}
+.light .bg-dash-card {
+  background-color: #ffffff;
+}
+.light .border-dash {
+  border-color: rgba(15, 23, 42, 0.1);
+}
+
 @layer components {
   .inline-code {
     background-color: rgb(var(--surface-800));

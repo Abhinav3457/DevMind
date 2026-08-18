@@ -4,6 +4,7 @@ import { FileText, Download, Loader2, Sparkles, BookOpen, ListTree, Layout, Glob
 import apiClient from '../api/axios';
 import toast from 'react-hot-toast';
 import { MarkdownRenderer } from '../components/ui/MarkdownRenderer';
+import { PageHeader } from '../components/layout/PageHeader';
 
 const docTypes = [
   { value: 'readme', label: 'README.md', icon: BookOpen },
@@ -53,10 +54,12 @@ export function DocGeneratorPage() {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4 sm:space-y-6">
-      <div>
-        <h1 className="text-xl sm:text-2xl font-bold text-surface-100">Documentation Generator</h1>
-        <p className="mt-0.5 text-xs sm:text-sm text-surface-400">Generate professional project documentation with AI</p>
-      </div>
+      <PageHeader
+        icon={FileText}
+        title="Documentation Generator"
+        description="Generate professional project documentation with AI"
+        gradient="from-emerald-500 to-teal-600"
+      />
 
       <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
         <div className="space-y-4 w-full lg:w-1/2">

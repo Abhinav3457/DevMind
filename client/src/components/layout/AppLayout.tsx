@@ -250,9 +250,10 @@ export function AppLayout() {
           <button
             onClick={() => mobileOpen ? setMobileOpen(false) : toggleSidebar()}
             className="rounded-lg p-1.5 text-surface-400 hover:bg-surface-800 hover:text-surface-200 transition-colors"
-            aria-label={(sidebarOpen || mobileOpen) ? 'Collapse sidebar' : 'Close menu'}
+            aria-label={(sidebarOpen || mobileOpen) ? 'Collapse sidebar' : 'Expand sidebar'}
+            title={(sidebarOpen || mobileOpen) ? 'Collapse sidebar' : 'Expand sidebar'}
           >
-            <ChevronLeft className="h-4 w-4" />
+            <ChevronLeft className={`h-4 w-4 transition-transform duration-200 ${(sidebarOpen || mobileOpen) ? '' : 'rotate-180'}`} />
           </button>
         </div>
 
@@ -301,7 +302,7 @@ export function AppLayout() {
                 }
                 title={item.label}
               >
-                <item.icon className="h-4.5 w-4.5" />
+                <item.icon className="h-[18px] w-[18px]" />
               </NavLink>
             ))}
           </div>
@@ -328,9 +329,13 @@ export function AppLayout() {
           <div className="flex flex-col gap-1 min-w-0">
             <div className="flex items-center gap-2 sm:gap-3">
               <button
-                onClick={() => setMobileOpen(!mobileOpen)}
-                className="rounded-lg p-1.5 sm:p-2 text-surface-400 hover:bg-surface-800 lg:hidden transition-colors"
-                aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+                onClick={() => {
+                  if (window.innerWidth >= 1024) toggleSidebar();
+                  else setMobileOpen(!mobileOpen);
+                }}
+                className="rounded-lg p-1.5 sm:p-2 text-surface-400 hover:bg-surface-800 transition-colors"
+                aria-label="Toggle sidebar"
+                title="Toggle sidebar"
               >
                 {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
               </button>
@@ -487,8 +492,16 @@ export function AppLayout() {
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-x-hidden overflow-y-auto p-3 sm:p-4 lg:p-6">
-          <Outlet />
+        <main className="flex-1 overflow-x-hidden overflow-y-auto px-2 py-3 sm:px-3 sm:py-4 lg:px-4 lg:py-6">
+          <motion.div
+            key={location.pathname}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25, ease: 'easeOut' }}
+            className="min-h-full"
+          >
+            <Outlet />
+          </motion.div>
         </main>
       </div>
       <CommandPalette />

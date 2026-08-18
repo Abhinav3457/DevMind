@@ -5,6 +5,7 @@ import { Github, GitBranch, Globe, Lock, Loader2, ExternalLink, Search, RefreshC
 import { isAxiosError } from 'axios';
 import apiClient from '../api/axios';
 import toast from 'react-hot-toast';
+import { PageHeader } from '../components/layout/PageHeader';
 
 interface ImportedRepo {
   _id: string;
@@ -204,28 +205,30 @@ export function GitHubPage() {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <h1 className="text-xl sm:text-2xl font-bold text-surface-100 truncate">GitHub Integration</h1>
-          <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-surface-400 truncate">Connect your GitHub account and import repositories to analyze</p>
-        </div>
-        <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
-          {connected && (
-            <button onClick={handleDisconnect} disabled={disconnecting}
-              className="flex items-center gap-1.5 sm:gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-2.5 sm:px-3 py-2 sm:py-2.5 text-[11px] sm:text-sm font-medium text-red-400 transition-all hover:bg-red-500/20 disabled:opacity-50"
+      <PageHeader
+        icon={Github}
+        title="GitHub Integration"
+        description="Connect your GitHub account and import repositories to analyze"
+        gradient="from-purple-500 to-indigo-600"
+        actions={
+          <>
+            {connected && (
+              <button onClick={handleDisconnect} disabled={disconnecting}
+                className="flex items-center gap-1.5 sm:gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-2.5 sm:px-3 py-2 sm:py-2.5 text-[11px] sm:text-sm font-medium text-red-400 transition-all hover:bg-red-500/20 disabled:opacity-50"
+              >
+                {disconnecting ? <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" /> : <LogOut className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
+                <span className="hidden sm:inline">Disconnect</span>
+              </button>
+            )}
+            <button onClick={handleConnect} disabled={connected}
+              className={'flex items-center gap-1.5 sm:gap-2 rounded-lg px-3 sm:px-4 py-2 sm:py-2.5 text-[11px] sm:text-sm font-medium transition-all whitespace-nowrap ' + (connected ? 'bg-emerald-500/10 text-emerald-400 cursor-default' : 'bg-surface-800 text-surface-200 hover:bg-surface-700')}
             >
-              {disconnecting ? <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" /> : <LogOut className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
-              <span className="hidden sm:inline">Disconnect</span>
+              <Github className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className="truncate max-w-[120px] sm:max-w-none">{connected ? 'Connected as ' + githubUser : 'Connect GitHub'}</span>
             </button>
-          )}
-          <button onClick={handleConnect} disabled={connected}
-            className={'flex items-center gap-1.5 sm:gap-2 rounded-lg px-3 sm:px-4 py-2 sm:py-2.5 text-[11px] sm:text-sm font-medium transition-all whitespace-nowrap ' + (connected ? 'bg-emerald-500/10 text-emerald-400 cursor-default' : 'bg-surface-800 text-surface-200 hover:bg-surface-700')}
-          >
-            <Github className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-            <span className="truncate max-w-[120px] sm:max-w-none">{connected ? 'Connected as ' + githubUser : 'Connect GitHub'}</span>
-          </button>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       {!connected ? (
         <div className="flex flex-col items-center py-12 sm:py-20 text-center px-4">

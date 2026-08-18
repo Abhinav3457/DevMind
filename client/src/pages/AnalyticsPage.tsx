@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { fetchAnalytics } from '../services/analytics';
 import apiClient from '../api/axios';
+import { PageHeader } from '../components/layout/PageHeader';
 import { StatCard } from '../components/dashboard/StatCard';
 import { LanguageChart } from '../components/dashboard/LanguageChart';
 import { HealthScore } from '../components/dashboard/HealthScore';
@@ -169,23 +170,14 @@ export function AnalyticsPage() {
     <div className="min-h-screen">
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8">
         {/* ── Header ────────────────────────────── */}
-        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-6 sm:mb-8">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
-            {/* Title */}
-            <div className="min-w-0 space-y-1 sm:space-y-2">
-              <div className="flex items-center gap-2.5 sm:gap-3">
-                <div className="flex h-9 w-9 sm:h-10 sm:w-10 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/25">
-                  <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
-                </div>
-                <h1 className="truncate text-xl font-bold tracking-tight text-surface-100 sm:text-2xl">Analytics Dashboard</h1>
-              </div>
-              <p className="pl-[46px] text-xs text-surface-400 sm:pl-[52px] sm:text-sm">
-                Insights across your repositories and AI operations
-              </p>
-            </div>
-
-            {/* Controls */}
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+        <div className="mb-6 sm:mb-8">
+          <PageHeader
+            icon={BarChart3}
+            title="Analytics Dashboard"
+            description="Insights across your repositories and AI operations"
+            gradient="from-blue-500 to-indigo-600"
+            actions={
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
               {reports.length > 0 && (
                 <div className="relative">
                   <Database className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
@@ -204,10 +196,11 @@ export function AnalyticsPage() {
                 <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
                 <span className="hidden sm:inline">{isFetching ? 'Refreshing...' : 'Refresh'}</span>
               </button>
-            </div>
-          </div>
+              </div>
+            }
+          />
           <div className="mt-5 h-px bg-gradient-to-r from-transparent via-surface-700 to-transparent sm:mt-6" />
-        </motion.div>
+        </div>
 
         <motion.div variants={containerVariants} initial="hidden" animate="visible">
           {/* ── Overview Stats ────────────────────── */}

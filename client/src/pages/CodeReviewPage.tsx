@@ -4,6 +4,7 @@ import { Bug, Loader2, Code2, BookOpen, Brain, Wand2, Sparkles, AlertCircle, Ext
 import apiClient from '../api/axios';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
+import { PageHeader } from '../components/layout/PageHeader';
 import { MarkdownRenderer } from '../components/ui/MarkdownRenderer';
 import { renderReviewMarkdown } from '../utils/reviewMarkdown';
 import Editor from '@monaco-editor/react';
@@ -350,32 +351,31 @@ export function CodeReviewPage() {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4 sm:space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <h1 className="text-xl sm:text-2xl font-bold text-surface-100 truncate flex items-center gap-2">
-            <Brain className="h-5 w-5 sm:h-6 sm:w-6 text-primary-400" />
-            AI Code Review
-          </h1>
-          <p className="mt-0.5 text-xs sm:text-sm text-surface-400">Instant AI feedback on code quality, security, and performance</p>
-        </div>
-        <div className="flex rounded-lg border border-surface-700 bg-surface-800 p-0.5 self-start sm:self-auto">
-          <button onClick={() => setMode('snippet')}
-            className={`flex items-center gap-1 rounded-md px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium transition-all ${
-              mode === 'snippet' ? 'bg-primary-600 text-white shadow-sm' : 'text-surface-400 hover:text-surface-200'
-            }`}
-          ><Code2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Code</button>
-          <button onClick={() => setMode('repo')}
-            className={`flex items-center gap-1 rounded-md px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium transition-all ${
-              mode === 'repo' ? 'bg-primary-600 text-white shadow-sm' : 'text-surface-400 hover:text-surface-200'
-            }`}
-          ><BookOpen className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Repo</button>
-          <button onClick={() => setMode('history')}
-            className={`flex items-center gap-1 rounded-md px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium transition-all ${
-              mode === 'history' ? 'bg-primary-600 text-white shadow-sm' : 'text-surface-400 hover:text-surface-200'
-            }`}
-          ><Clock className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> History</button>
-        </div>
-      </div>
+      <PageHeader
+        icon={Brain}
+        title="AI Code Review"
+        description="Instant AI feedback on code quality, security, and performance"
+        gradient="from-blue-500 to-purple-600"
+        actions={
+          <div className="flex rounded-lg border border-surface-700 bg-surface-800 p-0.5 self-start sm:self-auto">
+            <button onClick={() => setMode('snippet')}
+              className={`flex items-center gap-1 rounded-md px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium transition-all ${
+                mode === 'snippet' ? 'bg-primary-600 text-white shadow-sm' : 'text-surface-400 hover:text-surface-200'
+              }`}
+            ><Code2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Code</button>
+            <button onClick={() => setMode('repo')}
+              className={`flex items-center gap-1 rounded-md px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium transition-all ${
+                mode === 'repo' ? 'bg-primary-600 text-white shadow-sm' : 'text-surface-400 hover:text-surface-200'
+              }`}
+            ><BookOpen className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Repo</button>
+            <button onClick={() => setMode('history')}
+              className={`flex items-center gap-1 rounded-md px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium transition-all ${
+                mode === 'history' ? 'bg-primary-600 text-white shadow-sm' : 'text-surface-400 hover:text-surface-200'
+              }`}
+            ><Clock className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> History</button>
+          </div>
+        }
+      />
 
       <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
         <div className="space-y-4 w-full lg:w-1/2">
