@@ -9,7 +9,10 @@ export interface IIndexedChunk extends Document {
   endLine: number;
   type: 'function' | 'class' | 'section' | 'import_block' | 'exports_block';
   metadata: Record<string, unknown>;
-  embedding: null;
+  /** Dense vector from the configured embedding provider (null until embedded). */
+  embedding: number[] | null;
+  /** Which provider/model produced the vector, e.g. 'nvidia:nvidia/nemotron-3-embed-1b'. */
+  embeddingModel: string | null;
   tokenCount: number;
   createdAt: Date;
 }
@@ -24,13 +27,17 @@ const indexedChunkSchema = new Schema<IIndexedChunk>(
     endLine: { type: Number, required: true },
     type: { type: String, enum: ['function', 'class', 'section', 'import_block', 'exports_block'], required: true },
     metadata: { type: Schema.Types.Mixed, default: {} },
-    embedding: { type: Schema.Types.Mixed, default: null },
+    embedding: { type: [Number], default: null },
+    embeddingModel: { type: String, default: null, index: true },
     tokenCount: { type: Number, default: 0 },
   },
   { timestamps: { createdAt: true, updatedAt: false }, toJSON: { transform(_doc: Document, ret: Record<string, unknown>) { ret.id = (ret._id as string).toString(); delete ret._id; delete ret.__v; return ret; } } },
 );
 
 indexedChunkSchema.index({ reportId: 1, fileId: 1, index: 1 });
+// Semantic search always filters by reportId + embeddingModel so vectors from
+// different providers/dimensions are never compared against each other.
+indexedChunkSchema.index({ reportId: 1, embeddingModel: 1 });
 
 const IndexedChunk = mongoose.model<IIndexedChunk>('IndexedChunk', indexedChunkSchema);
 export default IndexedChunk;

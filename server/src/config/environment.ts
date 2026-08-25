@@ -20,6 +20,9 @@ interface Environment {
   SMTP_FROM: string;
   GEMINI_API_KEY: string;
   GROQ_API_KEY: string;
+  NVIDIA_API_KEY: string;
+  NVIDIA_EMBEDDING_MODEL: string;
+  EMBEDDING_PROVIDER: string;
   GITHUB_TOKEN: string;
   GITHUB_CLIENT_ID: string;
   GITHUB_CLIENT_SECRET: string;
@@ -58,6 +61,11 @@ export const env: Environment = {
   SMTP_FROM: getOptionalEnvVar('SMTP_FROM', 'noreply@devmind-ai.com'),
   GEMINI_API_KEY: getOptionalEnvVar('GEMINI_API_KEY', ''),
   GROQ_API_KEY: getOptionalEnvVar('GROQ_API_KEY', ''),
+  NVIDIA_API_KEY: getOptionalEnvVar('NVIDIA_API_KEY', ''),
+  // Full model ID served by NVIDIA's hosted API (build.nvidia.com).
+  NVIDIA_EMBEDDING_MODEL: getOptionalEnvVar('NVIDIA_EMBEDDING_MODEL', 'nvidia/nemotron-3-embed-1b'),
+  // Which embedding provider to use for semantic search: 'nvidia' | 'gemini' | '' (disabled)
+  EMBEDDING_PROVIDER: getOptionalEnvVar('EMBEDDING_PROVIDER', ''),
   GITHUB_TOKEN: getOptionalEnvVar('GITHUB_TOKEN', ''),
   GITHUB_CLIENT_ID: getOptionalEnvVar('GITHUB_CLIENT_ID', ''),
   GITHUB_CLIENT_SECRET: getOptionalEnvVar('GITHUB_CLIENT_SECRET', ''),

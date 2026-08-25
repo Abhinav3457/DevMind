@@ -15,6 +15,7 @@ import User from '../models/User';
 import { logActivity } from '../services/activity.service';
 import { notificationService } from '../services/notification.service';
 import { sendIndexCompleteEmail } from '../helpers/email.helper';
+import { embeddingService } from '../services/embedding';
 import logger from '../utils/logger';
 import { ApiError } from '../utils/apiResponse';
 import AdmZip from 'adm-zip';
@@ -87,6 +88,10 @@ export class IndexerService {
       }
 
       const analysis = analyzerService.analyze({ files: parsedFiles, rootPath: repoDir });
+
+      // Generate + store embeddings for the chunks created above. Best-effort:
+      // an embedding outage must never turn a successful index into a failed one.
+      await embeddingService.embedReportSafely(report._id.toString());
 
       report.status = 'completed';
       report.summary = analysis.summary;

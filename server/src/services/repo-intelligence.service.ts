@@ -116,6 +116,7 @@ export class RepoIntelligenceService {
       classification.keywords,
       classification.targetFile,
       classification.targetFunction,
+      question,
     );
 
     logger.info('RepoIntelligence: Retrieved ' + context.relevantFiles.length +

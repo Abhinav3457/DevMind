@@ -1,6 +1,8 @@
 import IndexReport from '../models/IndexReport';
 import IndexedFile from '../models/IndexedFile';
 import IndexedChunk from '../models/IndexedChunk';
+import { embeddingService } from '../services/embedding';
+import logger from '../utils/logger';
 import { QuestionType } from './classifier.service';
 
 const MAX_CHUNKS = 4;
@@ -38,6 +40,8 @@ export class ContextRetrieverService {
     keywords: string[],
     targetFile?: string,
     targetFunction?: string,
+    /** Raw user question — embedded and used for semantic vector search when available. */
+    rawQuery?: string,
   ): Promise<RetrievedContext> {
     const report = await IndexReport.findById(reportId);
     if (!report) {
@@ -61,7 +65,7 @@ export class ContextRetrieverService {
       case 'tech_stack':
         return this.retrieveForTechStack(base, reportId, keywords);
       case 'code_location':
-        return this.retrieveForCodeLocation(base, reportId, keywords);
+        return this.retrieveForCodeLocation(base, reportId, keywords, rawQuery);
       case 'file_explain':
         return this.retrieveForFile(base, reportId, targetFile || '');
       case 'function_explain':
@@ -69,7 +73,55 @@ export class ContextRetrieverService {
       case 'middleware':
         return this.retrieveForMiddleware(base, reportId);
       default:
-        return this.retrieveGeneral(base, reportId, keywords);
+        return this.retrieveGeneral(base, reportId, keywords, rawQuery);
+    }
+  }
+
+  /**
+   * Semantic retrieval: embed the user's question with the configured
+   * embedding provider (same model used at index time), then rank stored
+   * chunk vectors by cosine similarity.
+   *
+   * Only chunks whose embeddingModel matches the current provider are
+   * compared — vectors from a different model live in a different dimension
+   * space. Returns false (and the caller falls back to keyword search) when
+   * embeddings are not configured or nothing has been embedded yet.
+   */
+  private async trySemanticSearch(
+    base: RetrievedContext,
+    reportId: string,
+    rawQuery?: string,
+  ): Promise<boolean> {
+    if (!rawQuery || !rawQuery.trim() || !embeddingService.isConfigured()) {
+      return false;
+    }
+
+    try {
+      // Never send the raw query to the vector store without embedding it
+      // using the SAME model that produced the stored chunk vectors.
+      const queryVector = await embeddingService.embedQuery(rawQuery);
+      const candidates = await embeddingService.fetchEmbeddedChunks(reportId);
+      if (candidates.length === 0) return false;
+
+      const scored = candidates
+        .map((chunk) => ({ chunk, score: embeddingService.cosineSimilarity(queryVector, chunk.embedding) }))
+        .sort((a, b) => b.score - a.score)
+        .slice(0, MAX_CHUNKS);
+
+      logger.info('Retriever: Semantic search found ' + candidates.length +
+        ' candidate chunks (top score ' + scored[0]?.score.toFixed(3) + ')');
+
+      base.relevantChunks = await this.resolveChunkFilePaths(scored.map((s) => s.chunk));
+
+      const fileIds = [...new Set(scored.map((s) => s.chunk.fileId.toString()))];
+      const files = await IndexedFile.find({ _id: { $in: fileIds } }).lean();
+      base.relevantFiles = this.formatFiles(files);
+      return true;
+    } catch (error) {
+      // A provider outage degrades to keyword search — never fails the request.
+      logger.warn('Retriever: Semantic search failed (' +
+        (error instanceof Error ? error.message : String(error)).slice(0, 160) + ') — falling back to keyword search');
+      return false;
     }
   }
 
@@ -153,7 +205,13 @@ export class ContextRetrieverService {
     base: RetrievedContext,
     reportId: string,
     keywords: string[],
+    rawQuery?: string,
   ): Promise<RetrievedContext> {
+    // Prefer semantic vector search; keep regex matching as the fallback.
+    if (await this.trySemanticSearch(base, reportId, rawQuery)) {
+      return base;
+    }
+
     const searchTerms = keywords.length > 0
       ? keywords
       : ['generate', 'create', 'connect', 'init', 'config', 'setup', 'sign', 'token'];
@@ -275,7 +333,12 @@ export class ContextRetrieverService {
     base: RetrievedContext,
     reportId: string,
     keywords: string[],
+    rawQuery?: string,
   ): Promise<RetrievedContext> {
+    if (await this.trySemanticSearch(base, reportId, rawQuery)) {
+      return base;
+    }
+
     if (keywords.length > 0) {
       const conditions = keywords.map((term) => ({
         content: { $regex: term, $options: 'i' },
