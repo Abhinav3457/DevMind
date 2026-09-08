@@ -14,32 +14,28 @@ interface HealthScoreProps {
 const levelConfig = {
   excellent: { 
     color: 'text-emerald-400', 
-    ring: 'stroke-emerald-400', 
-    glow: 'drop-shadow-[0_0_8px_rgba(52,211,153,0.5)]',
+    ring: 'stroke-emerald-400',
     bg: 'bg-emerald-500/10', 
     label: 'Excellent',
     gradient: 'from-emerald-500 to-emerald-400'
   },
   good: { 
     color: 'text-blue-400', 
-    ring: 'stroke-blue-400', 
-    glow: 'drop-shadow-[0_0_8px_rgba(96,165,250,0.5)]',
+    ring: 'stroke-blue-400',
     bg: 'bg-blue-500/10', 
     label: 'Good',
     gradient: 'from-blue-500 to-blue-400'
   },
   fair: { 
     color: 'text-amber-400', 
-    ring: 'stroke-amber-400', 
-    glow: 'drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]',
+    ring: 'stroke-amber-400',
     bg: 'bg-amber-500/10', 
     label: 'Fair',
     gradient: 'from-amber-500 to-amber-400'
   },
   poor: { 
     color: 'text-rose-400', 
-    ring: 'stroke-rose-400', 
-    glow: 'drop-shadow-[0_0_8px_rgba(251,113,133,0.5)]',
+    ring: 'stroke-rose-400',
     bg: 'bg-rose-500/10', 
     label: 'Poor',
     gradient: 'from-rose-500 to-rose-400'
@@ -71,9 +67,6 @@ export function HealthScore({ score, level, metrics }: HealthScoreProps) {
       {/* Score Circle Section */}
       <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:items-center sm:gap-6 sm:text-left">
         <div className="relative flex h-24 w-24 flex-shrink-0 items-center justify-center sm:h-32 sm:w-32">
-          {/* Background glow */}
-          <div className={`absolute inset-0 rounded-full ${config.bg} blur-xl opacity-50`} />
-          
           <svg className="absolute h-24 w-24 -rotate-90 sm:h-32 sm:w-32" viewBox="0 0 120 120">
             {/* Track */}
             <circle 
@@ -93,7 +86,6 @@ export function HealthScore({ score, level, metrics }: HealthScoreProps) {
               initial={{ strokeDashoffset: circumference }}
               animate={{ strokeDashoffset: offset }}
               transition={{ duration: 1.8, ease: [0.25, 0.46, 0.45, 0.94] }}
-              className={config.glow}
             />
             {/* Gradient definitions */}
             <defs>
@@ -148,7 +140,7 @@ export function HealthScore({ score, level, metrics }: HealthScoreProps) {
                 {bar.value} <span className="text-surface-400">({bar.percent}%)</span>
               </span>
             </div>
-            <div className="h-2 rounded-full bg-surface-700/50 overflow-hidden">
+            <div className="h-2 rounded-full bg-surface-800 overflow-hidden">
               <motion.div
                 className={`h-full rounded-full bg-gradient-to-r ${
                   bar.percent > 70 ? 'from-emerald-500 to-emerald-400' : 

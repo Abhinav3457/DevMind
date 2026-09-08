@@ -82,7 +82,7 @@ function QualityMetricBar({ icon: Icon, label, value, max, color, status }: Qual
         </span>
       </div>
       <div className="flex items-center gap-3">
-        <div className="h-2 flex-1 overflow-hidden rounded-full bg-surface-700/50">
+        <div className="h-2 flex-1 overflow-hidden rounded-full bg-surface-800">
           <motion.div
             className={`h-full rounded-full bg-gradient-to-r ${statusColors[status]}`}
             initial={{ width: 0 }}
@@ -146,7 +146,7 @@ export function AnalyticsPage() {
           </div>
           <p className="text-lg font-medium text-surface-200">Unable to load analytics</p>
           <p className="mt-1 text-sm text-surface-400">Please check your connection and try again</p>
-          <button onClick={() => refetch()} className="mt-5 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 px-5 py-2.5 text-sm font-medium text-white shadow-lg shadow-blue-500/25 transition-all hover:scale-105 hover:shadow-blue-500/40">
+          <button onClick={() => refetch()} className="mt-5 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 px-5 py-2.5 text-sm font-medium text-white shadow-lg shadow-black/25 transition-all hover:scale-105">
             <RefreshCw className="h-4 w-4" /> Retry
           </button>
         </motion.div>
@@ -182,7 +182,7 @@ export function AnalyticsPage() {
                 <div className="relative">
                   <Database className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
                   <select value={selectedReportId || ''} onChange={(e) => setSelectedReportId(e.target.value || undefined)}
-                    className="max-w-[220px] cursor-pointer appearance-none rounded-xl border border-surface-700 bg-surface-800/80 py-2.5 pl-9 pr-8 text-xs text-surface-200 backdrop-blur-sm transition-all focus:border-blue-500/50 focus:outline-none focus:ring-2 focus:ring-blue-500/20 sm:max-w-[280px] sm:text-sm"
+                    className="max-w-[220px] cursor-pointer appearance-none rounded-xl border border-surface-700 bg-surface-800 py-2.5 pl-9 pr-8 text-xs text-surface-200 transition-all focus:border-blue-500/50 focus:outline-none focus:ring-2 focus:ring-blue-500/20 sm:max-w-[280px] sm:text-sm"
                     aria-label="Select report">
                     <option value="">All Reports</option>
                     {reports.map((r) => (<option key={r.id} value={r.id} className="truncate">{r.repoName} ({r.fileCount} files)</option>))}
@@ -191,7 +191,7 @@ export function AnalyticsPage() {
                 </div>
               )}
               <button onClick={() => refetch()} disabled={isFetching}
-                className="flex items-center gap-2 rounded-xl border border-surface-700 bg-surface-800/80 px-3 py-2.5 text-xs text-surface-300 backdrop-blur-sm transition-all hover:border-surface-600 hover:bg-surface-700/80 hover:text-surface-100 disabled:opacity-50 sm:px-4 sm:text-sm"
+                className="flex items-center gap-2 rounded-xl border border-surface-700 bg-surface-800 px-3 py-2.5 text-xs text-surface-300 transition-all hover:border-surface-600 hover:bg-surface-700 hover:text-surface-100 disabled:opacity-50 sm:px-4 sm:text-sm"
                 aria-label="Refresh data">
                 <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
                 <span className="hidden sm:inline">{isFetching ? 'Refreshing...' : 'Refresh'}</span>
@@ -217,7 +217,7 @@ export function AnalyticsPage() {
           {/* ── Charts Row: Language · Health · Quality ──── */}
           <div className="mb-6 grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-3 sm:mb-8">
             {/* Language Distribution */}
-            <motion.div variants={itemVariants} className="rounded-2xl border border-surface-700/50 bg-gradient-to-br from-surface-900/80 to-surface-950/80 p-4 backdrop-blur-xl shadow-xl sm:p-6">
+            <motion.div variants={itemVariants} className="rounded-2xl border border-surface-800 bg-surface-900 p-4 sm:p-6">
               <div className="mb-4 flex items-center gap-2 sm:mb-5">
                 <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-cyan-500/10"><Code2 className="h-4 w-4 text-cyan-400" /></div>
                 <h2 className="text-sm font-semibold text-surface-200">Language Distribution</h2>
@@ -226,7 +226,7 @@ export function AnalyticsPage() {
             </motion.div>
 
             {/* Repository Health */}
-            <motion.div variants={itemVariants} className="rounded-2xl border border-surface-700/50 bg-gradient-to-br from-surface-900/80 to-surface-950/80 p-4 backdrop-blur-xl shadow-xl sm:p-6">
+            <motion.div variants={itemVariants} className="rounded-2xl border border-surface-800 bg-surface-900 p-4 sm:p-6">
               <div className="mb-4 flex items-center gap-2 sm:mb-5">
                 <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-emerald-500/10"><Activity className="h-4 w-4 text-emerald-400" /></div>
                 <h2 className="text-sm font-semibold text-surface-200">Repository Health</h2>
@@ -235,7 +235,7 @@ export function AnalyticsPage() {
             </motion.div>
 
             {/* Code Quality */}
-            <motion.div variants={itemVariants} className="rounded-2xl border border-surface-700/50 bg-gradient-to-br from-surface-900/80 to-surface-950/80 p-4 backdrop-blur-xl shadow-xl sm:p-6">
+            <motion.div variants={itemVariants} className="rounded-2xl border border-surface-800 bg-surface-900 p-4 sm:p-6">
               <div className="mb-4 flex items-center gap-2 sm:mb-5">
                 <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-purple-500/10"><Star className="h-4 w-4 text-purple-400" /></div>
                 <div className="min-w-0">
@@ -268,12 +268,12 @@ export function AnalyticsPage() {
           {/* ── Bottom Row ──── */}
           <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
             {/* Lines of Code */}
-            <motion.div variants={itemVariants} className="rounded-2xl border border-surface-700/50 bg-gradient-to-br from-surface-900/80 to-surface-950/80 p-4 backdrop-blur-xl shadow-xl sm:p-6">
+            <motion.div variants={itemVariants} className="rounded-2xl border border-surface-800 bg-surface-900 p-4 sm:p-6">
               <div className="mb-4 flex items-center gap-2 sm:mb-5">
                 <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-blue-500/10"><FileCode className="h-4 w-4 text-blue-400" /></div>
                 <h2 className="text-sm font-semibold text-surface-200">Lines of Code by Language</h2>
               </div>
-              <div className="mb-5 rounded-xl border border-blue-500/20 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 p-4 sm:mb-6">
+              <div className="mb-5 rounded-xl border border-blue-500/20 bg-blue-500/10 p-4 sm:mb-6">
                 <p className="text-2xl font-bold tracking-tight text-surface-100 sm:text-3xl">{linesOfCode.total.toLocaleString()}</p>
                 <p className="mt-1 text-xs text-surface-400">Estimated lines of code across all indexed repositories</p>
               </div>
@@ -285,13 +285,13 @@ export function AnalyticsPage() {
             </motion.div>
 
             {/* Activity Summary */}
-            <motion.div variants={itemVariants} className="rounded-2xl border border-surface-700/50 bg-gradient-to-br from-surface-900/80 to-surface-950/80 p-4 backdrop-blur-xl shadow-xl sm:p-6">
+            <motion.div variants={itemVariants} className="rounded-2xl border border-surface-800 bg-surface-900 p-4 sm:p-6">
               <div className="mb-4 flex items-center gap-2 sm:mb-5">
                 <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-amber-500/10"><TrendingUp className="h-4 w-4 text-amber-400" /></div>
                 <h2 className="text-sm font-semibold text-surface-200">Activity Summary</h2>
               </div>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
-                <div className="group rounded-xl border border-blue-500/20 bg-gradient-to-br from-blue-500/10 to-blue-500/5 p-4 transition-all hover:border-blue-500/40">
+                <div className="group rounded-xl border border-blue-500/20 bg-blue-500/10 p-4 transition-all hover:border-blue-500/40">
                   <div className="mb-3 flex items-center justify-between">
                     <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/20 transition-transform group-hover:scale-110 sm:h-10 sm:w-10"><Database className="h-4 w-4 sm:h-5 sm:w-5 text-blue-400" /></div>
                     <span className="rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] font-medium text-blue-400">Indexing</span>
@@ -299,7 +299,7 @@ export function AnalyticsPage() {
                   <p className="text-2xl font-bold text-blue-100 sm:text-3xl">{activity.recentIndexes}</p>
                   <p className="mt-1 text-xs text-surface-400">Repositories indexed</p>
                 </div>
-                <div className="group rounded-xl border border-purple-500/20 bg-gradient-to-br from-purple-500/10 to-purple-500/5 p-4 transition-all hover:border-purple-500/40">
+                <div className="group rounded-xl border border-purple-500/20 bg-purple-500/10 p-4 transition-all hover:border-purple-500/40">
                   <div className="mb-3 flex items-center justify-between">
                     <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-500/20 transition-transform group-hover:scale-110 sm:h-10 sm:w-10"><BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 text-purple-400" /></div>
                     <span className="rounded-full bg-purple-500/10 px-2 py-0.5 text-[10px] font-medium text-purple-400">AI</span>
@@ -307,7 +307,7 @@ export function AnalyticsPage() {
                   <p className="text-2xl font-bold text-purple-100 sm:text-3xl">{activity.totalAiQueries}</p>
                   <p className="mt-1 text-xs text-surface-400">AI operations performed</p>
                 </div>
-                <div className="group rounded-xl border border-amber-500/20 bg-gradient-to-br from-amber-500/10 to-amber-500/5 p-4 transition-all hover:border-amber-500/40">
+                <div className="group rounded-xl border border-amber-500/20 bg-amber-500/10 p-4 transition-all hover:border-amber-500/40">
                   <div className="mb-3 flex items-center justify-between">
                     <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/20 transition-transform group-hover:scale-110 sm:h-10 sm:w-10"><Star className="h-4 w-4 sm:h-5 sm:w-5 text-amber-400" /></div>
                     <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-400">Quality</span>
@@ -315,7 +315,7 @@ export function AnalyticsPage() {
                   <p className="text-2xl font-bold text-amber-100 sm:text-3xl">{activity.avgReviewScore}<span className="text-base text-surface-400 sm:text-lg">/100</span></p>
                   <p className="mt-1 text-xs text-surface-400">Average review score</p>
                 </div>
-                <div className="group rounded-xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 p-4 transition-all hover:border-emerald-500/40">
+                <div className="group rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 transition-all hover:border-emerald-500/40">
                   <div className="mb-3 flex items-center justify-between">
                     <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/20 transition-transform group-hover:scale-110 sm:h-10 sm:w-10"><GitCommit className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-400" /></div>
                     <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-400">Engagement</span>

@@ -272,7 +272,7 @@ export function GitHubPage() {
           ) : (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {filteredRepos.map(repo => (
-                <motion.div key={repo.id} layout className="rounded-xl border border-surface-700 bg-surface-900/50 p-4 backdrop-blur-sm transition-all hover:border-primary-500/30">
+                <motion.div key={repo.id} layout className="rounded-xl border border-surface-700 bg-surface-900 p-4 transition-all hover:border-primary-500/30">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-2">
                       <GitBranch className="h-4 w-4 text-surface-400" />

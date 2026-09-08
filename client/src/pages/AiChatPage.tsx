@@ -414,7 +414,7 @@ export function AiChatPage() {
               exit="closed"
               className="flex-shrink-0 overflow-hidden lg:relative lg:z-auto fixed left-0 top-0 z-50 h-full pt-14 lg:pt-0"
             >
-              <div className="flex h-full w-[240px] max-w-[85vw] flex-col rounded-none lg:rounded-xl border-0 lg:border border-surface-700 bg-surface-900/95 lg:bg-surface-900/50 backdrop-blur-xl lg:backdrop-blur-sm shadow-2xl shadow-black/40">
+              <div className="flex h-full w-[240px] max-w-[85vw] flex-col rounded-none lg:rounded-xl border-0 lg:border border-surface-700 bg-surface-900">
                 {/* Sidebar Header */}
                 <div className="flex items-center justify-between border-b border-surface-700/50 p-2.5 sm:p-3">
                   <motion.h2
@@ -586,7 +586,7 @@ export function AiChatPage() {
           </div>
 
           {/* Chat Area */}
-          <div className="flex-1 overflow-y-auto rounded-xl border border-surface-700 bg-surface-900/50 p-3 sm:p-4 backdrop-blur-sm">
+          <div className="flex-1 overflow-y-auto rounded-xl border border-surface-700 bg-surface-900 p-3 sm:p-4">
             {statusBanner()}
 
             {messages.length <= 1 && !loading && (

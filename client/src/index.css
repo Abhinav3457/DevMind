@@ -6,32 +6,34 @@
   /* ── Theme Variables ───────────────────────────────────────────── */
   :root {
     color-scheme: dark;
-    --surface-50: 248 250 252;
-    --surface-100: 241 245 249;
-    --surface-200: 226 232 240;
-    --surface-300: 203 213 225;
-    --surface-400: 148 163 184;
-    --surface-500: 100 116 139;
-    --surface-600: 71 85 105;
-    --surface-700: 51 65 85;
-    --surface-800: 30 41 59;
-    --surface-900: 15 23 42;
-    --surface-950: 2 6 23;
+    /* Matte black (neutral) palette — no blue tint, no gloss */
+    --surface-50: 250 250 250;
+    --surface-100: 245 245 245;
+    --surface-200: 229 229 229;
+    --surface-300: 212 212 212;
+    --surface-400: 163 163 163;
+    --surface-500: 115 115 115;
+    --surface-600: 82 82 82;
+    --surface-700: 64 64 64;
+    --surface-800: 38 38 38;
+    --surface-900: 23 23 23;
+    --surface-950: 10 10 10;
   }
 
   .light {
     color-scheme: light;
-    --surface-50: 2 6 23;
-    --surface-100: 15 23 42;
-    --surface-200: 30 41 59;
-    --surface-300: 51 65 85;
-    --surface-400: 71 85 105;
-    --surface-500: 82 98 115;
-    --surface-600: 100 116 139;
-    --surface-700: 203 213 225;
-    --surface-800: 226 232 240;
-    --surface-900: 241 245 249;
-    --surface-950: 248 250 252;
+    /* Matte light (neutral) palette — mirrors the dark neutral ramp, inverted */
+    --surface-50: 10 10 10;
+    --surface-100: 23 23 23;
+    --surface-200: 38 38 38;
+    --surface-300: 64 64 64;
+    --surface-400: 82 82 82;
+    --surface-500: 115 115 115;
+    --surface-600: 163 163 163;
+    --surface-700: 212 212 212;
+    --surface-800: 229 229 229;
+    --surface-900: 245 245 245;
+    --surface-950: 250 250 250;
   }
 
   * {
@@ -177,7 +179,7 @@
   }
 
   .btn-gradient {
-    @apply flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 py-3 text-sm font-medium text-white shadow-lg shadow-blue-500/20 transition-all duration-200 hover:from-blue-500 hover:to-purple-500 hover:shadow-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 py-3 text-sm font-medium text-white shadow-lg shadow-black/25 transition-all duration-200 hover:from-blue-500 hover:to-purple-500 disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
   .btn-secondary {
@@ -340,50 +342,6 @@
     linear-gradient(to right, rgba(51, 65, 85, 0.32) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(51, 65, 85, 0.32) 1px, transparent 1px);
   background-size: 42px 42px;
-}
-
-/* ── Dashboard design concept texture ─────────────────── */
-.bg-diagonal-lines {
-  background-image: repeating-linear-gradient(
-    135deg,
-    rgba(148, 163, 184, 0.045) 0px,
-    rgba(148, 163, 184, 0.045) 1px,
-    transparent 1px,
-    transparent 9px
-  );
-}
-
-.glow-text-purple {
-  text-shadow:
-    0 0 18px rgba(168, 85, 247, 0.55),
-    0 0 42px rgba(168, 85, 247, 0.28);
-}
-
-.glow-text-cyan {
-  text-shadow:
-    0 0 12px rgba(34, 211, 238, 0.6),
-    0 0 28px rgba(34, 211, 238, 0.3);
-}
-
-/* ── Dashboard charcoal palette (from design concept) ── */
-.bg-dash {
-  background-color: #111116;
-}
-.bg-dash-card {
-  background-color: #1a1a24;
-}
-.border-dash {
-  border-color: rgba(255, 255, 255, 0.08);
-}
-
-.light .bg-dash {
-  background-color: #eef0f4;
-}
-.light .bg-dash-card {
-  background-color: #ffffff;
-}
-.light .border-dash {
-  border-color: rgba(15, 23, 42, 0.1);
 }
 
 @layer components {

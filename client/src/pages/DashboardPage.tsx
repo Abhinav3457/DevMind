@@ -2,68 +2,43 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-  Github, FileCode, Bot, Activity, Shield, Check,
+  LayoutDashboard, Github, FileCode, Bot, Activity, Shield, Check,
   Sparkles, Star, BookOpen, ArrowRight, ArrowUpToLine, GitMerge, Bug, Database, TrendingUp,
+  RefreshCw,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useAuthStore } from '../store';
 import { fetchAnalytics } from '../services/analytics';
+import { onAnalyticsUpdate, connectSocket, disconnectSocket } from '../services/socket';
 import type { AnalyticsData } from '../types';
-import { AnimatedCounter } from '../components/dashboard/AnimatedCounter';
+import { PageHeader } from '../components/layout/PageHeader';
+import { StatCard } from '../components/dashboard/StatCard';
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.06 },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] } },
+};
 
 /* ── Pill badge ────────────────────────────────────────── */
-function Pill({ icon: Icon, label, tone }: { icon: LucideIcon; label: string; tone: 'green' | 'amber' | 'purple' | 'cyan' }) {
+function Pill({ icon: Icon, label, tone }: { icon: LucideIcon; label: string; tone: 'green' | 'amber' | 'purple' }) {
   const tones: Record<string, string> = {
-    green: 'border-emerald-500/25 bg-emerald-500/10 text-emerald-400',
-    amber: 'border-amber-500/25 bg-amber-500/10 text-amber-400',
-    purple: 'border-purple-500/25 bg-purple-500/10 text-purple-400',
-    cyan: 'border-cyan-500/25 bg-cyan-500/10 text-cyan-400',
+    green: 'border-emerald-500/20 bg-emerald-500/10 text-emerald-400',
+    amber: 'border-amber-500/20 bg-amber-500/10 text-amber-400',
+    purple: 'border-purple-500/20 bg-purple-500/10 text-purple-400',
   };
   return (
     <div className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${tones[tone]}`}>
       <Icon className="h-3 w-3" />
       <span className="truncate">{label}</span>
     </div>
-  );
-}
-
-/* ── Stat card ─────────────────────────────────────────── */
-function StatCard({
-  label,
-  value,
-  suffix,
-  sub,
-  icon: Icon,
-  color,
-  delay = 0,
-}: {
-  label: string;
-  value: number;
-  suffix?: string;
-  sub: string;
-  icon: LucideIcon;
-  color: string;
-  delay?: number;
-}) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay, ease: [0.25, 0.46, 0.45, 0.94] }}
-      className="rounded-2xl border border-dash bg-dash-card p-5 shadow-xl shadow-black/20 transition-colors duration-200 hover:border-purple-500/30 sm:p-6"
-    >
-      <div className="flex items-center justify-between gap-3">
-        <p className="truncate text-xs font-semibold uppercase tracking-wider text-surface-400">{label}</p>
-        <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl ${color}`}>
-          <Icon className="h-5 w-5" />
-        </div>
-      </div>
-      <p className="mt-4 text-3xl font-bold tabular-nums text-surface-100 sm:text-4xl">
-        <AnimatedCounter value={value} delay={delay} />
-        {suffix && <span className="ml-1 text-lg font-semibold text-surface-400 sm:text-xl">{suffix}</span>}
-      </p>
-      <p className="mt-1.5 truncate text-xs text-surface-500">{sub}</p>
-    </motion.div>
   );
 }
 
@@ -82,7 +57,7 @@ function MetricRow({ icon: Icon, label, value, max, color, delay = 0 }: { icon: 
           {max > 0 && <span className="text-surface-500">/{max}</span>}
         </span>
       </div>
-      <div className="h-2 overflow-hidden rounded-full bg-white/5">
+      <div className="h-2 overflow-hidden rounded-full bg-surface-800">
         <motion.div
           className={`h-full rounded-full ${color}`}
           initial={{ width: 0 }}
@@ -101,7 +76,7 @@ function MiniStat({ icon: Icon, label, value, suffix, color, delay = 0 }: { icon
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ delay, duration: 0.35 }}
-      className="rounded-xl border border-white/5 bg-white/[0.03] p-3"
+      className="rounded-xl border border-surface-800 bg-surface-800 p-3"
     >
       <div className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider text-surface-500">
         <Icon className={`h-3 w-3 ${color}`} />
@@ -122,7 +97,7 @@ function Skeleton({ className, delay = 0 }: { className: string; delay?: number 
       initial={{ opacity: 0.4 }}
       animate={{ opacity: [0.4, 0.9, 0.4] }}
       transition={{ duration: 1.4, repeat: Infinity, delay }}
-      className={`rounded-xl bg-white/5 ${className}`}
+      className={`rounded-xl bg-surface-800 ${className}`}
     />
   );
 }
@@ -148,6 +123,17 @@ export function DashboardPage() {
 
   useEffect(() => {
     fetchStats();
+  }, [fetchStats]);
+
+  useEffect(() => {
+    connectSocket();
+    const unsubscribe = onAnalyticsUpdate((_update) => {
+      fetchStats();
+    });
+    return () => {
+      unsubscribe();
+      disconnectSocket();
+    };
   }, [fetchStats]);
 
   // Ctrl/Cmd + R refreshes dashboard stats (Ctrl+K is handled globally by the CommandPalette)
@@ -189,63 +175,53 @@ export function DashboardPage() {
   ];
 
   return (
-    <div className="relative min-h-full">
-      {/* Charcoal backdrop + diagonal texture */}
-      <div className="pointer-events-none fixed inset-0 bg-dash" />
-      <div className="pointer-events-none absolute inset-0 bg-diagonal-lines" />
-      <div className="pointer-events-none absolute -top-32 left-1/2 h-72 w-[40rem] max-w-full -translate-x-1/2 rounded-full bg-purple-600/10 blur-3xl" />
-
-      <div className="relative z-10 flex w-full flex-col gap-6">
+    <div className="min-h-screen">
+      <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 sm:py-8">
         {/* ── Header + Quick Actions ─────────────────────── */}
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between"
-        >
-          <div className="min-w-0">
-            <p className="glow-text-purple text-[11px] font-bold uppercase tracking-[0.22em] text-white/80">AI Workspace</p>
-            <h1 className="mt-1.5 truncate text-3xl font-bold text-surface-100 sm:text-4xl">
-              {greeting}, <span className="text-purple-400">{user?.name || 'Developer'}</span>
-            </h1>
-            <p className="mt-2 text-sm text-surface-400">A clean overview of your repositories, code quality, and AI activity.</p>
-          </div>
-
-          {/* Quick Actions in header */}
-          <div className="flex flex-wrap items-center gap-2">
-            {quickActions.map((action) => (
-              <button
-                key={action.label}
-                onClick={() => navigate(action.to)}
-                className={
-                  'flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-semibold transition-all duration-200 active:scale-95 ' +
-                  (action.primary
-                    ? 'bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-lg shadow-purple-500/30 hover:brightness-110'
-                    : 'border border-white/5 bg-white/[0.03] text-surface-200 hover:border-purple-500/30 hover:bg-white/[0.07] hover:text-surface-100')
-                }
-              >
-                <action.icon className={`h-3.5 w-3.5 ${action.primary ? 'text-white' : action.label === 'AI Chat' ? 'text-cyan-300' : 'text-amber-400'}`} />
-                {action.label}
-              </button>
-            ))}
-          </div>
-        </motion.div>
+        <div>
+          <PageHeader
+            icon={LayoutDashboard}
+            title={`${greeting}, ${user?.name || 'Developer'}`}
+            description="A clean overview of your repositories, code quality, and AI activity."
+            gradient="from-blue-500 to-indigo-600"
+            actions={
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                {quickActions.map((action) => (
+                  <button
+                    key={action.label}
+                    onClick={() => navigate(action.to)}
+                    className={
+                      'flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-all active:scale-95 sm:px-4 sm:py-2.5 sm:text-sm ' +
+                      (action.primary
+                        ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-black/25 hover:brightness-110'
+                        : 'border border-surface-700 bg-surface-800/80 text-surface-300 hover:border-surface-600 hover:bg-surface-700/80 hover:text-surface-100')
+                    }
+                  >
+                    <action.icon className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${action.primary ? 'text-white' : action.label === 'AI Chat' ? 'text-cyan-400' : 'text-amber-400'}`} />
+                    {action.label}
+                  </button>
+                ))}
+              </div>
+            }
+          />
+          <div className="mt-5 h-px bg-gradient-to-r from-transparent via-surface-700 to-transparent sm:mt-6" />
+        </div>
 
         {/* ── Content ────────────────────────────────────── */}
         {loading ? (
           <>
-            <div className="grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
               {[0, 0.06, 0.12, 0.18].map((d, i) => (
-                <div key={i} className="rounded-2xl border border-dash bg-dash-card p-5 shadow-xl shadow-black/20 sm:p-6">
+                <div key={i} className="rounded-2xl border border-surface-800 bg-surface-900 p-4 sm:p-5">
                   <Skeleton className="h-3 w-20" delay={d} />
-                  <Skeleton className="mt-6 h-9 w-24" delay={d + 0.05} />
+                  <Skeleton className="mt-6 h-8 w-24" delay={d + 0.05} />
                   <Skeleton className="mt-4 h-3 w-28" delay={d + 0.1} />
                 </div>
               ))}
             </div>
-            <div className="grid gap-4 sm:gap-5 lg:grid-cols-3">
+            <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
               {[0.1, 0.2, 0.3].map((d, i) => (
-                <div key={i} className="rounded-2xl border border-dash bg-dash-card p-5 shadow-xl shadow-black/20 sm:p-6">
+                <div key={i} className="rounded-2xl border border-surface-800 bg-surface-900 p-4 sm:p-6">
                   <Skeleton className="h-4 w-36" delay={d} />
                   <Skeleton className="mt-5 h-2 w-full" delay={d + 0.05} />
                   <Skeleton className="mt-5 h-2 w-3/4" delay={d + 0.1} />
@@ -255,49 +231,51 @@ export function DashboardPage() {
             </div>
           </>
         ) : error || !data ? (
-          <div className="flex flex-col items-center justify-center rounded-2xl border border-dash bg-dash-card px-4 py-20 text-center shadow-xl shadow-black/20">
-            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-500/10">
-              <Activity className="h-7 w-7 text-rose-400" />
-            </div>
-            <p className="text-base font-semibold text-surface-100">Unable to load workspace overview</p>
-            <p className="mt-1 text-sm text-surface-500">Please check your connection and try again</p>
-            <button
-              onClick={() => { setLoading(true); fetchStats(); }}
-              className="mt-6 flex items-center gap-2 rounded-full bg-gradient-to-r from-purple-600 to-fuchsia-600 px-6 py-2.5 text-sm font-medium text-white shadow-lg shadow-purple-500/30 transition-all hover:scale-105"
-            >
-              Retry
-            </button>
+          <div className="flex min-h-[60vh] items-center justify-center">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="px-4 text-center">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-rose-500/10">
+                <Activity className="h-8 w-8 text-rose-400" />
+              </div>
+              <p className="text-lg font-medium text-surface-200">Unable to load workspace overview</p>
+              <p className="mt-1 text-sm text-surface-400">Please check your connection and try again</p>
+              <button
+                onClick={() => { setLoading(true); fetchStats(); }}
+                className="mt-5 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 px-5 py-2.5 text-sm font-medium text-white shadow-lg shadow-black/25 transition-all hover:scale-105"
+              >
+                <RefreshCw className="h-4 w-4" /> Retry
+              </button>
+            </motion.div>
           </div>
         ) : (
-          <>
+          <motion.div variants={containerVariants} initial="hidden" animate="visible">
             {/* ── Stat cards ─────────────────────────────── */}
-            <div className="grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-4">
-              <StatCard label="Repositories" value={repos} icon={Github} color="bg-emerald-500/10 text-emerald-400" sub={repos > 0 ? 'Connected to GitHub' : 'Connect GitHub to begin'} delay={0.05} />
-              <StatCard label="Files Indexed" value={files} icon={FileCode} color="bg-amber-500/10 text-amber-400" sub="Across all imported repos" delay={0.1} />
-              <StatCard label="AI Operations" value={aiOps} icon={Bot} color="bg-cyan-500/10 text-cyan-400" sub="Chats, reviews & docs generated" delay={0.15} />
-              <StatCard label="Repo Health" value={healthScore} suffix="/100" icon={Activity} color="bg-purple-500/10 text-purple-400" sub="Overall codebase health" delay={0.2} />
-            </div>
+            <motion.div variants={itemVariants} className="mb-6 sm:mb-8">
+              <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+                <StatCard title="Repositories" value={repos} icon={Github} color="green" subtitle={repos > 0 ? 'Connected to GitHub' : 'Connect GitHub to begin'} delay={0.1} />
+                <StatCard title="Files Indexed" value={files} icon={FileCode} color="cyan" subtitle="Across all imported repos" delay={0.15} />
+                <StatCard title="AI Operations" value={aiOps} icon={Bot} color="amber" subtitle="Chats, reviews & docs generated" delay={0.2} />
+                <StatCard title="Repo Health" value={`${healthScore}/100`} icon={Activity} color="purple" subtitle="Overall codebase health" delay={0.25} />
+              </div>
+            </motion.div>
 
             {/* ── Health · Quality · Activity ────────────── */}
-            <div className="grid gap-4 sm:gap-5 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-3">
               {/* Repository Health */}
-              <motion.div
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.25 }}
-                className="rounded-2xl border border-dash bg-dash-card p-5 shadow-xl shadow-black/20 sm:p-6"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <h3 className="flex items-center gap-2 text-base font-semibold text-surface-100">
+              <motion.div variants={itemVariants} className="rounded-2xl border border-surface-800 bg-surface-900 p-4 sm:p-6">
+                <div className="mb-4 flex items-center gap-2 sm:mb-5">
+                  <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-purple-500/10">
                     <Activity className="h-4 w-4 text-purple-400" />
-                    Repository Health
-                  </h3>
+                  </div>
+                  <h2 className="text-sm font-semibold text-surface-200">Repository Health</h2>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm text-surface-400">Overall health score</p>
                   <p className="text-3xl font-bold tabular-nums text-surface-100">
                     {healthScore}
                     <span className="text-base font-medium text-surface-500">/100</span>
                   </p>
                 </div>
-                <div className="mt-5 h-2 overflow-hidden rounded-full bg-white/5">
+                <div className="mt-4 h-2 overflow-hidden rounded-full bg-surface-800">
                   <motion.div
                     className="h-full rounded-full bg-gradient-to-r from-purple-500 to-cyan-400"
                     initial={{ width: 0 }}
@@ -312,48 +290,42 @@ export function DashboardPage() {
                 </div>
                 <Link
                   to="/analytics"
-                  className="mt-5 inline-flex items-center gap-1 text-sm font-medium text-purple-400 transition-colors hover:text-purple-300"
+                  className="mt-5 inline-flex items-center gap-1 text-sm font-medium text-primary-400 transition-colors hover:text-primary-300"
                 >
                   View analytics <ArrowRight className="h-3.5 w-3.5" />
                 </Link>
               </motion.div>
 
               {/* Code Quality */}
-              <motion.div
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.3 }}
-                className="rounded-2xl border border-dash bg-dash-card p-5 shadow-xl shadow-black/20 sm:p-6"
-              >
-                <h3 className="flex items-center gap-2 text-base font-semibold text-surface-100">
-                  <Star className="h-4 w-4 text-amber-400" />
-                  Code Quality
-                </h3>
-                <div className="mt-5 space-y-5">
+              <motion.div variants={itemVariants} className="rounded-2xl border border-surface-800 bg-surface-900 p-4 sm:p-6">
+                <div className="mb-4 flex items-center gap-2 sm:mb-5">
+                  <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-amber-500/10">
+                    <Star className="h-4 w-4 text-amber-400" />
+                  </div>
+                  <h2 className="text-sm font-semibold text-surface-200">Code Quality</h2>
+                </div>
+                <div className="space-y-5">
                   <MetricRow icon={Star} label="Review Score" value={quality.reviewScore} max={100} color="bg-gradient-to-r from-purple-500 to-purple-400" delay={0.35} />
                   <MetricRow icon={BookOpen} label="Documentation" value={quality.documentationCoverage} max={100} color="bg-gradient-to-r from-cyan-500 to-cyan-400" delay={0.4} />
                   <MetricRow icon={Shield} label="Security" value={securityPercent} max={100} color="bg-gradient-to-r from-emerald-500 to-emerald-400" delay={0.45} />
                 </div>
                 <Link
                   to="/ai/code-review"
-                  className="mt-6 inline-flex items-center gap-1 text-sm font-medium text-purple-400 transition-colors hover:text-purple-300"
+                  className="mt-6 inline-flex items-center gap-1 text-sm font-medium text-primary-400 transition-colors hover:text-primary-300"
                 >
                   Run a code review <ArrowRight className="h-3.5 w-3.5" />
                 </Link>
               </motion.div>
 
               {/* Workspace Activity */}
-              <motion.div
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.35 }}
-                className="rounded-2xl border border-dash bg-dash-card p-5 shadow-xl shadow-black/20 sm:p-6"
-              >
-                <h3 className="flex items-center gap-2 text-base font-semibold text-surface-100">
-                  <TrendingUp className="h-4 w-4 text-cyan-400" />
-                  Workspace Activity
-                </h3>
-                <div className="mt-5 grid grid-cols-2 gap-2.5">
+              <motion.div variants={itemVariants} className="rounded-2xl border border-surface-800 bg-surface-900 p-4 sm:p-6">
+                <div className="mb-4 flex items-center gap-2 sm:mb-5">
+                  <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-cyan-500/10">
+                    <TrendingUp className="h-4 w-4 text-cyan-400" />
+                  </div>
+                  <h2 className="text-sm font-semibold text-surface-200">Workspace Activity</h2>
+                </div>
+                <div className="grid grid-cols-2 gap-2.5">
                   <MiniStat icon={Bot} label="AI Queries" value={activity?.totalAiQueries ?? 0} color="text-cyan-400" delay={0.4} />
                   <MiniStat icon={Database} label="Chunks" value={chunks} color="text-purple-400" delay={0.45} />
                   <MiniStat icon={FileCode} label="Files" value={files} color="text-amber-400" delay={0.5} />
@@ -361,15 +333,15 @@ export function DashboardPage() {
                 </div>
                 <Link
                   to="/analytics"
-                  className="mt-6 inline-flex items-center gap-1 text-sm font-medium text-purple-400 transition-colors hover:text-purple-300"
+                  className="mt-6 inline-flex items-center gap-1 text-sm font-medium text-primary-400 transition-colors hover:text-primary-300"
                 >
                   Explore insights <ArrowRight className="h-3.5 w-3.5" />
                 </Link>
               </motion.div>
             </div>
-          </>
+          </motion.div>
         )}
       </div>
     </div>
   );
-}
+}

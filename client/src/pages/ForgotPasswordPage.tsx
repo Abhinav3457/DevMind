@@ -52,7 +52,7 @@ export function ForgotPasswordPage() {
             transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
             className="mb-4 flex justify-center"
           >
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 shadow-lg shadow-blue-500/25">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 shadow-lg shadow-black/25">
               <Code2 className="h-8 w-8 text-white" />
             </div>
           </motion.div>
@@ -60,7 +60,7 @@ export function ForgotPasswordPage() {
           <p className="mt-1 sm:mt-2 text-xs sm:text-sm text-surface-400">Enter your email and we&apos;ll send you a secure reset link</p>
         </div>
 
-        <div className="rounded-xl sm:rounded-2xl border border-surface-700 bg-surface-800/50 p-5 sm:p-8 backdrop-blur-xl">
+        <div className="rounded-xl sm:rounded-2xl border border-surface-700 bg-surface-900 p-5 sm:p-8 shadow-none">
           {isSent ? (
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
@@ -101,7 +101,7 @@ export function ForgotPasswordPage() {
                   {errors.email && <p className="mt-1 text-xs text-red-400">{errors.email.message}</p>}
                 </div>
                 <button type="submit" disabled={isSubmitting}
-                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/20 transition-all duration-200 hover:from-blue-500 hover:to-purple-500 hover:shadow-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 py-2.5 text-sm font-semibold text-white shadow-lg shadow-black/25 transition-all duration-200 hover:from-blue-500 hover:to-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                   {isSubmitting ? 'Sending...' : 'Send Reset Link'}

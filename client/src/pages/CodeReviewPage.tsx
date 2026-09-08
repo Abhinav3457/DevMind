@@ -483,7 +483,7 @@ export function CodeReviewPage() {
                 </div>
               )}
               <button onClick={handleReview} disabled={loading || !selectedReportId}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 py-3 text-sm font-medium text-white shadow-lg shadow-blue-500/20 transition-all hover:from-blue-500 hover:to-purple-500 disabled:opacity-50"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 py-3 text-sm font-medium text-white shadow-lg shadow-black/25 transition-all hover:from-blue-500 hover:to-purple-500 disabled:opacity-50"
               >
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <BookOpen className="h-4 w-4" />}
                 {loading ? 'Analyzing...' : 'Review Repository'}
@@ -545,7 +545,7 @@ export function CodeReviewPage() {
               </div>
 
               <button onClick={handleReview} disabled={loading || !code.trim()}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 py-3 text-sm font-medium text-white shadow-lg shadow-blue-500/20 transition-all hover:from-blue-500 hover:to-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 py-3 text-sm font-medium text-white shadow-lg shadow-black/25 transition-all hover:from-blue-500 hover:to-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bug className="h-4 w-4" />}
                 {loading ? 'Analyzing with AI...' : 'Review Code'}
@@ -582,7 +582,7 @@ export function CodeReviewPage() {
               )}
             </div>
           </div>
-          <div className="h-[350px] sm:h-[400px] lg:h-[450px] overflow-y-auto rounded-xl border border-surface-700 bg-surface-900/50 p-3 sm:p-4 backdrop-blur-sm">
+          <div className="h-[350px] sm:h-[400px] lg:h-[450px] overflow-y-auto rounded-xl border border-surface-700 bg-surface-900 p-3 sm:p-4">
             {review ? (
               <div className="max-w-none">
                 <MarkdownRenderer content={review} />

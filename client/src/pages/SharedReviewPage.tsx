@@ -77,8 +77,8 @@ export function SharedReviewPage() {
             )}
           </div>
 
-          <div className="overflow-hidden rounded-2xl border border-surface-700 bg-surface-900/60 shadow-2xl shadow-black/30 backdrop-blur-xl">
-            <div className="flex items-center gap-3 border-b border-surface-700 bg-surface-900/80 px-4 py-4 sm:px-6">
+          <div className="overflow-hidden rounded-2xl border border-surface-700 bg-surface-900 shadow-none">
+            <div className="flex items-center gap-3 border-b border-surface-700 bg-surface-800 px-4 py-4 sm:px-6">
               <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-purple-600">
                 <Brain className="h-5 w-5 text-white" />
               </div>

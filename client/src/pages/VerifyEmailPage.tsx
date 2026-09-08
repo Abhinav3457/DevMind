@@ -49,12 +49,12 @@ export function VerifyEmailPage() {
           transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
           className="mb-6 flex justify-center"
         >
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 shadow-lg shadow-blue-500/25">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 shadow-lg shadow-black/25">
             <Code2 className="h-8 w-8 text-white" />
           </div>
         </motion.div>
 
-        <div className="rounded-xl border border-surface-700 bg-surface-800/50 p-8 backdrop-blur-xl">
+        <div className="rounded-xl border border-surface-700 bg-surface-900 p-8 shadow-none">
           {status === 'loading' && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center">
               <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-500/10">

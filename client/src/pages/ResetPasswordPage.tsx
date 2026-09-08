@@ -54,7 +54,7 @@ export function ResetPasswordPage() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-surface-950 px-4">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md text-center">
-          <div className="rounded-xl border border-surface-700 bg-surface-800/50 p-8 backdrop-blur-xl">
+          <div className="rounded-xl border border-surface-700 bg-surface-900 p-8 shadow-none">
             <h2 className="text-xl font-semibold text-red-400">Invalid reset link</h2>
             <p className="mt-2 text-sm text-surface-400">No reset token was provided. The link may be invalid or expired.</p>
             <Link to="/auth/forgot-password" className="mt-6 inline-block text-sm font-medium text-blue-400 hover:text-blue-300 transition-colors">
@@ -81,7 +81,7 @@ export function ResetPasswordPage() {
             transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
             className="mb-4 flex justify-center"
           >
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 shadow-lg shadow-blue-500/25">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 shadow-lg shadow-black/25">
               <Code2 className="h-8 w-8 text-white" />
             </div>
           </motion.div>
@@ -89,7 +89,7 @@ export function ResetPasswordPage() {
           <p className="mt-1 sm:mt-2 text-xs sm:text-sm text-surface-400">Choose a strong password for your account</p>
         </div>
 
-        <div className="rounded-xl sm:rounded-2xl border border-surface-700 bg-surface-800/50 p-5 sm:p-8 backdrop-blur-xl">
+        <div className="rounded-xl sm:rounded-2xl border border-surface-700 bg-surface-900 p-5 sm:p-8 shadow-none">
           {isSuccess ? (
             <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center text-center">
               <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/10">
@@ -140,7 +140,7 @@ export function ResetPasswordPage() {
                   {errors.confirmPassword && <p className="mt-1 text-xs text-red-400">{errors.confirmPassword.message}</p>}
                 </div>
                 <button type="submit" disabled={isSubmitting}
-                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/20 transition-all duration-200 hover:from-blue-500 hover:to-purple-500 hover:shadow-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 py-2.5 text-sm font-semibold text-white shadow-lg shadow-black/25 transition-all duration-200 hover:from-blue-500 hover:to-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
                   {isSubmitting ? 'Resetting...' : 'Reset Password'}

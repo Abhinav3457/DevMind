@@ -10,10 +10,10 @@ function App() {
     const root = document.documentElement;
     if (theme === 'light') {
       root.classList.add('light');
-      root.style.backgroundColor = '#f8fafc';
+      root.style.backgroundColor = '#fafafa';
     } else {
       root.classList.remove('light');
-      root.style.backgroundColor = '#020617';
+      root.style.backgroundColor = '#0a0a0a';
     }
   }, [theme]);
 

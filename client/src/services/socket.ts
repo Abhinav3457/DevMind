@@ -50,3 +50,8 @@ export function onNotificationNew(callback: (data: Record<string, unknown>) => v
   socket?.on('notification:new', callback);
   return () => { socket?.off('notification:new', callback); };
 }
+
+export function onAnalyticsUpdate(callback: (data: Record<string, unknown>) => void): () => void {
+  socket?.on('analytics:update', callback);
+  return () => { socket?.off('analytics:update', callback); };
+}

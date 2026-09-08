@@ -81,7 +81,7 @@ function TerminalWindow({ script }: { script: string }) {
   const done = text.length >= script.length && script.length > 0;
 
   return (
-    <div className="overflow-hidden rounded-xl border border-surface-700/60 bg-surface-950/80 shadow-2xl shadow-black/40 backdrop-blur-sm">
+    <div className="overflow-hidden rounded-xl border border-surface-700/60 bg-surface-900">
       <div className="flex items-center gap-1.5 border-b border-surface-800 px-3.5 py-2.5">
         <span className="h-2.5 w-2.5 rounded-full bg-red-500/80" />
         <span className="h-2.5 w-2.5 rounded-full bg-amber-500/80" />
@@ -225,7 +225,7 @@ export function LoginPage() {
               <motion.div
                 whileHover={{ scale: 1.06, rotate: -3 }}
                 transition={{ type: 'spring', stiffness: 300, damping: 18 }}
-                className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 shadow-lg shadow-blue-500/30"
+                className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 shadow-lg shadow-black/25"
               >
                 <Code2 className="h-6 w-6 text-white" />
               </motion.div>
@@ -346,7 +346,7 @@ export function LoginPage() {
               <motion.div
                 whileHover={{ scale: 1.08, rotate: -4 }}
                 transition={{ type: 'spring', stiffness: 300, damping: 18 }}
-                className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 shadow-xl shadow-blue-500/30"
+                className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 shadow-lg shadow-black/25"
               >
                 <Code2 className="h-8 w-8 text-white" />
               </motion.div>
@@ -377,7 +377,7 @@ export function LoginPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.15 }}
             whileHover={{ y: -2 }}
-            className="rounded-xl sm:rounded-2xl border border-surface-700 bg-surface-800/50 p-5 sm:p-8 backdrop-blur-xl shadow-2xl shadow-black/30"
+            className="rounded-xl sm:rounded-2xl border border-surface-700 bg-surface-900 p-5 sm:p-8 shadow-none"
           >
             {serverError && (
               <motion.div
@@ -561,11 +561,8 @@ export function LoginPage() {
                 type="submit"
                 disabled={status !== 'idle'}
                 whileTap={{ scale: 0.97 }}
-                className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/40 hover:from-blue-500 hover:to-purple-500 disabled:cursor-not-allowed disabled:opacity-80"
+                className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 py-3 text-sm font-semibold text-white shadow-lg shadow-black/25 transition-all duration-300 hover:from-blue-500 hover:to-purple-500 disabled:cursor-not-allowed disabled:opacity-80"
               >
-                {/* Sheen sweep */}
-                <span className="pointer-events-none absolute inset-y-0 left-0 w-1/3 -skew-x-12 bg-white/20 blur-md transition-transform duration-700 ease-out group-hover:translate-x-[350%] group-disabled:translate-x-0" />
-
                 {status === 'loading' ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : status === 'success' ? (
@@ -601,7 +598,7 @@ export function LoginPage() {
                 <span className="w-full border-t border-surface-700/70" />
               </div>
               <div className="relative flex justify-center">
-                <span className="bg-surface-800/60 px-3 text-[11px] uppercase tracking-wider text-surface-500 backdrop-blur">
+                <span className="bg-surface-800 px-3 text-[11px] uppercase tracking-wider text-surface-500">
                   New to DevMind AI?
                 </span>
               </div>
