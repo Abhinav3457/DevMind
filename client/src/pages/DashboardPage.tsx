@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   LayoutDashboard, Github, FileCode, Bot, Activity, Shield, Check,
-  Sparkles, Star, BookOpen, ArrowRight, ArrowUpToLine, GitMerge, Bug, Database, TrendingUp,
+  Sparkles, Star, BookOpen, ArrowRight, Database, TrendingUp,
   RefreshCw,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -104,7 +104,6 @@ function Skeleton({ className, delay = 0 }: { className: string; delay?: number 
 
 export function DashboardPage() {
   const { user } = useAuthStore();
-  const navigate = useNavigate();
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -167,13 +166,6 @@ export function DashboardPage() {
   const repos = overview.repositories ?? 0;
   const securityPercent = quality.securityIssues === 0 ? 100 : Math.max(0, 100 - quality.securityIssues * 15);
 
-  const quickActions = [
-    { icon: ArrowUpToLine, label: 'Import', to: '/github', primary: true },
-    { icon: Bot, label: 'AI Chat', to: '/ai/chat', primary: false },
-    { icon: GitMerge, label: 'Analytics', to: '/analytics', primary: false },
-    { icon: Bug, label: 'Code Review', to: '/ai/code-review', primary: false },
-  ];
-
   return (
     <div className="min-h-screen">
       <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 sm:py-8">
@@ -184,25 +176,6 @@ export function DashboardPage() {
             title={`${greeting}, ${user?.name || 'Developer'}`}
             description="A clean overview of your repositories, code quality, and AI activity."
             gradient="from-blue-500 to-indigo-600"
-            actions={
-              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                {quickActions.map((action) => (
-                  <button
-                    key={action.label}
-                    onClick={() => navigate(action.to)}
-                    className={
-                      'flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-all active:scale-95 sm:px-4 sm:py-2.5 sm:text-sm ' +
-                      (action.primary
-                        ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-black/25 hover:brightness-110'
-                        : 'border border-surface-700 bg-surface-800/80 text-surface-300 hover:border-surface-600 hover:bg-surface-700/80 hover:text-surface-100')
-                    }
-                  >
-                    <action.icon className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${action.primary ? 'text-white' : action.label === 'AI Chat' ? 'text-cyan-400' : 'text-amber-400'}`} />
-                    {action.label}
-                  </button>
-                ))}
-              </div>
-            }
           />
           <div className="mt-5 h-px bg-gradient-to-r from-transparent via-surface-700 to-transparent sm:mt-6" />
         </div>
