@@ -220,7 +220,15 @@ export function AppLayout() {
   }, [user?.name]);
 
   return (
-    <div className="flex min-h-screen min-h-dvh overflow-x-hidden bg-surface-950">
+    // App shell: a *definite* height (h-dvh, not min-h-*) is what makes the
+    // whole chain below resolve. Every page root uses `h-full min-h-0`, and a
+    // percentage height only resolves against a parent with a definite height.
+    // With only `min-h-dvh` here, `h-full` collapsed to `auto`, the per-page
+    // `overflow-y-auto` containers never became scroll containers, the document
+    // grew past the viewport and the whole window scrolled (sidebar and navbar
+    // included). `overflow-hidden` keeps the shell pinned to exactly one
+    // viewport so only the main content region can ever scroll.
+    <div className="flex h-dvh overflow-hidden bg-surface-950">
       {/* Mobile sidebar overlay */}
       <AnimatePresence>
         {mobileOpen && (
@@ -330,9 +338,14 @@ export function AppLayout() {
       </aside>
 
       {/* Main Content */}
-      <div className="flex flex-1 flex-col min-w-0">
+      {/* Navbar + page content column. `h-full` + `min-h-0` let this flex child
+          resolve against the shell and shrink to fit, so `main` below gets a
+          definite height for its own `h-full` pages. */}
+      <div className="flex h-full min-h-0 flex-1 flex-col min-w-0">
         {/* Top Bar */}
-        <header className="flex h-14 sm:h-16 items-center justify-between border-b border-surface-700/50 bg-surface-950/80 px-3 sm:px-4 lg:px-6 safe-top sticky top-0 z-30">
+        {/* `shrink-0` keeps the navbar from being squeezed; it sits outside the
+            scrolling region, so it stays put without `position: fixed`. */}
+        <header className="relative z-30 flex h-14 sm:h-16 shrink-0 items-center justify-between border-b border-surface-700/50 bg-surface-950/80 px-3 sm:px-4 lg:px-6 safe-top">
           <div className="flex flex-col gap-1 min-w-0">
             <div className="flex items-center gap-2 sm:gap-3">
               <button

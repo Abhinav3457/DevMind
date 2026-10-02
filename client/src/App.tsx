@@ -19,7 +19,10 @@ function App() {
 
   return (
     <ErrorBoundary>
-      <div className="min-h-screen">
+      {/* min-h-dvh (not min-h-screen) so the wrapper matches the dashboard
+          shell's dynamic viewport height on mobile and can't force the body
+          to scroll. Kept as `min-h-*` so tall auth pages still scroll. */}
+      <div className="min-h-dvh">
         <AppRoutes />
       </div>
     </ErrorBoundary>
