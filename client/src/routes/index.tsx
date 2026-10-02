@@ -12,6 +12,7 @@ import { GitHubPage } from '../pages/GitHubPage';
 import { GitHubCallback } from '../pages/GitHubCallback';
 import { SharedReviewPage } from '../pages/SharedReviewPage';
 import { AnalyticsPage } from '../pages/AnalyticsPage';
+import { PracticePage } from '../pages/PracticePage';
 import { AppLayout } from '../components/layout/AppLayout';
 import { AuthGuard } from '../components/layout/AuthGuard';
 
@@ -32,6 +33,7 @@ export function AppRoutes() {
         <Route path="/ai/chat" element={<AiChatPage />} />
         <Route path="/ai/code-review" element={<CodeReviewPage />} />
         <Route path="/ai/docs" element={<DocGeneratorPage />} />
+        <Route path="/practice" element={<PracticePage />} />
         <Route path="/analytics" element={<AnalyticsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/auth/login" replace />} />

@@ -5,6 +5,7 @@ import app from './app';
 import { connectDatabase } from './config/database';
 import { initializeSocket } from './config/socket';
 import { createServer } from 'http';
+import { practiceService } from './services/practice.service';
 import logger from './utils/logger';
 
 const PORT = process.env.PORT || 5000;
@@ -13,6 +14,11 @@ async function startServer(): Promise<void> {
   try {
     // Connect to MongoDB
     await connectDatabase();
+
+    // Seed the curated DSA problem bank (idempotent)
+    await practiceService.seedProblems().catch((error) => {
+      logger.error('Failed to seed practice problems:', error);
+    });
 
     // Create HTTP server
     const httpServer = createServer(app);

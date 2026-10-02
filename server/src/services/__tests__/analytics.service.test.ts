@@ -4,11 +4,13 @@ import ImportedRepository from '../../models/ImportedRepository';
 import IndexReport from '../../models/IndexReport';
 import IndexedFile from '../../models/IndexedFile';
 import IndexedChunk from '../../models/IndexedChunk';
+import ActivityLog from '../../models/ActivityLog';
 
 vi.mock('../../models/ImportedRepository', () => ({ default: { countDocuments: vi.fn(), aggregate: vi.fn() } }));
 vi.mock('../../models/IndexReport', () => ({ default: { find: vi.fn(), countDocuments: vi.fn() } }));
 vi.mock('../../models/IndexedFile', () => ({ default: { aggregate: vi.fn() } }));
 vi.mock('../../models/IndexedChunk', () => ({ default: { aggregate: vi.fn() } }));
+vi.mock('../../models/ActivityLog', () => ({ default: { aggregate: vi.fn().mockResolvedValue([]) } }));
 vi.mock('../../utils/logger', () => ({ default: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() } }));
 
 const VALID_USER_ID = '507f191e810c19729de860ea';
@@ -83,5 +85,34 @@ describe('AnalyticsService', () => {
     expect(result.languages[0]?.name).toBe('typescript');
     expect(result.languages[0]?.files).toBe(10);
     expect(result.linesOfCode.total).toBeGreaterThan(0);
+  });
+
+  it('should build a 14-day activity trend and operation breakdown', async () => {
+    vi.mocked(IndexReport.find).mockReturnValue(makeFindMock([]) as never);
+    vi.mocked(ImportedRepository.countDocuments).mockResolvedValue(0);
+    vi.mocked(IndexReport.countDocuments).mockResolvedValue(0);
+    vi.mocked(ImportedRepository.aggregate).mockResolvedValue([]);
+
+    // Day key is produced the same way the service does (local midnight → ISO date).
+    const keyDate = new Date();
+    keyDate.setHours(0, 0, 0, 0);
+    const dayKey = keyDate.toISOString().slice(0, 10);
+
+    vi.mocked(ActivityLog.aggregate)
+      .mockResolvedValueOnce([{ _id: { day: dayKey, type: 'practice_solved' }, count: 2 }] as never)
+      .mockResolvedValueOnce([
+        { _id: 'practice_solved', count: 2 },
+        { _id: 'repo_indexed', count: 1 },
+      ] as never);
+
+    const result = await service.getAnalytics(VALID_USER_ID);
+
+    expect(result.trend.days).toHaveLength(14);
+    expect(result.trend.practice.reduce((a, b) => a + b, 0)).toBe(2);
+    expect(result.trend.operations.reduce((a, b) => a + b, 0)).toBe(2);
+    expect(result.operationBreakdown).toEqual([
+      { type: 'practice_solved', count: 2 },
+      { type: 'repo_indexed', count: 1 },
+    ]);
   });
 });

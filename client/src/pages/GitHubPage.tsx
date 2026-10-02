@@ -55,6 +55,8 @@ export function GitHubPage() {
   const [removing, setRemoving] = useState<string | null>(null);
   const [showRemoveConfirm, setShowRemoveConfirm] = useState<string | null>(null);
   const [disconnecting, setDisconnecting] = useState(false);
+  const [showAllRepos, setShowAllRepos] = useState(false);
+  const [showAllImported, setShowAllImported] = useState(false);
 
   // Track whether we've processed URL params to avoid showing errors on re-renders
   const processedParams = useRef(false);
@@ -203,8 +205,15 @@ export function GitHubPage() {
 
   const filteredRepos = repos.filter(r => !search || r.name.toLowerCase().includes(search.toLowerCase()) || r.fullName.toLowerCase().includes(search.toLowerCase()));
 
+  // Keep the page inside the viewport frame: render a preview of each list and
+  // let the user expand it on demand instead of scrolling through everything.
+  const REPO_PREVIEW_LIMIT = 6;
+  const IMPORTED_PREVIEW_LIMIT = 4;
+  const visibleRepos = showAllRepos ? filteredRepos : filteredRepos.slice(0, REPO_PREVIEW_LIMIT);
+  const visibleImported = showAllImported ? importedRepos : importedRepos.slice(0, IMPORTED_PREVIEW_LIMIT);
+
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex h-full min-h-0 flex-col gap-4 overflow-x-hidden overflow-y-auto pb-1 sm:gap-6">
       <PageHeader
         icon={Github}
         title="GitHub Integration"
@@ -270,8 +279,9 @@ export function GitHubPage() {
               <p className="text-xs text-surface-500">Click Refresh to load your GitHub repositories</p>
             </div>
           ) : (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {filteredRepos.map(repo => (
+            <>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {visibleRepos.map(repo => (
                 <motion.div key={repo.id} layout className="rounded-xl border border-surface-700 bg-surface-900 p-4 transition-all hover:border-primary-500/30">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-2">
@@ -293,8 +303,20 @@ export function GitHubPage() {
                     </button>
                   </div>
                 </motion.div>
-              ))}
-            </div>
+                ))}
+              </div>
+
+              {filteredRepos.length > REPO_PREVIEW_LIMIT && (
+                <div className="flex justify-center">
+                  <button
+                    onClick={() => setShowAllRepos((v) => !v)}
+                    className="rounded-lg border border-surface-700 bg-surface-900 px-4 py-2 text-xs font-medium text-surface-300 transition-colors hover:border-surface-600 hover:text-surface-100"
+                  >
+                    {showAllRepos ? 'Show less' : `View all ${filteredRepos.length} repositories`}
+                  </button>
+                </div>
+              )}
+            </>
           )}
 
           {/* Imported Repos Section */}
@@ -305,7 +327,7 @@ export function GitHubPage() {
                 Imported repositories ({importedRepos.length})
               </h2>
               <div className="space-y-2">
-                {importedRepos.map((ir) => {
+                {visibleImported.map((ir) => {
                   const status = ir.indexStatus || 'not_indexed';
                   const isIndexed = status === 'completed';
                   return (
@@ -352,6 +374,17 @@ export function GitHubPage() {
                   );
                 })}
               </div>
+
+              {importedRepos.length > IMPORTED_PREVIEW_LIMIT && (
+                <div className="mt-2 flex justify-center">
+                  <button
+                    onClick={() => setShowAllImported((v) => !v)}
+                    className="rounded-lg border border-surface-700 bg-surface-900 px-4 py-2 text-xs font-medium text-surface-300 transition-colors hover:border-surface-600 hover:text-surface-100"
+                  >
+                    {showAllImported ? 'Show less' : `View all ${importedRepos.length} imported repositories`}
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </>

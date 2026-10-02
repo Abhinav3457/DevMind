@@ -77,7 +77,7 @@ export function AiChatPage() {
   const [reports, setReports] = useState<{ id: string; repoName: string; fileCount: number }[]>([]);
   const [selectedReportId, setSelectedReportId] = useState<string>('latest');
   const [repoContextId, setRepoContextId] = useState<string>('');
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatScrollRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
   // ── Chat Session State ───────────────────────────────────
@@ -86,9 +86,10 @@ export function AiChatPage() {
   const [loadingSessions, setLoadingSessions] = useState(true);
   const [showSidebar, setShowSidebar] = useState(false);
 
-  // Scroll to bottom on new messages
+  // Scroll only the message pane to the bottom on new messages
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const el = chatScrollRef.current;
+    if (el) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
   }, [messages]);
 
   // Load sessions + indexed reports (for optional repo context) on mount
@@ -386,7 +387,7 @@ export function AiChatPage() {
   };
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="chat-viewport flex flex-col">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex h-full min-h-0 flex-col">
       {/* Mobile sidebar overlay */}
       <AnimatePresence>
         {showSidebar && (
@@ -511,9 +512,9 @@ export function AiChatPage() {
         </AnimatePresence>
 
         {/* ── Main Chat Area ────────────────────────────────── */}
-        <div className="flex flex-1 flex-col min-w-0">
+        <div className="flex min-h-0 flex-1 flex-col min-w-0">
           {/* Header */}
-          <div className="mb-2 sm:mb-3 lg:mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
+          <div className="mb-2 flex shrink-0 flex-col justify-between gap-2 sm:mb-3 sm:flex-row sm:items-center sm:gap-3 lg:mb-4">
             <div className="flex items-center gap-2 sm:gap-3 min-w-0">
               <motion.button
                 whileTap={{ scale: 0.9 }}
@@ -586,7 +587,7 @@ export function AiChatPage() {
           </div>
 
           {/* Chat Area */}
-          <div className="flex-1 overflow-y-auto rounded-xl border border-surface-700 bg-surface-900 p-3 sm:p-4">
+          <div ref={chatScrollRef} className="min-h-0 flex-1 overflow-y-auto rounded-xl border border-surface-700 bg-surface-900 p-3 sm:p-4">
             {statusBanner()}
 
             {messages.length <= 1 && !loading && (
@@ -664,12 +665,11 @@ export function AiChatPage() {
                   </div>
                 </motion.div>
               )}
-              <div ref={messagesEndRef} />
             </div>
           </div>
 
           {/* Input */}
-          <div className="mt-3 flex gap-2">
+          <div className="mt-3 flex shrink-0 gap-2">
             <input
               type="text"
               value={input}

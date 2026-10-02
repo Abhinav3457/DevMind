@@ -19,13 +19,15 @@ export interface AIGenerateParams {
   maxTokens?: number;
 }
 
-// Groq models with large context windows (current production models as of 2026)
+// Groq models in preference order — the first one that answers wins.
 // Note: mixtral-8x7b-32768 (retired Mar 2025) and llama-3.1-8b-instant (retired Aug 2026)
-// are no longer reliable — using llama-3.3 and gpt-oss instead.
-// llama-3.3-70b-versatile is tried FIRST because it is the only Groq model verified
-// to handle this app's prompts (gpt-oss/qwen cap at 8K tokens/min on free tier and
-// 413 on large code-review prompts).
-const GROQ_MODELS = ['llama-3.3-70b-versatile', 'openai/gpt-oss-120b', 'openai/gpt-oss-20b', 'qwen/qwen3.6-27b'];
+// are gone. openai/gpt-oss-120b leads because it is verified available for our keys.
+// llama-3.3-70b-versatile is kept LAST as a last-resort fallback: on some accounts
+// it now returns 404 "does not exist or you do not have access to it", so leading
+// with it wastes a doomed request on every single AI call.
+// Caveat: gpt-oss/qwen can cap at ~8K tokens/min on the free tier and 413 on very
+// large prompts — large prompts already prefer Gemini first (see LARGE_PROMPT_CHARS).
+const GROQ_MODELS = ['openai/gpt-oss-120b', 'openai/gpt-oss-20b', 'qwen/qwen3.6-27b', 'llama-3.3-70b-versatile'];
 
 // Groq free tier caps gpt-oss/qwen at ~8K tokens/min, so large prompts (e.g. code
 // reviews of 5 files x 100 lines) 413 with "Request too large". Gemini allows

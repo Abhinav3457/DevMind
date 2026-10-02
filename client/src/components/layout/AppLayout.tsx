@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Code2, Brain, Bug, FileText,
   Github, BarChart3, LogOut, ChevronLeft,
   Bell, Menu, X, Sun, Moon, Loader2,
-  CheckCheck, Search, Settings, ChevronRight,
+  CheckCheck, Search, Settings, ChevronRight, Trophy,
 } from 'lucide-react';
 import { CommandPalette } from './CommandPalette';
 import { useAuthStore, useUIStore } from '../../store';
@@ -57,6 +57,12 @@ const navSections: NavSection[] = [
       { to: '/analytics', icon: BarChart3, label: 'Analytics' },
     ],
   },
+  {
+    label: 'Grow',
+    items: [
+      { to: '/practice', icon: Trophy, label: 'Practice Arena' },
+    ],
+  },
 ];
 
 /* ── Breadcrumb Map ────────────────────────────────────── */
@@ -68,6 +74,7 @@ const breadcrumbMap: Record<string, string> = {
   'code-review': 'Code Review',
   docs: 'Documentation',
   analytics: 'Analytics',
+  practice: 'Practice Arena',
 };
 
 function Breadcrumbs() {
@@ -492,13 +499,13 @@ export function AppLayout() {
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-x-hidden overflow-y-auto px-2 py-3 sm:px-3 sm:py-4 lg:px-4 lg:py-6">
+        <main className="flex min-h-0 flex-1 flex-col overflow-hidden px-2 py-3 sm:px-3 sm:py-4 lg:px-4 lg:py-6">
           <motion.div
             key={location.pathname}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.25, ease: 'easeOut' }}
-            className="min-h-full"
+            className="flex h-full min-h-0 flex-col"
           >
             <Outlet />
           </motion.div>

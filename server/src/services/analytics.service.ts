@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import ImportedRepository from '../models/ImportedRepository';
+import ActivityLog from '../models/ActivityLog';
 import IndexReport from '../models/IndexReport';
 import IndexedFile from '../models/IndexedFile';
 import IndexedChunk from '../models/IndexedChunk';
@@ -45,6 +46,15 @@ export interface AnalyticsData {
     avgReviewScore: number;
     activityScore: number;
   };
+  trend: {
+    days: string[];
+    operations: number[];
+    indexes: number[];
+    reviews: number[];
+    documents: number[];
+    practice: number[];
+  };
+  operationBreakdown: { type: string; count: number }[];
 }
 
 const LANGUAGE_COLORS: Record<string, string> = {
@@ -59,6 +69,12 @@ const LANGUAGE_COLORS: Record<string, string> = {
 export class AnalyticsService {
   async getAnalytics(userId: string, reportId?: string): Promise<AnalyticsData> {
     const startTime = Date.now();
+
+    // 14-day window for the activity trend charts
+    const trendDays = 14;
+    const trendStart = new Date();
+    trendStart.setHours(0, 0, 0, 0);
+    trendStart.setDate(trendStart.getDate() - (trendDays - 1));
 
     // If a specific reportId is given, scope all queries to that report
     let reportFilter: Record<string, unknown> = { userId };
@@ -78,6 +94,8 @@ export class AnalyticsService {
       languageAgg,
       chunkAgg,
       activityScore,
+      activityTrendAgg,
+      activityTotalsAgg,
     ] = await Promise.all([
       reportId ? 1 : ImportedRepository.countDocuments({ userId }),
       IndexReport.countDocuments(reportFilter),
@@ -112,6 +130,23 @@ export class AnalyticsService {
       ImportedRepository.aggregate([
         { $match: { userId: new mongoose.Types.ObjectId(userId) } },
         { $group: { _id: null, total: { $sum: { $add: ['$stars', '$forks', '$openIssues'] } } } },
+      ]),
+      ActivityLog.aggregate([
+        { $match: { userId: new mongoose.Types.ObjectId(userId), createdAt: { $gte: trendStart } } },
+        {
+          $group: {
+            _id: {
+              day: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+              type: '$type',
+            },
+            count: { $sum: 1 },
+          },
+        },
+      ]),
+      ActivityLog.aggregate([
+        { $match: { userId: new mongoose.Types.ObjectId(userId) } },
+        { $group: { _id: '$type', count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
       ]),
     ]);
 
@@ -179,6 +214,35 @@ export class AnalyticsService {
     const aiOperations = indexedRepos;
     const avgReviewScore = indexedCount > 0 ? avgHealthScore : 0;
 
+    // Build the 14-day series from the activity log so every point is real.
+    const dayKeys: string[] = [];
+    for (let i = 0; i < trendDays; i++) {
+      const d = new Date(trendStart);
+      d.setDate(d.getDate() + i);
+      dayKeys.push(d.toISOString().slice(0, 10));
+    }
+    const dayLabels = dayKeys.map((k) => {
+      const parts = k.split('-');
+      return (parts[1] || '') + '/' + (parts[2] || '');
+    });
+
+    const trendByDay = new Map<string, Record<string, number>>();
+    for (const row of activityTrendAgg as Array<{ _id: { day: string; type: string }; count: number }>) {
+      const entry = trendByDay.get(row._id.day) || {};
+      entry[row._id.type] = row.count;
+      trendByDay.set(row._id.day, entry);
+    }
+
+    const seriesFor = (type: string) => dayKeys.map((k) => trendByDay.get(k)?.[type] || 0);
+    const operations = dayKeys.map((k) =>
+      Object.values(trendByDay.get(k) || {}).reduce((sum, n) => sum + n, 0),
+    );
+
+    const operationBreakdown = (activityTotalsAgg as Array<{ _id: string; count: number }>).map((r) => ({
+      type: r._id || 'other',
+      count: r.count,
+    }));
+
     const duration = ((Date.now() - startTime) / 1000).toFixed(2);
     logger.info('Analytics: Computed for user ' + userId + ' in ' + duration + 's');
 
@@ -217,6 +281,15 @@ export class AnalyticsService {
         avgReviewScore,
         activityScore: totalActivityScore,
       },
+      trend: {
+        days: dayLabels,
+        operations,
+        indexes: seriesFor('repo_indexed'),
+        reviews: seriesFor('review_completed'),
+        documents: seriesFor('doc_generated'),
+        practice: seriesFor('practice_solved'),
+      },
+      operationBreakdown,
     };
   }
 }

@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DevMind AI — Whole Project Flowchart</title>
+    <style>
+      :root {
+        --bg: #0b1020;
+        --panel: #141b31;
+        --border: #26304d;
+        --text: #e6ebf7;
+        --muted: #93a0c0;
+        --accent: #60a5fa;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font: 15px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        padding: 28px 20px 80px;
+      }
+      header { max-width: 1400px; margin: 0 auto 24px; }
+      h1 { font-size: 26px; margin: 0 0 6px; letter-spacing: -0.02em; }
+      h2 {
+        font-size: 18px;
+        margin: 40px 0 12px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid var(--border);
+      }
+      p.sub { color: var(--muted); margin: 0; font-size: 14px; }
+      .toolbar {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+        padding: 10px 0;
+        margin-bottom: 8px;
+        background: linear-gradient(var(--bg) 70%, transparent);
+      }
+      button {
+        background: var(--panel);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 6px 12px;
+        font: inherit;
+        font-size: 13px;
+        cursor: pointer;
+      }
+      button:hover { border-color: var(--accent); color: #fff; }
+      .hint { color: var(--muted); font-size: 12px; margin-left: auto; }
+      .canvas {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 22px;
+        overflow: auto;
+        max-height: 82vh;
+      }
+      .canvas svg { display: block; margin: 0 auto; transition: transform 0.12s ease; transform-origin: top center; }
+      pre.textver {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 18px;
+        overflow: auto;
+        font-size: 12.5px;
+        line-height: 1.5;
+        color: #cfe0ff;
+      }
+      .error { color: #fca5a5; font-size: 13px; padding: 12px; }
+      footer { max-width: 1400px; margin: 40px auto 0; color: var(--muted); font-size: 12.5px; }
+      table { border-collapse: collapse; width: 100%; max-width: 900px; font-size: 13.5px; }
+      th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+      th { color: var(--muted); font-weight: 600; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>DevMind AI — Whole Project Flowchart</h1>
+      <p class="sub">
+        Traced from the real source: <code>client/src</code>, <code>server/src/app.ts</code>,
+        <code>server/src/routes/index.ts</code>, <code>server/src/config/ai.ts</code>,
+        <code>server/src/config/socket.ts</code>.
+      </p>
+    </header>
+
+    <div class="toolbar">
+      <button onclick="zoom(1.15)">Zoom in</button>
+      <button onclick="zoom(0.87)">Zoom out</button>
+      <button onclick="resetZoom()">Reset</button>
+      <button onclick="window.print()">Print / Save PDF</button>
+      <span class="hint">Scroll the panel to pan &middot; diagrams render with Mermaid</span>
+    </div>
+
+    <h2>1. Master flow — end to end</h2>
+    <div class="canvas"><div id="master"></div></div>
+
+    <h2>2. Request lifecycle — sequence</h2>
+    <div class="canvas"><div id="lifecycle"></div></div>
+
+    <h2>3. Auth &amp; token refresh</h2>
+    <div class="canvas"><div id="auth"></div></div>
+
+    <h2>4. Feature pipelines</h2>
+    <div class="canvas"><div id="features"></div></div>
+
+    <h2>5. Plain-text version</h2>
+    <pre class="textver">USER
+ └─&gt; CLIENT (React 19 + Vite, :5173)
+      main.tsx -&gt; Router -&gt; AuthGuard -&gt; Pages
+        Pages -&gt; services / page calls
+              -&gt; apiClient (axios) -&gt; request interceptor adds Bearer token
+              -&gt; Zustand (auth/ui)  -&gt; React Query (server cache)
+              -&gt; socket.io-client  (live notifications)
+ └─&gt; NETWORK   HTTP /api/v1   +   WebSocket (JWT handshake)
+ └─&gt; SERVER (Express 4, :5000)
+      helmet -&gt; cors -&gt; rate-limit -&gt; json(10mb) -&gt; compression -&gt; morgan
+        -&gt; /api/v1/health                  (short-circuits the chain)
+        -&gt; routes/index.ts -&gt; module router
+             -&gt; validate(Joi) -&gt; authenticate(JWT) -&gt; asyncHandler(controller)
+                  -&gt; controller  (thin HTTP layer)
+                  -&gt; service     (business logic)
+                       -&gt; domains: indexer / repo-intelligence /
+                                   code-review / doc-generator
+                       -&gt; Mongoose models
+                  -&gt; success envelope { success, message, data }
+             -&gt; globalErrorHandler { success:false, message }
+ └─&gt; DATA &amp; EXTERNAL
+      MongoDB: User, Chat, Message, GitHubAccount, ImportedRepository,
+               IndexReport, IndexedFile, IndexedChunk, OAuthState
+      GitHub (Octokit) | AI: Groq &lt;-&gt; Gemini | Cloudinary | Nodemailer
+ └─&gt; RESPONSE travels back up the same path (401 -&gt; refresh -&gt; retry)
+ └─&gt; REALTIME: Socket.io room user:&lt;userId&gt; pushes notification:new</pre>
+
+    <footer>
+      <table>
+        <tr><th>Band</th><th>Meaning</th></tr>
+        <tr><td>CLIENT</td><td>Runs in the browser; only ever speaks HTTP + WebSocket.</td></tr>
+        <tr><td>SERVER</td><td>The only component holding secrets. Fixed order: middleware → route → controller → service → model.</td></tr>
+        <tr><td>DATA</td><td>MongoDB collections; every query is scoped by <code>userId</code>.</td></tr>
+        <tr><td>EXTERNAL</td><td>Third-party systems the server calls on the user's behalf.</td></tr>
+      </table>
+      <p>Generated for the DevMind AI monorepo.</p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+    <script>
+      const masterDiagram = `flowchart TD
+    U(["User opens the app in a browser"]) --> BOOT
+
+    subgraph CLIENT["CLIENT - React 19 + Vite - port 5173"]
+        direction TB
+        BOOT["main.tsx<br/>QueryClientProvider + BrowserRouter"] --> ROUTES["routes/index.tsx"]
+        ROUTES --> PUB["Public routes<br/>login / register / forgot-password<br/>reset-password / verify-email<br/>github callback / shared review"]
+        ROUTES --> GUARD{"AuthGuard<br/>accessToken present?"}
+        GUARD -- "no" --> PUB
+        GUARD -- "yes" --> LAYOUT["AppLayout - sidebar + header"]
+        LAYOUT --> PAGES["Pages<br/>Dashboard / GitHub / AI Chat<br/>Code Review / Docs / Analytics"]
+        PAGES --> SVC["services/* and page-level calls"]
+        SVC --> AX["apiClient - axios<br/>baseURL /api/v1 + withCredentials"]
+        AX --> REQINT["Request interceptor<br/>Authorization: Bearer accessToken"]
+        PAGES -.-> ZUSTAND["Zustand - auth, ui state"]
+        PAGES -.-> RQ["React Query cache - staleTime 5 min"]
+        PAGES -.-> SOCKC["socket.io-client"]
+    end
+
+    REQINT --> HTTP["HTTP request<br/>method + path + JSON body"]
+    HTTP --> MW
+
+    subgraph SERVER["SERVER - Express 4 - port 5000"]
+        direction TB
+        MW["Middleware chain<br/>helmet - cors CLIENT_URL - rate limit<br/>json 10mb - compression - morgan"]
+        MW --> HEALTH{"path = /api/v1/health ?"}
+        HEALTH -- "yes" --> OK["200 health payload - skips limiter"]
+        HEALTH -- "no" --> ROUTER["routes/index.ts - module router"]
+        ROUTER --> CHAIN["validate Joi - authenticate JWT - asyncHandler"]
+        CHAIN --> CTRL["Controller - thin HTTP layer"]
+        CTRL --> SERVICE["Service - business logic"]
+        SERVICE --> DOMAIN["Domain modules<br/>indexer - repo-intelligence<br/>code-review - doc-generator"]
+        SERVICE --> MODELS["Mongoose models"]
+        CHAIN -.->|"invalid input / bad token"| ERR["globalErrorHandler"]
+        CTRL -.->|"rejected promise"| ERR
+        SERVICE -.->|"throws"| ERR
+    end
+
+    MODELS --> DB[("MongoDB<br/>User / Chat / Message / GitHubAccount<br/>ImportedRepository / IndexReport<br/>IndexedFile / IndexedChunk / OAuthState")]
+    DOMAIN --> GH["GitHub API - Octokit<br/>repos - branches - commits - zipball"]
+    DOMAIN --> AIP["AI providers<br/>Groq to Gemini auto-fallback"]
+    SERVICE --> EXT["Cloudinary - uploads<br/>Nodemailer - email"]
+
+    OK --> RESP["ApiResponse envelope<br/>success true/false, message, data or errors"]
+    ERR --> RESP
+    DB --> RESP
+    GH --> RESP
+    AIP --> RESP
+    EXT --> RESP
+
+    RESP --> RESPINT["Response interceptor<br/>401 then refresh token then retry<br/>other errors then toast"]
+    RESPINT --> RENDER["Render result<br/>markdown / Monaco / Chart.js / toasts"]
+    RENDER --> U
+
+    SOCKC <-->|"WebSocket + JWT handshake"| SOCKSRV["Socket.io server<br/>room user:userId"]
+    SOCKSRV --> NOTIF["notificationService<br/>emit notification:new"]
+    NOTIF --> RENDER
+
+    classDef clientStyle fill:#1e3a8a,stroke:#60a5fa,color:#e5edff
+    classDef serverStyle fill:#14532d,stroke:#4ade80,color:#e8fff1
+    classDef dataStyle fill:#78350f,stroke:#fbbf24,color:#fff7e6
+    classDef extStyle fill:#4c1d95,stroke:#a78bfa,color:#f3ecff
+
+    class BOOT,ROUTES,PUB,GUARD,LAYOUT,PAGES,SVC,AX,REQINT,ZUSTAND,RQ,SOCKC clientStyle
+    class MW,HEALTH,OK,ROUTER,CHAIN,CTRL,SERVICE,DOMAIN,MODELS,ERR serverStyle
+    class DB,RESP dataStyle
+    class GH,AIP,EXT,SOCKSRV,NOTIF extStyle`;
+
+      const lifecycleDiagram = `sequenceDiagram
+    autonumber
+    participant U as User
+    participant P as React Page
+    participant A as Axios apiClient
+    participant E as Express app.ts
+    participant M as validate + authenticate
+    participant C as Controller
+    participant S as Service
+    participant D as MongoDB
+    participant X as GitHub / AI
+
+    U->>P: click or submit
+    P->>A: apiClient.post(path, body)
+    A->>A: attach Authorization Bearer token
+    A->>E: HTTP request
+    E->>E: helmet to cors to rate limit to parse to compress
+    E->>M: matched module router
+    M->>M: Joi validate body and params
+    M->>M: jwt.verify then req.user
+    M->>C: next()
+    C->>S: service.method(params, userId)
+    S->>D: query scoped by userId
+    S->>X: external call when needed
+    X-->>S: token or AI text or repo data
+    S-->>C: domain result
+    C-->>A: 200 success envelope
+    A-->>P: response.data.data
+    P-->>U: render and toast
+    Note over E,M: any failure goes to globalErrorHandler
+    Note over A: 401 then refresh then retry original request`;
+
+      const authDiagram = `flowchart TD
+    A["Any API call returns 401"] --> B{"url is /auth/refresh-token ?"}
+    B -- "yes" --> Z["show error toast and reject"]
+    B -- "no" --> C{"already retried ?"}
+    C -- "yes" --> Z
+    C -- "no" --> D{"accessToken in localStorage ?"}
+    D -- "no" --> D1["redirect to /auth/login"]
+    D -- "yes" --> E{"refresh already in flight ?"}
+    E -- "yes" --> F["queue request in failedQueue and wait"]
+    E -- "no" --> G["set isRefreshing = true"]
+    G --> H["POST /auth/refresh-token with httpOnly cookie"]
+    H -- "200" --> I["store new accessToken, flush queue"]
+    I --> J["retry original request"]
+    H -- "fail" --> K["clear auth and redirect to /auth/login"]
+    F --> J
+
+    L["POST /auth/register"] --> L1["bcrypt hash cost 12"]
+    L1 --> L2["email verification token - 24h TTL"]
+    L2 --> L3["GET /auth/verify-email/:token"]
+    L3 --> M["POST /auth/login"]
+    M --> M1["bcrypt.compare"]
+    M1 --> M2["accessToken 7d in body<br/>refreshToken 30d in httpOnly cookie + DB"]
+    M2 --> A`;
+
+      const featuresDiagram = `flowchart LR
+    subgraph OAUTH["GitHub OAuth connect"]
+        O1["GET /github/auth/url"] --> O2["state = 32 random bytes<br/>stored in OAuthState - 10 min TTL"]
+        O2 --> O3["popup to github.com"]
+        O3 --> O4["302 to /auth/github/callback<br/>with code and state params"]
+        O4 --> O5["POST /github/auth/callback"]
+        O5 --> O6["validate + delete state - replay safe"]
+        O6 --> O7["server-to-server token exchange"]
+        O7 --> O8["upsert GitHubAccount"]
+    end
+
+    subgraph INDEX["Repo import and indexing"]
+        I1["POST /github/repos/import"] --> I2["upsert ImportedRepository<br/>no code downloaded yet"]
+        I2 --> I3["POST /indexer/repos/:id/index"]
+        I3 --> I4["zipball download + adm-zip extract"]
+        I4 --> I5["walk tree, skip node_modules/dist/binaries"]
+        I5 --> I6["parse functions/classes/imports"]
+        I6 --> I7["chunk 100 lines, 10 overlap"]
+        I7 --> I8["analyze tech stack, env vars, folder tree"]
+        I8 --> I9["IndexReport completed"]
+    end
+
+    subgraph REVIEW["AI code review"]
+        R1["POST /ai/code-review/:reportId"] --> R2["pick up to 10 files"]
+        R2 --> R3["local complexity heuristics"]
+        R2 --> R4["local duplicate detection - Jaccard 0.70"]
+        R2 --> R5["LLM review via generateFromAI"]
+        R5 --> R6["score, categories, suggestions, fixedVersion"]
+        R6 --> R7["save history + optional share token"]
+    end
+
+    subgraph INTEL["Repo intelligence RAG"]
+        Q1["question + reportId"] --> Q2["classify question type"]
+        Q2 --> Q3["regex retrieve max 4 chunks, 3 files"]
+        Q3 --> Q4["build prompt with context"]
+        Q4 --> Q5["generateFromAI temperature 0.3"]
+    end
+
+    subgraph DOCS["Doc generator"]
+        D1["POST /ai/doc-generator/:reportId/generate"] --> D2["build context from IndexReport"]
+        D2 --> D3["9 doc types: readme, api-docs, env-vars..."]
+        D3 --> D4["return content + fileName"]
+    end
+
+    I9 --> R1
+    I9 --> Q1
+    I9 --> D1
+    O8 --> I1`;
+
+      const diagrams = [
+        { id: "master", src: masterDiagram },
+        { id: "lifecycle", src: lifecycleDiagram },
+        { id: "auth", src: authDiagram },
+        { id: "features", src: featuresDiagram },
+      ];
+
+      let scale = 1;
+      function apply() {
+        document.querySelectorAll(".canvas svg").forEach((svg) => {
+          svg.style.transform = "scale(" + scale + ")";
+        });
+      }
+      function zoom(f) { scale = Math.min(3, Math.max(0.3, scale * f)); apply(); }
+      function resetZoom() { scale = 1; apply(); }
+
+      (async function render() {
+        if (typeof mermaid === "undefined") {
+          document.querySelectorAll(".canvas").forEach((el) => {
+            el.innerHTML =
+              '<div class="error">Mermaid could not load from the CDN. Open docs/PROJECT_FLOWCHART.md instead — it renders on GitHub.</div>';
+          });
+          return;
+        }
+        mermaid.initialize({
+          startOnLoad: false,
+          theme: "dark",
+          securityLevel: "loose",
+          flowchart: { curve: "basis", nodeSpacing: 42, rankSpacing: 58, htmlLabels: true },
+          sequence: { useMaxWidth: false, actorFontSize: 13, noteFontSize: 12 },
+        });
+
+        for (const d of diagrams) {
+          const host = document.getElementById(d.id);
+          if (!host) continue;
+          try {
+            const { svg } = await mermaid.render(d.id + "-svg", d.src);
+            host.innerHTML = svg;
+          } catch (err) {
+            host.innerHTML = '<div class="error">Failed to render: ' + err.message + "</div>";
+          }
+        }
+        apply();
+      })();
+    </script>
+  </body>
+</html>

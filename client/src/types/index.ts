@@ -76,6 +76,15 @@ export interface AnalyticsData {
     avgReviewScore: number;
     activityScore: number;
   };
+  trend: {
+    days: string[];
+    operations: number[];
+    indexes: number[];
+    reviews: number[];
+    documents: number[];
+    practice: number[];
+  };
+  operationBreakdown: { type: string; count: number }[];
 }
 
 export type FileLanguage =

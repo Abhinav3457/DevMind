@@ -2,7 +2,7 @@ import mongoose, { Document, Schema } from 'mongoose';
 
 export interface INotification extends Document {
   userId: mongoose.Types.ObjectId;
-  type: 'review_complete' | 'index_complete' | 'system';
+  type: 'review_complete' | 'index_complete' | 'system' | 'practice_solved';
   title: string;
   message: string;
   data?: Record<string, unknown>;
@@ -17,7 +17,7 @@ const notificationSchema = new Schema<INotification>(
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     type: {
       type: String,
-      enum: ['review_complete', 'index_complete', 'system'],
+      enum: ['review_complete', 'index_complete', 'system', 'practice_solved'],
       required: true,
     },
     title: { type: String, required: true, maxlength: 200 },

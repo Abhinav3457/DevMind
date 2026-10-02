@@ -12,6 +12,7 @@ import analyticsRoutes from './analytics.routes';
 import healthRoutes from './health.routes';
 import aiHealthRoutes from './ai-health.routes';
 import uploadRoutes from './upload.routes';
+import practiceRoutes from './practice.routes';
 
 const router = Router();
 
@@ -28,5 +29,6 @@ router.use('/ai/code-review', codeReviewRoutes);
 router.use('/ai/doc-generator', docGeneratorRoutes);
 router.use('/ai/chat', chatRoutes);
 router.use('/analytics', analyticsRoutes);
+router.use('/practice', practiceRoutes);
 
 export default router;

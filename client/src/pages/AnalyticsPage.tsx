@@ -167,8 +167,8 @@ export function AnalyticsPage() {
   const docStatus = quality.documentationCoverage >= 70 ? 'healthy' : quality.documentationCoverage >= 40 ? 'warning' : 'critical';
 
   return (
-    <div className="min-h-screen">
-      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8">
+    <div className="mx-auto flex h-full min-h-0 w-full max-w-7xl flex-col">
+      <div className="min-h-0 flex-1 space-y-4 overflow-x-hidden overflow-y-auto pb-1 sm:space-y-6">
         {/* ── Header ────────────────────────────── */}
         <div className="mb-6 sm:mb-8">
           <PageHeader

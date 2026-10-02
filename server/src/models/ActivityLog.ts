@@ -4,7 +4,8 @@ export type ActivityType =
   | 'repo_imported'
   | 'repo_indexed'
   | 'review_completed'
-  | 'doc_generated';
+  | 'doc_generated'
+  | 'practice_solved';
 
 export interface IActivityLog extends Document {
   userId: mongoose.Types.ObjectId;
@@ -19,7 +20,7 @@ const activityLogSchema = new Schema<IActivityLog>(
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     type: {
       type: String,
-      enum: ['repo_imported', 'repo_indexed', 'review_completed', 'doc_generated'],
+      enum: ['repo_imported', 'repo_indexed', 'review_completed', 'doc_generated', 'practice_solved'],
       required: true,
     },
     description: { type: String, required: true, maxlength: 500 },
