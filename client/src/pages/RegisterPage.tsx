@@ -1,14 +1,16 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion } from 'framer-motion';
 import {
-  UserPlus, Mail, Lock, Eye, EyeOff, Loader2, Code2, User, AtSign,
+  ArrowRight, Mail, Lock, Eye, EyeOff, Loader2, Code2, User, AtSign,
   CheckCircle2, AlertTriangle, Check, ShieldCheck,
 } from 'lucide-react';
 import { register as registerUser } from '../services/auth';
+import { AuthCodeBackground, AuthVignette, CardGlow } from '../components/auth/AuthBackground';
+import { REGISTER_SNIPPETS } from '../components/auth/authSnippets';
 
 const registerSchema = z.object({
   name: z.string().min(1, 'Name is required').max(100, 'Name cannot exceed 100 characters'),
@@ -27,16 +29,6 @@ const registerSchema = z.object({
 
 type RegisterFormData = z.infer<typeof registerSchema>;
 
-/* ── Ambient animated orbs (shared auth-page styling) ── */
-function AmbientOrbs() {
-  return (
-    <div className="pointer-events-none fixed inset-0 overflow-hidden">
-      <div className="absolute -top-24 -right-24 h-80 w-80 rounded-full bg-primary-600/20 blur-3xl animate-float-slow" />
-      <div className="absolute -bottom-28 -left-24 h-80 w-80 rounded-full bg-purple-600/20 blur-3xl animate-float-slower" />
-    </div>
-  );
-}
-
 export function RegisterPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -46,6 +38,15 @@ export function RegisterPage() {
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [serverError, setServerError] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    setPrefersReducedMotion(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
+    mq.addEventListener?.('change', handler);
+    return () => mq.removeEventListener?.('change', handler);
+  }, []);
 
   const {
     register,
@@ -91,94 +92,138 @@ export function RegisterPage() {
     setCapsLock(e.getModifierState('CapsLock'));
   };
 
-  const inputClass = (hasError: boolean) =>
-    'w-full rounded-lg border bg-surface-800 py-2.5 pl-10 pr-4 text-sm text-surface-100 placeholder-surface-500 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ' +
-    (hasError ? 'border-red-500' : 'border-surface-600');
+  const inputClass = (hasError: boolean, paddingRight = 'pr-4') =>
+    `h-[38px] w-full rounded-[9px] border bg-[#1a1a26] pl-9 ${paddingRight} text-[14px] text-white placeholder-[#4f4f60] transition-all duration-200 focus:border-[#3b82f6] focus:outline-none focus:ring-[3px] focus:ring-[rgba(59,130,246,0.18)] ${
+      hasError ? 'border-red-500/60' : 'border-[#34344a] hover:border-[#44445c]'
+    }`;
 
   const iconClass = (field: string) =>
     'absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transition-colors duration-200 ' +
-    (focusedField === field ? 'text-blue-400' : 'text-surface-400');
+    (focusedField === field ? 'text-[#60a5fa]' : 'text-[#5a5a6a]');
+
+  const labelClass = (field: string) =>
+    `mb-1.5 block text-[13px] font-medium transition-colors duration-200 ${
+      focusedField === field ? 'text-[#60a5fa]' : 'text-[#8b8ba0]'
+    }`;
 
   if (isSuccess) {
     return (
-      <div className="relative flex min-h-screen min-h-dvh items-center justify-center overflow-hidden bg-surface-950 px-4">
-        <AmbientOrbs />
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="relative z-10 w-full max-w-md text-center"
-        >
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ type: 'spring', stiffness: 260, damping: 18 }}
-            className="mb-6 flex justify-center"
-          >
-            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500/20">
-              <Check className="h-10 w-10 text-emerald-400" strokeWidth={3} />
+      <div className="relative flex min-h-screen min-h-dvh items-center justify-center overflow-hidden bg-[#09090d] px-4 py-10">
+        <AuthCodeBackground prefersReducedMotion={prefersReducedMotion} snippets={REGISTER_SNIPPETS} />
+        <AuthVignette />
+        <div className="relative z-10 w-full max-w-[360px]">
+          <CardGlow prefersReducedMotion={prefersReducedMotion} />
+          <div className="mb-5 flex justify-center">
+            <div
+              className="flex h-10 w-10 items-center justify-center rounded-[11px] bg-gradient-to-br from-[#3b82f6] to-[#8b5cf6]"
+              style={{ boxShadow: '0 0 22px rgba(99,102,241,0.55)' }}
+            >
+              <Code2 className="h-5 w-5 text-white" aria-hidden="true" />
             </div>
-          </motion.div>
-          <h2 className="mb-2 text-2xl font-bold text-surface-100">Registration successful</h2>
-          <p className="mb-6 text-sm text-surface-400">
-            Please check your email to verify your account. Redirecting to sign in...
-          </p>
-          <Link
-            to="/auth/login"
-            state={location.state}
-            className="text-sm font-medium text-blue-400 hover:text-blue-300 transition-colors"
+          </div>
+          <motion.div
+            initial={prefersReducedMotion ? false : { opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            className="relative rounded-[14px] border border-[#34344a] bg-[rgba(20,20,28,0.88)] px-[22px] py-6 text-center shadow-[0_10px_40px_rgba(0,0,0,0.5)] backdrop-blur-[12px]"
           >
-            Go to Sign In
-          </Link>
-        </motion.div>
+            <span
+              className="absolute left-6 right-6 top-0 h-[1.5px]"
+              aria-hidden="true"
+              style={{
+                background: 'linear-gradient(to right, transparent, #60a5fa 35%, #a78bfa 65%, transparent)',
+              }}
+            />
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: 'spring', stiffness: 260, damping: 18 }}
+              className="mb-4 flex justify-center"
+            >
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/15 ring-1 ring-emerald-400/30">
+                <Check className="h-7 w-7 text-emerald-400" strokeWidth={3} />
+              </div>
+            </motion.div>
+            <h2 className="mb-2 text-xl font-semibold text-white">Registration successful</h2>
+            <p className="mb-5 text-[13px] leading-relaxed text-[#7d7d7d]">
+              Please check your email to verify your account. Redirecting to sign in...
+            </p>
+            <Link
+              to="/auth/login"
+              state={location.state}
+              className="text-[13px] font-medium text-[#60a5fa] transition-colors hover:text-[#93c5fd]"
+            >
+              Go to Sign In
+            </Link>
+          </motion.div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="relative flex min-h-screen min-h-dvh items-center justify-center overflow-hidden bg-surface-950 px-4 py-10">
-      <AmbientOrbs />
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="relative z-10 w-full max-w-md"
-      >
-        {/* Logo */}
-        <div className="mb-8 text-center">
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
-            className="mb-4 flex justify-center"
+    <div className="relative flex min-h-screen min-h-dvh items-center justify-center overflow-hidden bg-[#09090d] px-4 py-10">
+      {/* Background: auto-typing code (signup-flavored snippets) */}
+      <AuthCodeBackground prefersReducedMotion={prefersReducedMotion} snippets={REGISTER_SNIPPETS} />
+      {/* Vignette: dim behind the card, bright near the screen edges */}
+      <AuthVignette />
+
+      <div className="relative z-10 w-full max-w-[400px]">
+        {/* Soft glow behind the card */}
+        <CardGlow prefersReducedMotion={prefersReducedMotion} />
+
+        {/* Logo + tagline pill */}
+        <div className="relative mb-5 flex flex-col items-center">
+          <div
+            className="flex h-10 w-10 items-center justify-center rounded-[11px] bg-gradient-to-br from-[#3b82f6] to-[#8b5cf6]"
+            style={{ boxShadow: '0 0 22px rgba(99,102,241,0.55)' }}
           >
-            <motion.div
-              whileHover={{ scale: 1.08, rotate: -4 }}
-              transition={{ type: 'spring', stiffness: 300, damping: 18 }}
-              className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 shadow-lg shadow-black/25"
-            >
-              <Code2 className="h-8 w-8 text-white" />
-            </motion.div>
-          </motion.div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-surface-100">Create account</h1>
-          <p className="mt-1 sm:mt-2 text-xs sm:text-sm text-surface-400">Join DevMind AI and start building with confidence</p>
+            <Code2 className="h-5 w-5 text-white" aria-hidden="true" />
+          </div>
+          <span className="mt-4 hidden rounded-full border border-[#1f3a52] bg-[rgba(14,165,233,0.08)] px-3 py-1 text-[11px] tracking-[0.12em] text-[#7dd3fc] sm:block">
+            AI-POWERED CODE WORKSPACE
+          </span>
         </div>
 
-        {/* Register Form */}
+        {/* Register card */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={prefersReducedMotion ? false : { opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.15 }}
-          whileHover={{ y: -2 }}
-          className="rounded-xl sm:rounded-2xl border border-surface-700 bg-surface-900 p-5 sm:p-8 shadow-none"
+          transition={{ duration: 0.4 }}
+          className="relative rounded-[14px] border border-[#34344a] bg-[rgba(20,20,28,0.88)] px-[22px] py-6 shadow-[0_10px_40px_rgba(0,0,0,0.5)] backdrop-blur-[12px]"
         >
+          {/* Accent line along the top edge */}
+          <span
+            className="absolute left-6 right-6 top-0 h-[1.5px]"
+            aria-hidden="true"
+            style={{
+              background: 'linear-gradient(to right, transparent, #60a5fa 35%, #a78bfa 65%, transparent)',
+            }}
+          />
+
+          {/* Heading */}
+          <div className="mb-5">
+            <h2 className="text-2xl font-semibold leading-tight tracking-tight text-white">
+              Create your{' '}
+              <span className="bg-gradient-to-r from-[#60a5fa] to-[#c084fc] bg-clip-text text-transparent">
+                account
+              </span>
+            </h2>
+            <p className="mt-2 text-[13px] leading-relaxed text-[#7d7d7d]">
+              Join DevMind AI and start building with confidence
+            </p>
+          </div>
+
           {serverError && (
             <motion.div
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0, x: [0, -8, 8, -5, 5, 0] }}
               transition={{ duration: 0.45 }}
-              className="mb-6 flex items-start gap-2.5 rounded-lg bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-400"
+              className="mb-5 flex items-start gap-2.5 rounded-[9px] border border-red-500/25 bg-red-500/10 px-3.5 py-3 text-[13px] text-red-400"
+              role="alert"
+              aria-live="polite"
             >
-              <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+              <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden="true" />
               <span>{serverError}</span>
             </motion.div>
           )}
@@ -186,11 +231,11 @@ export function RegisterPage() {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
             {/* Name */}
             <div>
-              <label htmlFor="name" className="mb-1.5 block text-sm font-medium text-surface-200">
+              <label htmlFor="name" className={labelClass('name')}>
                 Full Name
               </label>
               <div className="relative">
-                <User className={iconClass('name')} />
+                <User className={iconClass('name')} aria-hidden="true" />
                 <input
                   id="name"
                   type="text"
@@ -207,11 +252,11 @@ export function RegisterPage() {
 
             {/* Username */}
             <div>
-              <label htmlFor="username" className="mb-1.5 block text-sm font-medium text-surface-200">
+              <label htmlFor="username" className={labelClass('username')}>
                 Username
               </label>
               <div className="relative">
-                <AtSign className={iconClass('username')} />
+                <AtSign className={iconClass('username')} aria-hidden="true" />
                 <input
                   id="username"
                   type="text"
@@ -230,11 +275,11 @@ export function RegisterPage() {
 
             {/* Email */}
             <div>
-              <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-surface-200">
+              <label htmlFor="email" className={labelClass('email')}>
                 Email Address
               </label>
               <div className="relative">
-                <Mail className={iconClass('email')} />
+                <Mail className={iconClass('email')} aria-hidden="true" />
                 <input
                   id="email"
                   type="email"
@@ -251,11 +296,11 @@ export function RegisterPage() {
 
             {/* Password */}
             <div>
-              <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-surface-200">
+              <label htmlFor="password" className={labelClass('password')}>
                 Password
               </label>
               <div className="relative">
-                <Lock className={iconClass('password')} />
+                <Lock className={iconClass('password')} aria-hidden="true" />
                 <input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
@@ -263,7 +308,7 @@ export function RegisterPage() {
                   placeholder="At least 8 characters"
                   onKeyUp={handleCapsLock}
                   onKeyDown={handleCapsLock}
-                  className={inputClass(!!errors.password) + ' pr-10'}
+                  className={inputClass(!!errors.password, 'pr-10')}
                   {...register('password')}
                   onFocus={() => setFocusedField('password')}
                   onBlur={() => setFocusedField(null)}
@@ -271,8 +316,10 @@ export function RegisterPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-surface-400 transition-colors hover:text-surface-200 hover:bg-surface-700/50"
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-[#5a5a6a] transition-colors hover:bg-white/5 hover:text-white focus:outline-none focus:ring-2 focus:ring-[#3b82f6]/30"
                   tabIndex={-1}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  aria-expanded={showPassword}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
@@ -287,7 +334,7 @@ export function RegisterPage() {
                         <div
                           key={i}
                           className={`h-1 flex-1 rounded-full transition-colors duration-300 ${
-                            i <= strength ? strengthColor : 'bg-surface-700'
+                            i <= strength ? strengthColor : 'bg-[#2a2a3a]'
                           }`}
                         />
                       ))}
@@ -300,7 +347,7 @@ export function RegisterPage() {
               )}
               {capsLock && focusedField === 'password' && (
                 <p className="mt-1.5 flex items-center gap-1 text-xs text-amber-400">
-                  <AlertTriangle className="h-3 w-3" />
+                  <AlertTriangle className="h-3 w-3" aria-hidden="true" />
                   Caps Lock is on
                 </p>
               )}
@@ -311,17 +358,17 @@ export function RegisterPage() {
 
             {/* Confirm Password */}
             <div>
-              <label htmlFor="confirmPassword" className="mb-1.5 block text-sm font-medium text-surface-200">
+              <label htmlFor="confirmPassword" className={labelClass('confirm')}>
                 Confirm Password
               </label>
               <div className="relative">
-                <Lock className={iconClass('confirm')} />
+                <Lock className={iconClass('confirm')} aria-hidden="true" />
                 <input
                   id="confirmPassword"
                   type={showConfirm ? 'text' : 'password'}
                   autoComplete="new-password"
                   placeholder="Re-enter your password"
-                  className={inputClass(!!errors.confirmPassword) + ' pr-10'}
+                  className={inputClass(!!errors.confirmPassword, 'pr-10')}
                   {...register('confirmPassword')}
                   onFocus={() => setFocusedField('confirm')}
                   onBlur={() => setFocusedField(null)}
@@ -329,15 +376,17 @@ export function RegisterPage() {
                 <button
                   type="button"
                   onClick={() => setShowConfirm(!showConfirm)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-surface-400 transition-colors hover:text-surface-200 hover:bg-surface-700/50"
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-[#5a5a6a] transition-colors hover:bg-white/5 hover:text-white focus:outline-none focus:ring-2 focus:ring-[#3b82f6]/30"
                   tabIndex={-1}
+                  aria-label={showConfirm ? 'Hide password' : 'Show password'}
+                  aria-expanded={showConfirm}
                 >
                   {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
               {confirmPassword && !errors.confirmPassword && (
                 <p className="mt-1 flex items-center gap-1 text-xs text-emerald-400">
-                  <CheckCircle2 className="h-3 w-3" />
+                  <CheckCircle2 className="h-3 w-3" aria-hidden="true" />
                   Passwords match
                 </p>
               )}
@@ -350,53 +399,43 @@ export function RegisterPage() {
             <motion.button
               type="submit"
               disabled={isSubmitting}
-              whileTap={{ scale: 0.97 }}
-              className="group relative mt-2 flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 py-3 text-sm font-semibold text-white shadow-lg shadow-black/25 transition-all duration-300 hover:from-blue-500 hover:to-purple-500 disabled:cursor-not-allowed disabled:opacity-70"
+              whileTap={{ scale: 0.985 }}
+              whileHover={{ y: -1 }}
+              className="mt-1 flex h-10 w-full items-center justify-center gap-2 rounded-[9px] bg-gradient-to-r from-[#3b82f6] to-[#8b5cf6] text-sm font-semibold tracking-tight text-white shadow-[0_6px_20px_rgba(99,102,241,0.4)] transition-[filter] duration-200 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:brightness-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#60a5fa] focus-visible:ring-offset-2 focus-visible:ring-offset-[#14141c]"
             >
               {isSubmitting ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <span className="flex items-center justify-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                  Creating account...
+                </span>
               ) : (
-                <UserPlus className="h-4 w-4" />
+                <span className="flex items-center justify-center gap-2">
+                  Create account
+                  <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                </span>
               )}
-              {isSubmitting ? 'Creating account...' : 'Create Account'}
             </motion.button>
           </form>
 
           {/* Security note */}
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.4 }}
-            className="mt-4 flex items-center justify-center gap-1.5 text-[11px] text-surface-500"
-          >
-            <ShieldCheck className="h-3.5 w-3.5 text-emerald-500/80" />
-            Your data is protected with hashed passwords & JWT auth
-          </motion.p>
+          <p className="mt-4 flex items-center justify-center gap-1.5 font-mono text-[10px] tracking-[0.04em] text-[#4a5163]">
+            <ShieldCheck className="h-3.5 w-3.5 text-emerald-500/70" aria-hidden="true" />
+            hashed passwords &amp; jwt auth
+          </p>
 
-          {/* Login Link */}
-          <div className="relative mt-5">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-surface-700/70" />
-            </div>
-            <div className="relative flex justify-center">
-              <span className="bg-surface-800 px-3 text-[11px] uppercase tracking-wider text-surface-500">
-                Already have an account?
-              </span>
-            </div>
-          </div>
-          <p className="mt-4 text-center text-sm text-surface-400">
+          {/* Login link */}
+          <p className="mt-4 border-t border-[#26263a] pt-4 text-center text-[13px] text-[#7d7d7d]">
+            Already have an account?{' '}
             <Link
               to="/auth/login"
-              className="group/link font-medium text-blue-400 hover:text-blue-300 transition-colors"
+              state={location.state}
+              className="font-medium text-[#60a5fa] transition-colors hover:text-[#93c5fd]"
             >
-              <span className="relative">
-                Sign in
-                <span className="absolute -bottom-0.5 left-0 h-px w-0 bg-blue-400 transition-all duration-300 group-hover/link:w-full" />
-              </span>
+              Sign in
             </Link>
           </p>
         </motion.div>
-      </motion.div>
+      </div>
     </div>
   );
 }
