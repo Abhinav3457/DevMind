@@ -205,7 +205,7 @@ export function AnalyticsPage() {
         <motion.div variants={containerVariants} initial="hidden" animate="visible">
           {/* ── Overview Stats ────────────────────── */}
           <motion.div variants={itemVariants} className="mb-6 sm:mb-8">
-            <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-5">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-5">
               <StatCard title="Repositories" value={overview.repositories} icon={GitBranch} color="green" delay={0.1} />
               <StatCard title="Indexed Repos" value={overview.indexedRepos} icon={Database} color="purple" delay={0.2} />
               <StatCard title="Total Files" value={overview.totalFiles} icon={FileCode} color="cyan" delay={0.25} />
@@ -217,25 +217,27 @@ export function AnalyticsPage() {
           {/* ── Charts Row: Language · Health · Quality ──── */}
           <div className="mb-6 grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-3 sm:mb-8">
             {/* Language Distribution */}
-            <motion.div variants={itemVariants} className="rounded-2xl border border-surface-800 bg-surface-900 p-4 sm:p-6">
+            <motion.div variants={itemVariants} className="rounded-2xl border border-surface-800 bg-surface-900 p-4 sm:p-6 min-h-[320px] sm:min-h-[360px]">
               <div className="mb-4 flex items-center gap-2 sm:mb-5">
                 <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-cyan-500/10"><Code2 className="h-4 w-4 text-cyan-400" /></div>
                 <h2 className="text-sm font-semibold text-surface-200">Language Distribution</h2>
               </div>
-              <div className="h-64 sm:h-72"><LanguageChart languages={languages} /></div>
+              <div className="h-full min-h-[240px] sm:min-h-[280px]"><LanguageChart languages={languages} /></div>
             </motion.div>
 
             {/* Repository Health */}
-            <motion.div variants={itemVariants} className="rounded-2xl border border-surface-800 bg-surface-900 p-4 sm:p-6">
+            <motion.div variants={itemVariants} className="rounded-2xl border border-surface-800 bg-surface-900 p-4 sm:p-6 min-h-[320px] sm:min-h-[360px]">
               <div className="mb-4 flex items-center gap-2 sm:mb-5">
                 <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-emerald-500/10"><Activity className="h-4 w-4 text-emerald-400" /></div>
                 <h2 className="text-sm font-semibold text-surface-200">Repository Health</h2>
               </div>
-              <HealthScore score={repositoryHealth.score} level={repositoryHealth.level} metrics={repositoryHealth.metrics} />
+              <div className="h-full min-h-[240px] sm:min-h-[280px] flex items-center justify-center">
+                <HealthScore score={repositoryHealth.score} level={repositoryHealth.level} metrics={repositoryHealth.metrics} />
+              </div>
             </motion.div>
 
             {/* Code Quality */}
-            <motion.div variants={itemVariants} className="rounded-2xl border border-surface-800 bg-surface-900 p-4 sm:p-6">
+            <motion.div variants={itemVariants} className="rounded-2xl border border-surface-800 bg-surface-900 p-4 sm:p-6 min-h-[320px] sm:min-h-[360px]">
               <div className="mb-4 flex items-center gap-2 sm:mb-5">
                 <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-purple-500/10"><Star className="h-4 w-4 text-purple-400" /></div>
                 <div className="min-w-0">
@@ -268,7 +270,7 @@ export function AnalyticsPage() {
           {/* ── Bottom Row ──── */}
           <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
             {/* Lines of Code */}
-            <motion.div variants={itemVariants} className="rounded-2xl border border-surface-800 bg-surface-900 p-4 sm:p-6">
+            <motion.div variants={itemVariants} className="rounded-2xl border border-surface-800 bg-surface-900 p-4 sm:p-6 min-h-[320px] sm:min-h-[380px]">
               <div className="mb-4 flex items-center gap-2 sm:mb-5">
                 <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-blue-500/10"><FileCode className="h-4 w-4 text-blue-400" /></div>
                 <h2 className="text-sm font-semibold text-surface-200">Lines of Code by Language</h2>
@@ -278,14 +280,14 @@ export function AnalyticsPage() {
                 <p className="mt-1 text-xs text-surface-400">Estimated lines of code across all indexed repositories</p>
               </div>
               {locBarData.length > 0 && (
-                <div>
-                  <InteractiveBarChart data={locBarData} height={180} />
+                <div className="h-[200px] sm:h-[240px]">
+                  <InteractiveBarChart data={locBarData} height={200} />
                 </div>
               )}
             </motion.div>
 
             {/* Activity Summary */}
-            <motion.div variants={itemVariants} className="rounded-2xl border border-surface-800 bg-surface-900 p-4 sm:p-6">
+            <motion.div variants={itemVariants} className="rounded-2xl border border-surface-800 bg-surface-900 p-4 sm:p-6 min-h-[320px] sm:min-h-[380px]">
               <div className="mb-4 flex items-center gap-2 sm:mb-5">
                 <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-amber-500/10"><TrendingUp className="h-4 w-4 text-amber-400" /></div>
                 <h2 className="text-sm font-semibold text-surface-200">Activity Summary</h2>

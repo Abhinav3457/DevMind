@@ -451,10 +451,10 @@ export function PracticePage() {
               </div>
             </section>
 
-            {/* Editor + result */}
+{/* Editor + result */}
             <section className="flex min-h-0 flex-1 flex-col gap-3">
-              <div className="flex h-[380px] min-h-0 flex-col overflow-hidden rounded-2xl border border-surface-700/60 bg-surface-900/30 lg:h-auto lg:flex-1">
-                <div className="flex shrink-0 items-center justify-between gap-2 border-b border-surface-700/60 px-3 py-2">
+              <div className="flex min-h-[320px] sm:min-h-[380px] lg:min-h-[420px] max-h-[60vh] sm:max-h-[70vh] lg:max-h-[80vh] flex-col overflow-hidden rounded-2xl border border-surface-700/60 bg-surface-900/30">
+                <div className="flex shrink-0 items-center justify-between gap-2 border-b border-surface-700/60 px-3 py-2 flex-wrap">
                   <div className="flex flex-wrap items-center gap-1 overflow-x-auto">
                     {languages.map((l) => (
                       <button
@@ -469,7 +469,7 @@ export function PracticePage() {
                       </button>
                     ))}
                   </div>
-                  <div className="flex shrink-0 items-center gap-1.5">
+                  <div className="flex shrink-0 items-center gap-1.5 flex-wrap">
                     <button
                       onClick={resetCode}
                       className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-surface-400 hover:bg-surface-800 hover:text-surface-200"
@@ -483,7 +483,7 @@ export function PracticePage() {
                       title="Copy your code and open the problem on LeetCode"
                     >
                       {copied ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
-                      Copy &amp; open
+                      <span className="hidden sm:inline">Copy & open</span>
                     </button>
                     <button
                       onClick={() => void handleSubmit()}
@@ -491,7 +491,7 @@ export function PracticePage() {
                       className="flex items-center gap-1.5 rounded-md bg-primary-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-primary-500 disabled:opacity-60"
                     >
                       {submitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
-                      {submitting ? 'Judging…' : 'Submit'}
+                      <span className="hidden sm:inline">{submitting ? 'Judging…' : 'Submit'}</span>
                     </button>
                   </div>
                 </div>
@@ -516,7 +516,7 @@ export function PracticePage() {
 
               <AnimatePresence>
                 {result && (
-                  <div className="max-h-[50dvh] shrink-0 overflow-y-auto lg:max-h-[42%]">
+                  <div className="max-h-[50vh] shrink-0 overflow-y-auto">
                     <ResultPanel result={result} />
                   </div>
                 )}

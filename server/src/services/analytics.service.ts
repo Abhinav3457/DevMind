@@ -4,6 +4,7 @@ import ActivityLog from '../models/ActivityLog';
 import IndexReport from '../models/IndexReport';
 import IndexedFile from '../models/IndexedFile';
 import IndexedChunk from '../models/IndexedChunk';
+import PracticeSubmission from '../models/PracticeSubmission';
 import logger from '../utils/logger';
 
 export interface AnalyticsData {
@@ -55,6 +56,84 @@ export interface AnalyticsData {
     practice: number[];
   };
   operationBreakdown: { type: string; count: number }[];
+}
+
+export type ChartGranularity = 'daily' | 'weekly' | 'monthly';
+
+export interface ProblemsSolvedPoint {
+  label: string;
+  date: string;
+  total: number;
+  easy: number;
+  medium: number;
+  hard: number;
+}
+
+export interface ProblemsSolvedData {
+  granularity: ChartGranularity;
+  total: number;
+  thisWeek: number;
+  byDifficulty: { easy: number; medium: number; hard: number };
+  points: ProblemsSolvedPoint[];
+}
+
+export interface RepoIndexedPoint {
+  label: string;
+  date: string;
+  count: number;
+  cumulative: number;
+}
+
+export interface ReposIndexedData {
+  total: number;
+  latest: { name: string; fullName: string; indexedAt: string } | null;
+  points: RepoIndexedPoint[];
+}
+
+const MONTH_ABBR = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/** UTC start of the day containing `d`. */
+function startOfUtcDay(d: Date): Date {
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+}
+
+/** UTC start of the ISO week (Monday) containing `d`. */
+function startOfUtcWeek(d: Date): Date {
+  const day = startOfUtcDay(d);
+  const mondayOffset = (day.getUTCDay() + 6) % 7;
+  day.setUTCDate(day.getUTCDate() - mondayOffset);
+  return day;
+}
+
+/** UTC start of the month containing `d`. */
+function startOfUtcMonth(d: Date): Date {
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1));
+}
+
+function periodStart(d: Date, granularity: ChartGranularity): Date {
+  if (granularity === 'daily') return startOfUtcDay(d);
+  if (granularity === 'weekly') return startOfUtcWeek(d);
+  return startOfUtcMonth(d);
+}
+
+/** Move a bucket start `delta` periods forward (or backward when negative). */
+function shiftPeriod(d: Date, granularity: ChartGranularity, delta: number): Date {
+  const next = new Date(d.getTime());
+  if (granularity === 'daily') next.setUTCDate(next.getUTCDate() + delta);
+  else if (granularity === 'weekly') next.setUTCDate(next.getUTCDate() + delta * 7);
+  else next.setUTCMonth(next.getUTCMonth() + delta);
+  return next;
+}
+
+function bucketLabel(d: Date, granularity: ChartGranularity): string {
+  if (granularity === 'monthly') {
+    return MONTH_ABBR[d.getUTCMonth()] + " '" + String(d.getUTCFullYear()).slice(2);
+  }
+  return String(d.getUTCMonth() + 1).padStart(2, '0') + '/' + String(d.getUTCDate()).padStart(2, '0');
+}
+
+function isoDay(d: Date): string {
+  return d.toISOString().slice(0, 10);
 }
 
 const LANGUAGE_COLORS: Record<string, string> = {
@@ -290,6 +369,150 @@ export class AnalyticsService {
         practice: seriesFor('practice_solved'),
       },
       operationBreakdown,
+    };
+  }
+
+  /**
+   * Problems solved over time. A problem counts once — on the day of its
+   * first accepted submission — so totals match the "solved" badge on the
+   * dashboard. Supports daily / weekly / monthly buckets and a difficulty split.
+   */
+  async getProblemsSolved(
+    userId: string,
+    granularity: ChartGranularity = 'daily',
+  ): Promise<ProblemsSolvedData> {
+    const now = new Date();
+    const windowSize = granularity === 'daily' ? 14 : 12;
+    const currentStart = periodStart(now, granularity);
+
+    const bucketStarts: Date[] = [];
+    for (let i = windowSize - 1; i >= 0; i--) {
+      bucketStarts.push(shiftPeriod(currentStart, granularity, -i));
+    }
+
+    const accepted = await PracticeSubmission.find({ userId, status: 'accepted' })
+      .select('problemSlug difficulty createdAt')
+      .sort({ createdAt: 1 })
+      .lean();
+
+    // Collapse to one entry per problem, keeping the earliest acceptance date.
+    const solved = new Map<string, { difficulty: string; solvedAt: Date }>();
+    for (const submission of accepted) {
+      if (!submission.problemSlug || solved.has(submission.problemSlug)) continue;
+      solved.set(submission.problemSlug, {
+        difficulty: submission.difficulty,
+        solvedAt: submission.createdAt,
+      });
+    }
+
+    const byDifficulty = { easy: 0, medium: 0, hard: 0 };
+    for (const entry of solved.values()) {
+      if (entry.difficulty === 'easy' || entry.difficulty === 'medium' || entry.difficulty === 'hard') {
+        byDifficulty[entry.difficulty] += 1;
+      }
+    }
+
+    const weekStart = startOfUtcWeek(now);
+    let thisWeek = 0;
+
+    const points = bucketStarts.map<ProblemsSolvedPoint>((start) => ({
+      label: bucketLabel(start, granularity),
+      date: isoDay(start),
+      total: 0,
+      easy: 0,
+      medium: 0,
+      hard: 0,
+    }));
+    const byDate = new Map(points.map((p) => [p.date, p]));
+
+    for (const entry of solved.values()) {
+      if (entry.solvedAt >= weekStart) thisWeek += 1;
+      const bucket = byDate.get(isoDay(periodStart(entry.solvedAt, granularity)));
+      if (!bucket) continue; // solved before the visible window
+      bucket.total += 1;
+      if (entry.difficulty === 'easy' || entry.difficulty === 'medium' || entry.difficulty === 'hard') {
+        bucket[entry.difficulty] += 1;
+      }
+    }
+
+    return {
+      granularity,
+      total: solved.size,
+      thisWeek,
+      byDifficulty,
+      points,
+    };
+  }
+
+  /**
+   * Repositories indexed over time, built from completed IndexReports.
+   * Returns per-bucket counts plus a running cumulative, and the most
+   * recently indexed repository for the summary line.
+   */
+  async getReposIndexed(userId: string): Promise<ReposIndexedData> {
+    const reports = await IndexReport.find({ userId, status: 'completed' })
+      .select('repositoryId completedAt createdAt')
+      .sort({ completedAt: 1, createdAt: 1 })
+      .lean();
+
+    const events = reports
+      .map((report) => ({
+        repositoryId: report.repositoryId as mongoose.Types.ObjectId,
+        indexedAt: (report.completedAt || report.createdAt) as Date,
+      }))
+      .filter((event) => event.indexedAt instanceof Date && !Number.isNaN(event.indexedAt.getTime()));
+
+    if (events.length === 0) {
+      return { total: 0, latest: null, points: [] };
+    }
+
+    // Pick the smallest sensible bucket size for the time span on screen.
+    const now = new Date();
+    const spanDays = (now.getTime() - events[0].indexedAt.getTime()) / 86_400_000;
+    const granularity: ChartGranularity = spanDays <= 21 ? 'daily' : spanDays <= 120 ? 'weekly' : 'monthly';
+
+    const firstStart = periodStart(events[0].indexedAt, granularity);
+    const lastStart = periodStart(now, granularity);
+    const allStarts: Date[] = [];
+    let cursor = firstStart;
+    let guard = 0;
+    while (cursor.getTime() <= lastStart.getTime() && guard < 120) {
+      allStarts.push(cursor);
+      cursor = shiftPeriod(cursor, granularity, 1);
+      guard += 1;
+    }
+    if (allStarts.length === 0) allStarts.push(lastStart);
+
+    // Keep the chart readable for very old accounts; cumulative stays accurate
+    // because we seed it with the events that fall before the visible window.
+    const visibleStarts = allStarts.length > 24 ? allStarts.slice(allStarts.length - 24) : allStarts;
+    const windowStart = visibleStarts[0];
+
+    const counts = new Map<string, number>();
+    for (const event of events) {
+      const key = isoDay(periodStart(event.indexedAt, granularity));
+      counts.set(key, (counts.get(key) || 0) + 1);
+    }
+
+    let cumulative = events.filter((event) => periodStart(event.indexedAt, granularity) < windowStart).length;
+    const points = visibleStarts.map<RepoIndexedPoint>((start) => {
+      const date = isoDay(start);
+      const count = counts.get(date) || 0;
+      cumulative += count;
+      return { label: bucketLabel(start, granularity), date, count, cumulative };
+    });
+
+    const latestEvent = events[events.length - 1];
+    const latestRepo = await ImportedRepository.findOne({ _id: latestEvent.repositoryId, userId })
+      .select('name fullName')
+      .lean();
+
+    return {
+      total: events.length,
+      latest: latestRepo
+        ? { name: latestRepo.name, fullName: latestRepo.fullName, indexedAt: latestEvent.indexedAt.toISOString() }
+        : null,
+      points,
     };
   }
 }

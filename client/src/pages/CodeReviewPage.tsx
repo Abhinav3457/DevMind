@@ -178,7 +178,6 @@ export function CodeReviewPage() {
   const [review, setReview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [score, setScore] = useState<number | null>(null);
-  const [editorReady, setEditorReady] = useState(false);
   const navigate = useNavigate();
 
   // Repo review state
@@ -491,6 +490,7 @@ export function CodeReviewPage() {
             </>
           ) : (
             <>
+              <div className="flex min-h-0 flex-1 flex-col gap-3">
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-sm font-medium text-surface-200 flex items-center gap-2">
@@ -504,13 +504,17 @@ export function CodeReviewPage() {
                     </span>
                   )}
                 </div>
-                <div className={`overflow-hidden rounded-xl border transition-all duration-200 ${editorReady ? 'border-surface-600' : 'border-surface-700'} ${!code.trim() ? 'opacity-80' : ''}`}>
+                {/* Definite height (not min-h) is required: the Monaco editor is
+                    sized with `height="100%"`, and a percentage height only
+                    resolves against a parent that has a definite height. With
+                    only min-height the editor collapsed to zero height and the
+                    code area was not typeable. */}
+                <div className="h-[300px] min-h-[240px] sm:h-[340px] lg:h-[380px] max-h-[60vh] shrink-0 overflow-hidden rounded-xl border border-surface-700 bg-surface-900/30">
                   <Editor
-                    height="280px"
+                    height="100%"
                     language={toMonacoLanguage(detectedLang)}
                     value={code}
                     onChange={handleCodeChange}
-                    onMount={() => setEditorReady(true)}
                     theme="vs-dark"
                     options={{
                       minimap: { enabled: false },
@@ -530,6 +534,7 @@ export function CodeReviewPage() {
                       wordWrap: 'on',
                     }}
                   />
+                </div>
                 </div>
                 {!code.trim() && (
                   <p className="mt-1.5 text-[10px] text-surface-500">Start typing or paste code — the language is detected automatically</p>
@@ -554,10 +559,10 @@ export function CodeReviewPage() {
           )}
         </div>
 
-        <div className="w-full lg:w-1/2">
-          <div className="flex items-center justify-between mb-3">
+<div className="flex min-h-0 flex-1 lg:w-1/2 flex-col">
+          <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
             <label className="text-sm font-medium text-surface-200">Review Results</label>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               {code.trim() && detectedLang && (
                 <span className="rounded-full bg-surface-800 px-2 py-0.5 text-[10px] text-surface-400">
                   {code.length} chars
@@ -582,7 +587,7 @@ export function CodeReviewPage() {
               )}
             </div>
           </div>
-          <div className="h-[350px] sm:h-[400px] lg:h-[450px] overflow-y-auto rounded-xl border border-surface-700 bg-surface-900 p-3 sm:p-4">
+          <div className="min-h-[300px] sm:min-h-[350px] lg:min-h-[400px] max-h-[70vh] overflow-y-auto rounded-xl border border-surface-700 bg-surface-900 p-3 sm:p-4">
             {review ? (
               <div className="max-w-none">
                 <MarkdownRenderer content={review} />

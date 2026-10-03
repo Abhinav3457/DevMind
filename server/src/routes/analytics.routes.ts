@@ -8,5 +8,7 @@ const router = Router();
 router.use(authenticate);
 
 router.get('/', asyncHandler(analyticsController.getAnalytics));
+router.get('/problems', asyncHandler(analyticsController.getProblemsSolved));
+router.get('/repos', asyncHandler(analyticsController.getReposIndexed));
 
 export default router;

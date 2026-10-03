@@ -403,7 +403,7 @@ export function AiChatPage() {
         )}
       </AnimatePresence>
 
-      <div className="flex flex-1 gap-3 sm:gap-4 min-h-0">
+      <div className="flex flex-1 gap-2 sm:gap-3 lg:gap-4 min-h-0">
         {/* Sidebar */}
         <AnimatePresence>
           {showSidebar && (
@@ -415,7 +415,7 @@ export function AiChatPage() {
               exit="closed"
               className="flex-shrink-0 overflow-hidden lg:relative lg:z-auto fixed left-0 top-0 z-50 h-full pt-14 lg:pt-0"
             >
-              <div className="flex h-full w-[240px] max-w-[85vw] flex-col rounded-none lg:rounded-xl border-0 lg:border border-surface-700 bg-surface-900">
+              <div className="flex h-full w-full sm:w-[260px] lg:w-[280px] max-w-[90vw] flex-col rounded-none lg:rounded-xl border-0 lg:border border-surface-700 bg-surface-900">
                 {/* Sidebar Header */}
                 <div className="flex items-center justify-between border-b border-surface-700/50 p-2.5 sm:p-3">
                   <motion.h2
@@ -569,7 +569,7 @@ export function AiChatPage() {
                   value={repoContextId}
                   onChange={(e) => setRepoContextId(e.target.value)}
                   title="Attach repository context to your answers"
-                  className="rounded-lg border border-surface-700 bg-surface-800 px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs text-surface-300 focus:border-primary-500/50 focus:outline-none max-w-[110px] sm:max-w-[170px] truncate"
+                  className="rounded-lg border border-surface-700 bg-surface-800 px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs text-surface-300 focus:border-primary-500/50 focus:outline-none w-full sm:max-w-[170px] truncate"
                 >
                   <option value="">No repo context</option>
                   {reports.map((r) => <option key={r.id} value={r.id}>{r.repoName}</option>)}
@@ -578,7 +578,7 @@ export function AiChatPage() {
 
               {mode === 'repo' && reports.length > 0 && (
                 <select value={selectedReportId} onChange={(e) => setSelectedReportId(e.target.value)}
-                  className="rounded-lg border border-surface-700 bg-surface-800 px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs text-surface-300 focus:border-primary-500/50 focus:outline-none max-w-[120px] sm:max-w-[180px] truncate"
+                  className="rounded-lg border border-surface-700 bg-surface-800 px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs text-surface-300 focus:border-primary-500/50 focus:outline-none w-full sm:max-w-[180px] truncate"
                 >
                   {reports.map((r) => <option key={r.id} value={r.id} className="truncate">{r.repoName} ({r.fileCount}f)</option>)}
                 </select>
@@ -592,10 +592,10 @@ export function AiChatPage() {
 
             {messages.length <= 1 && !loading && (
               <div className="mb-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1.5">
                   {suggestions.map((s) => (
                     <button key={s} onClick={() => setInput(s)}
-                      className="rounded-lg bg-surface-800/30 px-3 py-2 text-left text-xs text-surface-400 transition-colors hover:bg-surface-800 hover:text-surface-200 truncate"
+                      className="rounded-lg bg-surface-800/30 px-3 py-2 text-left text-xs sm:text-sm text-surface-400 transition-colors hover:bg-surface-800 hover:text-surface-200 truncate"
                     >{s}</button>
                   ))}
                 </div>
@@ -618,7 +618,7 @@ export function AiChatPage() {
                       </div>
                     )}
                     <div
-                      className={'max-w-[85%] sm:max-w-[75%] lg:max-w-[70%] px-3 sm:px-4 py-2 sm:py-3 ' +
+                      className={'max-w-[90%] sm:max-w-[85%] lg:max-w-[75%] px-3 sm:px-4 py-2 sm:py-3 ' +
                         (msg.role === 'user' ? 'rounded-2xl rounded-br-md bg-blue-600 text-white' : 'rounded-2xl rounded-bl-md bg-surface-800 text-surface-200')}
                     >
                       {msg.role === 'assistant' ? (
