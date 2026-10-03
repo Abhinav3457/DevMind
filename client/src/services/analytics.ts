@@ -39,6 +39,8 @@ export interface ReposIndexedData {
   points: RepoIndexedPoint[];
 }
 
+export type ReposGranularity = 'daily' | 'weekly' | 'monthly';
+
 export async function fetchProblemsSolved(
   granularity: ProblemsGranularity = 'daily',
 ): Promise<ProblemsSolvedData> {
@@ -46,7 +48,9 @@ export async function fetchProblemsSolved(
   return response.data.data;
 }
 
-export async function fetchReposIndexed(): Promise<ReposIndexedData> {
-  const response = await apiClient.get('/analytics/repos');
+export async function fetchReposIndexed(
+  granularity: ReposGranularity = 'daily',
+): Promise<ReposIndexedData> {
+  const response = await apiClient.get('/analytics/repos', { params: { granularity } });
   return response.data.data;
 }

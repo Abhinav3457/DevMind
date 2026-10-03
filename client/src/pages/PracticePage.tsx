@@ -1,9 +1,11 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Loader2, Play, CheckCircle2, XCircle, AlertCircle, Clock,
-  Lightbulb, ChevronDown, Sparkles, Search, RotateCcw, Copy, ExternalLink, Flame, X, List,
+  Lightbulb, ChevronDown, ChevronLeft, ChevronRight, Sparkles, Search, RotateCcw, Copy, ExternalLink, Flame, X, List,
+  Maximize2, Minimize2, Gauge, Cpu, Code2,
 } from 'lucide-react';
+import { createPortal } from 'react-dom';
 import Editor from '@monaco-editor/react';
 import toast from 'react-hot-toast';
 import { MarkdownRenderer } from '../components/ui/MarkdownRenderer';
@@ -48,6 +50,13 @@ const SEVERITY_CLASSES: Record<JudgeIssue['severity'], string> = {
   minor: 'border-surface-600/40 bg-surface-800/40',
 };
 
+const STATUS_ACCENT: Record<SubmissionResult['status'], { bg: string; bar: string; border: string }> = {
+  accepted: { bg: 'bg-emerald-500/10', bar: 'bg-emerald-500', border: 'border-emerald-500/30' },
+  wrong_answer: { bg: 'bg-red-500/10', bar: 'bg-red-500', border: 'border-red-500/30' },
+  needs_review: { bg: 'bg-amber-500/10', bar: 'bg-amber-500', border: 'border-amber-500/30' },
+  error: { bg: 'bg-red-500/10', bar: 'bg-red-500', border: 'border-red-500/30' },
+};
+
 function pickDefaultLanguage(question: LeetCodeQuestion): string {
   const langs = question.codeSnippets.map((s) => s.langSlug);
   for (const preferred of ['python3', 'python', 'javascript', 'typescript']) {
@@ -78,6 +87,9 @@ export function PracticePage() {
   const [showHints, setShowHints] = useState(false);
   const [copied, setCopied] = useState(false);
   const [solved, setSolved] = useState<Set<string>>(new Set());
+  const [editorExpanded, setEditorExpanded] = useState(false);
+  const langBarRef = useRef<HTMLDivElement>(null);
+  const [langScroll, setLangScroll] = useState({ left: false, right: false });
 
   // LeetCode profile
   const [username, setUsername] = useState(() => localStorage.getItem('leetcodeUsername') || '');
@@ -274,6 +286,151 @@ export function PracticePage() {
     </div>
   );
 
+  // Close the fullscreen editor with Escape and lock background scroll while open.
+  useEffect(() => {
+    if (!editorExpanded) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setEditorExpanded(false); };
+    window.addEventListener('keydown', onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [editorExpanded]);
+
+  const updateLangScroll = useCallback(() => {
+    const el = langBarRef.current;
+    if (!el) return;
+    setLangScroll({
+      left: el.scrollLeft > 2,
+      right: el.scrollLeft + el.clientWidth < el.scrollWidth - 2,
+    });
+  }, []);
+
+  // Keep the slidebar arrows in sync and bring the active language into view.
+  useEffect(() => {
+    updateLangScroll();
+    langBarRef.current
+      ?.querySelector<HTMLElement>('[data-active="true"]')
+      ?.scrollIntoView({ inline: 'nearest', block: 'nearest', behavior: 'smooth' });
+  }, [language, editorExpanded, languages.length, updateLangScroll]);
+
+  useEffect(() => {
+    window.addEventListener('resize', updateLangScroll);
+    return () => window.removeEventListener('resize', updateLangScroll);
+  }, [updateLangScroll]);
+
+  const scrollLangBar = (dir: number) => {
+    const el = langBarRef.current;
+    if (!el) return;
+    el.scrollBy({ left: dir * Math.max(120, el.clientWidth * 0.6), behavior: 'smooth' });
+  };
+
+  /* ── The editor card, reused inline and inside the fullscreen overlay ── */
+  const renderEditorCard = (expanded: boolean) => (
+    <div
+      className={
+        'flex flex-col overflow-hidden rounded-2xl border border-surface-700/60 bg-surface-900/30 ' +
+        (expanded
+          ? 'h-full w-full shadow-2xl shadow-black/50'
+          : 'min-h-[320px] sm:min-h-[380px] lg:min-h-[420px] max-h-[60vh] sm:max-h-[70vh] lg:max-h-[80vh]')
+      }
+    >
+      <div className="flex shrink-0 items-center justify-between gap-2 border-b border-surface-700/60 px-3 py-2 flex-wrap">
+        <div className="flex min-w-0 flex-1 items-center gap-1">
+          <button
+            type="button"
+            onClick={() => scrollLangBar(-1)}
+            disabled={!langScroll.left}
+            className="flex-shrink-0 rounded-md p-1 text-surface-400 transition-colors hover:bg-surface-800 hover:text-surface-200 disabled:opacity-25"
+            aria-label="Scroll languages left"
+          >
+            <ChevronLeft className="h-3.5 w-3.5" />
+          </button>
+          <div
+            ref={langBarRef}
+            onScroll={updateLangScroll}
+            className="flex flex-nowrap items-center gap-1 overflow-x-auto scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          >
+            {languages.map((l) => (
+              <button
+                key={l.slug}
+                data-active={language === l.slug ? 'true' : undefined}
+                onClick={() => changeLanguage(l.slug)}
+                className={
+                  'whitespace-nowrap rounded-md px-2 py-1 text-[11px] font-medium transition-colors ' +
+                  (language === l.slug ? 'bg-primary-500/15 text-primary-300' : 'text-surface-400 hover:bg-surface-800 hover:text-surface-200')
+                }
+              >
+                {l.label}
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() => scrollLangBar(1)}
+            disabled={!langScroll.right}
+            className="flex-shrink-0 rounded-md p-1 text-surface-400 transition-colors hover:bg-surface-800 hover:text-surface-200 disabled:opacity-25"
+            aria-label="Scroll languages right"
+          >
+            <ChevronRight className="h-3.5 w-3.5" />
+          </button>
+        </div>
+        <div className="flex shrink-0 items-center gap-1.5 flex-wrap">
+          <button
+            onClick={resetCode}
+            className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-surface-400 hover:bg-surface-800 hover:text-surface-200"
+            title="Reset to LeetCode template"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+          </button>
+          <button
+            onClick={() => void copyAndOpen()}
+            className="flex items-center gap-1.5 rounded-md border border-surface-600/60 px-3 py-1.5 text-xs font-medium text-surface-200 hover:bg-surface-800"
+            title="Copy your code and open the problem on LeetCode"
+          >
+            {copied ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
+            <span className="hidden sm:inline">Copy & open</span>
+          </button>
+          <button
+            onClick={() => setEditorExpanded((v) => !v)}
+            className="flex items-center gap-1 rounded-md border border-surface-600/60 px-2 py-1.5 text-xs font-medium text-surface-200 hover:bg-surface-800"
+            title={expanded ? 'Exit fullscreen editor (Esc)' : 'Expand editor'}
+            aria-label={expanded ? 'Exit fullscreen editor' : 'Expand editor'}
+          >
+            {expanded ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+          </button>
+          <button
+            onClick={() => void handleSubmit()}
+            disabled={submitting}
+            className="flex items-center gap-1.5 rounded-md bg-primary-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-primary-500 disabled:opacity-60"
+          >
+            {submitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
+            <span className="hidden sm:inline">{submitting ? 'Judging…' : 'Submit'}</span>
+          </button>
+        </div>
+      </div>
+      <div className="min-h-0 flex-1">
+        <Editor
+          height="100%"
+          language={MONACO_LANGUAGE[language] || 'plaintext'}
+          theme="vs-dark"
+          value={code}
+          onChange={(v) => setCode(v ?? '')}
+          options={{
+            minimap: { enabled: false },
+            fontSize: 13,
+            scrollBeyondLastLine: false,
+            tabSize: 2,
+            automaticLayout: true,
+            padding: { top: 12, bottom: 12 },
+          }}
+        />
+      </div>
+    </div>
+  );
+
   return (
     <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden">
       {/* ── Toolbar: search, filters, profile ── */}
@@ -397,10 +554,10 @@ export function PracticePage() {
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.18 }}
-            className="flex min-h-0 flex-1 flex-col gap-3 lg:flex-row"
+            className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 lg:flex-row"
           >
             {/* Problem panel */}
-            <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-surface-700/60 bg-surface-900/30">
+            <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-surface-700/60 bg-surface-900/30">
               <header className="flex shrink-0 flex-wrap items-center gap-2 border-b border-surface-700/60 px-4 py-3">
                 <h2 className="text-sm font-bold text-surface-100">
                   <span className="mr-1.5 text-surface-500">{question.id}.</span>
@@ -452,67 +609,8 @@ export function PracticePage() {
             </section>
 
 {/* Editor + result */}
-            <section className="flex min-h-0 flex-1 flex-col gap-3">
-              <div className="flex min-h-[320px] sm:min-h-[380px] lg:min-h-[420px] max-h-[60vh] sm:max-h-[70vh] lg:max-h-[80vh] flex-col overflow-hidden rounded-2xl border border-surface-700/60 bg-surface-900/30">
-                <div className="flex shrink-0 items-center justify-between gap-2 border-b border-surface-700/60 px-3 py-2 flex-wrap">
-                  <div className="flex flex-wrap items-center gap-1 overflow-x-auto">
-                    {languages.map((l) => (
-                      <button
-                        key={l.slug}
-                        onClick={() => changeLanguage(l.slug)}
-                        className={
-                          'whitespace-nowrap rounded-md px-2 py-1 text-[11px] font-medium transition-colors ' +
-                          (language === l.slug ? 'bg-primary-500/15 text-primary-300' : 'text-surface-400 hover:bg-surface-800 hover:text-surface-200')
-                        }
-                      >
-                        {l.label}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="flex shrink-0 items-center gap-1.5 flex-wrap">
-                    <button
-                      onClick={resetCode}
-                      className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-surface-400 hover:bg-surface-800 hover:text-surface-200"
-                      title="Reset to LeetCode template"
-                    >
-                      <RotateCcw className="h-3.5 w-3.5" />
-                    </button>
-                    <button
-                      onClick={() => void copyAndOpen()}
-                      className="flex items-center gap-1.5 rounded-md border border-surface-600/60 px-3 py-1.5 text-xs font-medium text-surface-200 hover:bg-surface-800"
-                      title="Copy your code and open the problem on LeetCode"
-                    >
-                      {copied ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
-                      <span className="hidden sm:inline">Copy & open</span>
-                    </button>
-                    <button
-                      onClick={() => void handleSubmit()}
-                      disabled={submitting}
-                      className="flex items-center gap-1.5 rounded-md bg-primary-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-primary-500 disabled:opacity-60"
-                    >
-                      {submitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
-                      <span className="hidden sm:inline">{submitting ? 'Judging…' : 'Submit'}</span>
-                    </button>
-                  </div>
-                </div>
-                <div className="min-h-0 flex-1">
-                  <Editor
-                    height="100%"
-                    language={MONACO_LANGUAGE[language] || 'plaintext'}
-                    theme="vs-dark"
-                    value={code}
-                    onChange={(v) => setCode(v ?? '')}
-                    options={{
-                      minimap: { enabled: false },
-                      fontSize: 13,
-                      scrollBeyondLastLine: false,
-                      tabSize: 2,
-                      automaticLayout: true,
-                      padding: { top: 12, bottom: 12 },
-                    }}
-                  />
-                </div>
-              </div>
+            <section className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
+              {!editorExpanded && renderEditorCard(false)}
 
               <AnimatePresence>
                 {result && (
@@ -525,6 +623,36 @@ export function PracticePage() {
           </motion.div>
         )}
       </div>
+
+      {/* ── Fullscreen editor overlay (portal escapes the animated parent so
+          `position: fixed` anchors to the viewport, not the motion wrapper) ── */}
+      {typeof document !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {editorExpanded && (
+            <>
+              <motion.div
+                key="editor-backdrop"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-[60] bg-surface-950/60 backdrop-blur-sm"
+                onClick={() => setEditorExpanded(false)}
+              />
+              <motion.div
+                key="editor-overlay"
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.98 }}
+                transition={{ duration: 0.18 }}
+                className="fixed inset-0 z-[70] flex flex-col p-2 sm:p-4 lg:p-6"
+              >
+                {renderEditorCard(true)}
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>,
+        document.body,
+      )}
 
       {/* ── Mobile problem drawer ── */}
       <AnimatePresence>
@@ -565,7 +693,9 @@ export function PracticePage() {
 function ResultPanel({ result }: { result: SubmissionResult }) {
   const meta = STATUS_META[result.status];
   const { Icon } = meta;
+  const accent = STATUS_ACCENT[result.status];
   const pct = result.totalTests > 0 ? Math.round((result.passedTests / result.totalTests) * 100) : 0;
+  const scoreTone = result.score >= 80 ? 'text-emerald-400' : result.score >= 50 ? 'text-amber-400' : 'text-red-400';
 
   return (
     <motion.div
@@ -574,35 +704,51 @@ function ResultPanel({ result }: { result: SubmissionResult }) {
       exit={{ opacity: 0 }}
       className="space-y-3 rounded-2xl border border-surface-700/60 bg-surface-900/40 p-4"
     >
+      {/* Verdict + score */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <Icon className={`h-5 w-5 ${meta.className}`} />
-          <span className={`text-sm font-bold ${meta.className}`}>{meta.label}</span>
-          <span className="text-xs text-surface-500">{result.passedTests}/{result.totalTests} examples passed</span>
+        <div className="flex min-w-0 items-center gap-3">
+          <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl ${accent.bg}`}>
+            <Icon className={`h-5 w-5 ${meta.className}`} />
+          </div>
+          <div className="min-w-0">
+            <p className={`text-sm font-bold ${meta.className}`}>{meta.label}</p>
+            <p className="text-[11px] text-surface-400">
+              {result.passedTests}/{result.totalTests} examples passed
+            </p>
+          </div>
         </div>
-        <div className="flex items-center gap-3 text-xs text-surface-400">
-          <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> {result.timeComplexity}</span>
-          <span>Space: {result.spaceComplexity}</span>
-          <span className="rounded-md bg-surface-800 px-2 py-0.5 font-semibold text-surface-200">Score {result.score}/100</span>
+        <div className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 ${accent.bg} ${accent.border}`}>
+          <Gauge className="h-3.5 w-3.5 text-surface-300" />
+          <span className={`text-sm font-bold tabular-nums ${scoreTone}`}>{result.score}</span>
+          <span className="text-[10px] text-surface-400">/100</span>
         </div>
       </div>
 
       <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-800">
-        <div
-          className={`h-full rounded-full transition-all ${result.status === 'accepted' ? 'bg-emerald-500' : result.status === 'wrong_answer' ? 'bg-red-500' : 'bg-amber-500'}`}
-          style={{ width: `${pct}%` }}
-        />
+        <div className={`h-full rounded-full transition-all ${accent.bar}`} style={{ width: `${pct}%` }} />
       </div>
 
+      {/* Complexity metrics */}
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <MetricChip icon={Clock} label="Time" value={result.timeComplexity} />
+        <MetricChip icon={Cpu} label="Space" value={result.spaceComplexity} />
+      </div>
+
+      {/* AI feedback on the submission */}
       {result.feedback && (
-        <div className="rounded-xl border border-surface-700/50 bg-surface-950/40 p-3">
+        <div className="rounded-xl border border-primary-500/20 bg-primary-500/5 p-3">
+          <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-primary-300">
+            <Sparkles className="h-3.5 w-3.5" /> AI insights
+          </p>
           <MarkdownRenderer content={result.feedback} />
         </div>
       )}
 
       {result.issues.length > 0 && (
         <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-wide text-surface-500">Findings</p>
+          <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-surface-400">
+            <AlertCircle className="h-3.5 w-3.5" /> Findings
+          </p>
           {result.issues.map((issue, i) => (
             <div key={i} className={`rounded-lg border px-3 py-2 ${SEVERITY_CLASSES[issue.severity]}`}>
               <p className="text-xs font-semibold uppercase tracking-wide text-surface-400">{issue.severity}</p>
@@ -615,7 +761,7 @@ function ResultPanel({ result }: { result: SubmissionResult }) {
 
       {result.betterApproach && (
         <div className="rounded-xl border border-primary-500/20 bg-primary-500/5 p-3">
-          <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-primary-300">
+          <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-primary-300">
             <Sparkles className="h-3.5 w-3.5" /> Better approach
           </p>
           <MarkdownRenderer content={result.betterApproach} />
@@ -624,10 +770,22 @@ function ResultPanel({ result }: { result: SubmissionResult }) {
 
       {result.improvedCode && (
         <div>
-          <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-surface-500">Reference solution</p>
+          <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-surface-400">
+            <Code2 className="h-3.5 w-3.5" /> Reference solution
+          </p>
           <MarkdownRenderer content={result.improvedCode.includes('```') ? result.improvedCode : '```\n' + result.improvedCode + '\n```'} />
         </div>
       )}
     </motion.div>
+  );
+}
+
+function MetricChip({ icon: Icon, label, value }: { icon: typeof Clock; label: string; value?: string }) {
+  return (
+    <div className="flex items-center gap-2 rounded-xl border border-surface-700/50 bg-surface-950/40 px-3 py-2">
+      <Icon className="h-3.5 w-3.5 flex-shrink-0 text-surface-400" />
+      <span className="text-[11px] text-surface-500">{label}</span>
+      <span className="ml-auto truncate font-mono text-xs text-surface-200">{value || '—'}</span>
+    </div>
   );
 }

@@ -29,7 +29,9 @@ export class AnalyticsController {
   }
 
   async getReposIndexed(req: Request, res: Response): Promise<void> {
-    const data = await analyticsService.getReposIndexed(req.user!.userId);
+    const requested = req.query.granularity as ChartGranularity | undefined;
+    const granularity = requested && GRANULARITIES.includes(requested) ? requested : undefined;
+    const data = await analyticsService.getReposIndexed(req.user!.userId, granularity);
 
     sendSuccess(res, {
       statusCode: 200,

@@ -7,7 +7,7 @@ import {
 import type { LucideIcon } from 'lucide-react';
 import { useAuthStore } from '../store';
 import { fetchAnalytics } from '../services/analytics';
-import type { ProblemsGranularity } from '../services/analytics';
+import type { ProblemsGranularity, ReposGranularity } from '../services/analytics';
 import { useProblemsSolved, useReposIndexed } from '../hooks/useAnalyticsCharts';
 import { ProblemsSolvedChart } from '../components/dashboard/ProblemsSolvedChart';
 import { RepoIndexedChart } from '../components/dashboard/RepoIndexedChart';
@@ -38,10 +38,10 @@ function GlowHeader({ name, updatedLabel, loading, onRefresh }: {
 
       <div className="relative flex items-center justify-between gap-4">
         <div className="min-w-0">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-cyan-300/80">Workspace</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-cyan-400">Workspace</p>
           <h1 className="mt-1 truncate text-xl font-bold tracking-tight text-surface-50 sm:text-2xl">
             {greeting},{' '}
-            <span className="bg-gradient-to-r from-cyan-300 via-blue-300 to-purple-400 bg-clip-text text-transparent">
+            <span className="text-gradient-dashboard">
               {name}
             </span>
           </h1>
@@ -130,6 +130,7 @@ export function DashboardPage() {
   const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [practiceGranularity, setPracticeGranularity] = useState<ProblemsGranularity>('daily');
+  const [repoGranularity, setRepoGranularity] = useState<ReposGranularity>('daily');
 
   const fetchStats = useCallback(async () => {
     try {
@@ -180,7 +181,7 @@ export function DashboardPage() {
 
   // Chart data is fetched independently so the two cards can load in parallel.
   const problemsSolved = useProblemsSolved(practiceGranularity, refreshKey);
-  const reposIndexed = useReposIndexed(refreshKey);
+  const reposIndexed = useReposIndexed(repoGranularity, refreshKey);
 
   // Show the charts whenever the workspace holds any real data; otherwise fall
   // back to the original "import a repository" empty state.
@@ -264,6 +265,8 @@ export function DashboardPage() {
                   data={reposIndexed.data}
                   loading={reposIndexed.isLoading}
                   error={reposIndexed.isError}
+                  granularity={repoGranularity}
+                  onGranularityChange={setRepoGranularity}
                 />
               </div>
             ) : (

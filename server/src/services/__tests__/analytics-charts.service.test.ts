@@ -120,7 +120,8 @@ describe('AnalyticsService chart insights', () => {
       expect(result.total).toBe(1);
       expect(result.latest?.name).toBe('devmind');
       expect(result.latest?.fullName).toBe('acme/devmind');
-      // A single data point lives in the bucket for today.
+      // A full daily window is returned; today's bucket holds the single event.
+      expect(result.points).toHaveLength(14);
       const today = result.points.find((p) => p.date === todayIso());
       expect(today?.count).toBe(1);
       expect(today?.cumulative).toBe(1);
@@ -147,6 +148,26 @@ describe('AnalyticsService chart insights', () => {
       const final = result.points[result.points.length - 1];
       expect(final.cumulative).toBe(3);
       expect(result.points.reduce((sum, p) => sum + p.count, 0)).toBe(3);
+    });
+
+    it('honours an explicit granularity instead of auto-selecting one', async () => {
+      const completedAt = new Date();
+      vi.mocked(IndexReport.find).mockReturnValue(makeFindChain([
+        { repositoryId: 'repo-1', completedAt, createdAt: completedAt },
+      ]) as never);
+      vi.mocked(ImportedRepository.findOne).mockReturnValue({
+        select: vi.fn().mockReturnThis(),
+        lean: vi.fn().mockResolvedValue({ name: 'devmind', fullName: 'acme/devmind' }),
+      } as never);
+
+      const result = await service.getReposIndexed(VALID_USER_ID, 'monthly');
+
+      // 12 monthly buckets, with today's event landing in the final bucket.
+      expect(result.points).toHaveLength(12);
+      expect(result.points[0].label).toMatch(/^[A-Z][a-z]{2} '\d{2}$/);
+      const last = result.points[result.points.length - 1];
+      expect(last.count).toBe(1);
+      expect(last.cumulative).toBe(1);
     });
   });
 });

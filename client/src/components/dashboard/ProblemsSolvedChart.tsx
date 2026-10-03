@@ -15,13 +15,9 @@ import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Trophy, ArrowRight } from 'lucide-react';
 import type { ProblemsGranularity, ProblemsSolvedData } from '../../services/analytics';
+import { useChartAccent, useChartSurface } from '../../hooks/useChartAccent';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler, Legend, Tooltip);
-
-const BLUE = '#3b82f6';
-const EASY = '#10b981';
-const MEDIUM = '#f59e0b';
-const HARD = '#ef4444';
 
 const GRANULARITIES: ProblemsGranularity[] = ['daily', 'weekly', 'monthly'];
 
@@ -44,14 +40,21 @@ export function ProblemsSolvedChart({
   granularity,
   onGranularityChange,
 }: ProblemsSolvedChartProps) {
+  const accent = useChartAccent();
+  const surface = useChartSurface();
   const points = useMemo(() => data?.points ?? [], [data]);
   const total = data?.total ?? 0;
   const thisWeek = data?.thisWeek ?? 0;
   const byDifficulty = data?.byDifficulty ?? { easy: 0, medium: 0, hard: 0 };
   const hasWindowData = points.some((point) => point.total > 0);
 
-  const chartData = useMemo(
-    () => ({
+  const chartData = useMemo(() => {
+    const BLUE = accent('blue');
+    const EASY = accent('emerald');
+    const MEDIUM = accent('amber');
+    const HARD = accent('red');
+
+    return {
       labels: points.map((point) => point.label),
       datasets: [
         {
@@ -93,22 +96,21 @@ export function ProblemsSolvedChart({
           pointRadius: points.length <= 2 ? 4 : 0,
           pointHoverRadius: 5,
           pointHoverBackgroundColor: BLUE,
-          pointHoverBorderColor: 'rgb(var(--surface-950))',
+          pointHoverBorderColor: surface(950),
           pointHoverBorderWidth: 2,
           fill: true,
           backgroundColor: (context: ScriptableContext<'line'>) => {
             const { ctx, chartArea } = context.chart;
-            if (!chartArea) return `${BLUE}22`;
+            if (!chartArea) return accent('blue', 0.13);
             const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
-            gradient.addColorStop(0, `${BLUE}55`);
-            gradient.addColorStop(1, `${BLUE}00`);
+            gradient.addColorStop(0, accent('blue', 0.33));
+            gradient.addColorStop(1, accent('blue', 0));
             return gradient;
           },
         },
       ],
-    }),
-    [points],
-  );
+    };
+  }, [points, accent, surface]);
 
   const options: ChartOptions<'line'> = useMemo(
     () => ({
@@ -120,7 +122,7 @@ export function ProblemsSolvedChart({
           display: true,
           position: 'bottom',
           labels: {
-            color: 'rgb(var(--surface-400))',
+            color: surface(400),
             boxWidth: 8,
             boxHeight: 8,
             usePointStyle: true,
@@ -130,10 +132,10 @@ export function ProblemsSolvedChart({
           },
         },
         tooltip: {
-          backgroundColor: 'rgb(var(--surface-900))',
-          titleColor: 'rgb(var(--surface-100))',
-          bodyColor: 'rgb(var(--surface-300))',
-          borderColor: 'rgb(var(--surface-700))',
+          backgroundColor: surface(900),
+          titleColor: surface(100),
+          bodyColor: surface(300),
+          borderColor: surface(700),
           borderWidth: 1,
           padding: { top: 8, bottom: 8, left: 12, right: 12 },
           cornerRadius: 10,
@@ -148,18 +150,18 @@ export function ProblemsSolvedChart({
         x: {
           grid: { display: false },
           border: { display: false },
-          ticks: { color: 'rgb(var(--surface-500))', font: { size: 10 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 7 },
+          ticks: { color: surface(400), font: { size: 10 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 7 },
         },
         y: {
           beginAtZero: true,
-          grid: { color: 'rgb(var(--surface-800) / 0.6)' },
+          grid: { color: surface(800, 0.6) },
           border: { display: false },
-          ticks: { color: 'rgb(var(--surface-500))', font: { size: 10 }, maxTicksLimit: 4, precision: 0 },
+          ticks: { color: surface(400), font: { size: 10 }, maxTicksLimit: 4, precision: 0 },
         },
       },
       animation: { duration: 900, easing: 'easeOutQuart' },
     }),
-    [],
+    [surface],
   );
 
   return (
@@ -201,11 +203,11 @@ export function ProblemsSolvedChart({
           <div className="mt-4 flex flex-wrap items-end gap-x-6 gap-y-2">
             <div>
               <p className="text-2xl font-bold tabular-nums text-surface-100">{total}</p>
-              <p className="text-[11px] uppercase tracking-wider text-surface-500">Total solved</p>
+              <p className="text-[11px] uppercase tracking-wider text-surface-400">Total solved</p>
             </div>
             <div>
               <p className="text-2xl font-bold tabular-nums text-blue-400">{thisWeek}</p>
-              <p className="text-[11px] uppercase tracking-wider text-surface-500">This week</p>
+              <p className="text-[11px] uppercase tracking-wider text-surface-400">This week</p>
             </div>
             <div className="flex items-center gap-3 text-[11px] text-surface-400">
               <span><span className="text-emerald-400">{byDifficulty.easy}</span> easy</span>
@@ -246,7 +248,7 @@ function ChartMessage({ title, hint }: { title: string; hint: string }) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center px-4 py-10 text-center">
       <p className="text-sm font-medium text-surface-300">{title}</p>
-      <p className="mt-1 text-xs text-surface-500">{hint}</p>
+      <p className="mt-1 text-xs text-surface-400">{hint}</p>
     </div>
   );
 }

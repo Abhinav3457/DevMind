@@ -449,7 +449,7 @@ export class AnalyticsService {
    * Returns per-bucket counts plus a running cumulative, and the most
    * recently indexed repository for the summary line.
    */
-  async getReposIndexed(userId: string): Promise<ReposIndexedData> {
+  async getReposIndexed(userId: string, requestedGranularity?: ChartGranularity): Promise<ReposIndexedData> {
     const reports = await IndexReport.find({ userId, status: 'completed' })
       .select('repositoryId completedAt createdAt')
       .sort({ completedAt: 1, createdAt: 1 })
@@ -466,27 +466,25 @@ export class AnalyticsService {
       return { total: 0, latest: null, points: [] };
     }
 
-    // Pick the smallest sensible bucket size for the time span on screen.
+    const granularity: ChartGranularity = requestedGranularity ?? 'daily';
+
+    // Fixed-width window (14 days / 12 weeks / 12 months) ending at the latest
+    // indexed repo — or now if that is more recent. Mirroring the Problems
+    // Solved window keeps day-wise charts readable with real date context, even
+    // when every repository was indexed on the same day.
     const now = new Date();
-    const spanDays = (now.getTime() - events[0].indexedAt.getTime()) / 86_400_000;
-    const granularity: ChartGranularity = spanDays <= 21 ? 'daily' : spanDays <= 120 ? 'weekly' : 'monthly';
+    const latestIndexedAt = events[events.length - 1].indexedAt;
+    const anchor = latestIndexedAt > now ? latestIndexedAt : now;
+    const windowEnd = periodStart(anchor, granularity);
+    const windowSize = granularity === 'daily' ? 14 : 12;
+    const windowStart = shiftPeriod(windowEnd, granularity, -(windowSize - 1));
 
-    const firstStart = periodStart(events[0].indexedAt, granularity);
-    const lastStart = periodStart(now, granularity);
-    const allStarts: Date[] = [];
-    let cursor = firstStart;
-    let guard = 0;
-    while (cursor.getTime() <= lastStart.getTime() && guard < 120) {
-      allStarts.push(cursor);
+    const bucketStarts: Date[] = [];
+    let cursor = windowStart;
+    for (let i = 0; i < windowSize; i++) {
+      bucketStarts.push(cursor);
       cursor = shiftPeriod(cursor, granularity, 1);
-      guard += 1;
     }
-    if (allStarts.length === 0) allStarts.push(lastStart);
-
-    // Keep the chart readable for very old accounts; cumulative stays accurate
-    // because we seed it with the events that fall before the visible window.
-    const visibleStarts = allStarts.length > 24 ? allStarts.slice(allStarts.length - 24) : allStarts;
-    const windowStart = visibleStarts[0];
 
     const counts = new Map<string, number>();
     for (const event of events) {
@@ -494,8 +492,9 @@ export class AnalyticsService {
       counts.set(key, (counts.get(key) || 0) + 1);
     }
 
+    // Seed the running total with everything indexed before the visible window.
     let cumulative = events.filter((event) => periodStart(event.indexedAt, granularity) < windowStart).length;
-    const points = visibleStarts.map<RepoIndexedPoint>((start) => {
+    const points = bucketStarts.map<RepoIndexedPoint>((start) => {
       const date = isoDay(start);
       const count = counts.get(date) || 0;
       cumulative += count;

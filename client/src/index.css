@@ -194,6 +194,11 @@
     @apply bg-gradient-to-r from-surface-100 via-purple-400 to-purple-700 bg-clip-text text-transparent;
   }
 
+  /* Dashboard greeting — cyan → blue → purple in dark, deeper stops in light */
+  .text-gradient-dashboard {
+    @apply bg-gradient-to-r from-cyan-300 via-blue-300 to-purple-400 bg-clip-text text-transparent;
+  }
+
   /* Chat page viewport height — prefers dvh (mobile URL bar aware), falls back to vh */
   .chat-viewport {
     height: calc(100vh - 10rem);
@@ -215,6 +220,10 @@
   /* Light theme: gradient stops need darker shades for contrast on light backgrounds */
   .light .text-gradient-brand {
     background-image: linear-gradient(90deg, #0f172a, #9333ea 55%, #6d28d9);
+  }
+
+  .light .text-gradient-dashboard {
+    background-image: linear-gradient(90deg, #0e7490, #2563eb 55%, #9333ea);
   }
 
   .input-field {
@@ -279,6 +288,7 @@
 .light .text-sky-400 { color: #0284c7; }
 .light .text-indigo-400 { color: #4f46e5; }
 .light .text-teal-400 { color: #0d9488; }
+.light .text-rose-400 { color: #e11d48; }
 .light .text-gray-400 { color: #4b5563; }
 
 .light .prose-theme {

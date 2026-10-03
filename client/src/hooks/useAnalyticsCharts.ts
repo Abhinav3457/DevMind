@@ -3,6 +3,7 @@ import {
   fetchProblemsSolved,
   fetchReposIndexed,
   type ProblemsGranularity,
+  type ReposGranularity,
 } from '../services/analytics';
 
 /**
@@ -18,9 +19,9 @@ export function useProblemsSolved(granularity: ProblemsGranularity, refreshKey =
 }
 
 /** Repositories indexed over time for the dashboard chart. */
-export function useReposIndexed(refreshKey = 0) {
+export function useReposIndexed(granularity: ReposGranularity, refreshKey = 0) {
   return useQuery({
-    queryKey: ['analytics', 'repos-indexed', refreshKey],
-    queryFn: () => fetchReposIndexed(),
+    queryKey: ['analytics', 'repos-indexed', granularity, refreshKey],
+    queryFn: () => fetchReposIndexed(granularity),
   });
 }
