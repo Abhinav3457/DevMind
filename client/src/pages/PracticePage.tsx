@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Loader2, Play, CheckCircle2, XCircle, AlertCircle, Clock,
   Lightbulb, ChevronDown, ChevronLeft, ChevronRight, Sparkles, Search, RotateCcw, Copy, ExternalLink, Flame, X, List,
-  Maximize2, Minimize2, Gauge, Cpu, Code2,
+  Maximize2, Minimize2, Gauge, Cpu, Code2, Sun, Moon,
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import Editor from '@monaco-editor/react';
@@ -88,6 +88,9 @@ export function PracticePage() {
   const [copied, setCopied] = useState(false);
   const [solved, setSolved] = useState<Set<string>>(new Set());
   const [editorExpanded, setEditorExpanded] = useState(false);
+  const [aiInsightsExpanded, setAiInsightsExpanded] = useState(false);
+  const [resultExpanded, setResultExpanded] = useState(false);
+  const [editorTheme, setEditorTheme] = useState<'vs-dark' | 'vs'>('vs-dark');
   const langBarRef = useRef<HTMLDivElement>(null);
   const [langScroll, setLangScroll] = useState({ left: false, right: false });
 
@@ -299,6 +302,32 @@ export function PracticePage() {
     };
   }, [editorExpanded]);
 
+  // Close the fullscreen AI insights with Escape and lock background scroll while open.
+  useEffect(() => {
+    if (!aiInsightsExpanded) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setAiInsightsExpanded(false); };
+    window.addEventListener('keydown', onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [aiInsightsExpanded]);
+
+  // Close the fullscreen result panel with Escape and lock background scroll while open.
+  useEffect(() => {
+    if (!resultExpanded) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setResultExpanded(false); };
+    window.addEventListener('keydown', onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [resultExpanded]);
+
   const updateLangScroll = useCallback(() => {
     const el = langBarRef.current;
     if (!el) return;
@@ -402,6 +431,14 @@ export function PracticePage() {
             {expanded ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
           </button>
           <button
+            onClick={() => setEditorTheme((t) => (t === 'vs-dark' ? 'vs' : 'vs-dark'))}
+            className="flex items-center gap-1 rounded-md border border-surface-600/60 px-2 py-1.5 text-xs font-medium text-surface-200 hover:bg-surface-800"
+            title={editorTheme === 'vs-dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+            aria-label={editorTheme === 'vs-dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+          >
+            {editorTheme === 'vs-dark' ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
+          </button>
+          <button
             onClick={() => void handleSubmit()}
             disabled={submitting}
             className="flex items-center gap-1.5 rounded-md bg-primary-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-primary-500 disabled:opacity-60"
@@ -415,7 +452,7 @@ export function PracticePage() {
         <Editor
           height="100%"
           language={MONACO_LANGUAGE[language] || 'plaintext'}
-          theme="vs-dark"
+          theme={editorTheme}
           value={code}
           onChange={(v) => setCode(v ?? '')}
           options={{
@@ -614,8 +651,14 @@ export function PracticePage() {
 
               <AnimatePresence>
                 {result && (
-                  <div className="max-h-[50vh] shrink-0 overflow-y-auto">
-                    <ResultPanel result={result} />
+                  <div className={`shrink-0 overflow-y-auto ${!resultExpanded ? 'max-h-[50vh]' : ''}`}>
+                    <ResultPanel
+                      result={result}
+                      aiInsightsExpanded={aiInsightsExpanded}
+                      setAiInsightsExpanded={setAiInsightsExpanded}
+                      resultExpanded={resultExpanded}
+                      setResultExpanded={setResultExpanded}
+                    />
                   </div>
                 )}
               </AnimatePresence>
@@ -624,37 +667,135 @@ export function PracticePage() {
         )}
       </div>
 
-      {/* ── Fullscreen editor overlay (portal escapes the animated parent so
+{/* ── Fullscreen editor overlay (portal escapes the animated parent so
           `position: fixed` anchors to the viewport, not the motion wrapper) ── */}
-      {typeof document !== 'undefined' && createPortal(
-        <AnimatePresence>
-          {editorExpanded && (
-            <>
-              <motion.div
-                key="editor-backdrop"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 z-[60] bg-surface-950/60 backdrop-blur-sm"
-                onClick={() => setEditorExpanded(false)}
-              />
-              <motion.div
-                key="editor-overlay"
-                initial={{ opacity: 0, scale: 0.98 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.98 }}
-                transition={{ duration: 0.18 }}
-                className="fixed inset-0 z-[70] flex flex-col p-2 sm:p-4 lg:p-6"
-              >
-                {renderEditorCard(true)}
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>,
-        document.body,
-      )}
+        {typeof document !== 'undefined' && createPortal(
+          <AnimatePresence>
+            {editorExpanded && (
+              <>
+                <motion.div
+                  key="editor-backdrop"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 z-[60] bg-surface-950/60 backdrop-blur-sm"
+                  onClick={() => setEditorExpanded(false)}
+                />
+                <motion.div
+                  key="editor-overlay"
+                  initial={{ opacity: 0, scale: 0.98 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.98 }}
+                  transition={{ duration: 0.18 }}
+                  className="fixed inset-0 z-[70] flex flex-col p-2 sm:p-4 lg:p-6"
+                >
+                  {renderEditorCard(true)}
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>,
+          document.body,
+        )}
 
-      {/* ── Mobile problem drawer ── */}
+        {/* ── Fullscreen AI insights overlay ── */}
+        {typeof document !== 'undefined' && createPortal(
+          <AnimatePresence>
+            {aiInsightsExpanded && result?.feedback && (
+              <>
+                <motion.div
+                  key="ai-insights-backdrop"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 z-[60] bg-surface-950/60 backdrop-blur-sm"
+                  onClick={() => setAiInsightsExpanded(false)}
+                />
+                <motion.div
+                  key="ai-insights-overlay"
+                  initial={{ opacity: 0, scale: 0.98 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.98 }}
+                  transition={{ duration: 0.18 }}
+                  className="fixed inset-0 z-[70] flex flex-col p-2 sm:p-4 lg:p-6"
+                >
+                  <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-surface-700/60 bg-surface-900/30 h-full w-full shadow-2xl shadow-black/50">
+                    <div className="flex shrink-0 items-center justify-between gap-2 border-b border-surface-700/60 px-3 py-2">
+                      <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-primary-300">
+                        <Sparkles className="h-3.5 w-3.5" /> AI insights
+                      </div>
+                      <button
+                        onClick={() => setAiInsightsExpanded(false)}
+                        className="flex items-center gap-1 rounded-md border border-surface-600/60 px-2 py-1.5 text-xs font-medium text-surface-200 hover:bg-surface-800"
+                        title="Exit fullscreen (Esc)"
+                        aria-label="Exit fullscreen"
+                      >
+                        <Minimize2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                    <div className="min-h-0 flex-1 overflow-y-auto p-4">
+                      <MarkdownRenderer content={result.feedback} />
+                    </div>
+                  </div>
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>,
+          document.body,
+        )}
+
+        {/* ── Fullscreen result panel overlay ── */}
+        {typeof document !== 'undefined' && createPortal(
+          <AnimatePresence>
+            {resultExpanded && result && (
+              <>
+                <motion.div
+                  key="result-backdrop"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 z-[60] bg-surface-950/60 backdrop-blur-sm"
+                  onClick={() => setResultExpanded(false)}
+                />
+                <motion.div
+                  key="result-overlay"
+                  initial={{ opacity: 0, scale: 0.98 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.98 }}
+                  transition={{ duration: 0.18 }}
+                  className="fixed inset-0 z-[70] flex flex-col p-2 sm:p-4 lg:p-6"
+                >
+                  <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-surface-700/60 bg-surface-900/30 h-full w-full shadow-2xl shadow-black/50">
+                    <div className="flex shrink-0 items-center justify-between gap-2 border-b border-surface-700/60 px-3 py-2">
+                      <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-surface-300">
+                        <Code2 className="h-3.5 w-3.5" /> Result details
+                      </div>
+                      <button
+                        onClick={() => setResultExpanded(false)}
+                        className="flex items-center gap-1 rounded-md border border-surface-600/60 px-2 py-1.5 text-xs font-medium text-surface-200 hover:bg-surface-800"
+                        title="Exit fullscreen (Esc)"
+                        aria-label="Exit fullscreen"
+                      >
+                        <Minimize2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                    <div className="min-h-0 flex-1 overflow-y-auto p-4">
+                      <ResultPanel
+                        result={result}
+                        aiInsightsExpanded={aiInsightsExpanded}
+                        setAiInsightsExpanded={setAiInsightsExpanded}
+                        resultExpanded={resultExpanded}
+                        setResultExpanded={setResultExpanded}
+                      />
+                    </div>
+                  </div>
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>,
+          document.body,
+        )}
+
+        {/* ── Mobile problem drawer ── */}
       <AnimatePresence>
         {mobileListOpen && (
           <>
@@ -690,7 +831,9 @@ export function PracticePage() {
   );
 }
 
-function ResultPanel({ result }: { result: SubmissionResult }) {
+import { Dispatch, SetStateAction } from 'react';
+
+function ResultPanel({ result, aiInsightsExpanded, setAiInsightsExpanded, resultExpanded, setResultExpanded }: { result: SubmissionResult; aiInsightsExpanded: boolean; setAiInsightsExpanded: Dispatch<SetStateAction<boolean>>; resultExpanded: boolean; setResultExpanded: Dispatch<SetStateAction<boolean>> }) {
   const meta = STATUS_META[result.status];
   const { Icon } = meta;
   const accent = STATUS_ACCENT[result.status];
@@ -717,10 +860,20 @@ function ResultPanel({ result }: { result: SubmissionResult }) {
             </p>
           </div>
         </div>
-        <div className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 ${accent.bg} ${accent.border}`}>
-          <Gauge className="h-3.5 w-3.5 text-surface-300" />
-          <span className={`text-sm font-bold tabular-nums ${scoreTone}`}>{result.score}</span>
-          <span className="text-[10px] text-surface-400">/100</span>
+        <div className="flex items-center gap-2">
+          <div className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 ${accent.bg} ${accent.border}`}>
+            <Gauge className="h-3.5 w-3.5 text-surface-300" />
+            <span className={`text-sm font-bold tabular-nums ${scoreTone}`}>{result.score}</span>
+            <span className="text-[10px] text-surface-400">/100</span>
+          </div>
+          <button
+            onClick={() => setResultExpanded((v) => !v)}
+            className="flex items-center gap-1 rounded-md border border-surface-600/60 px-2 py-1.5 text-xs font-medium text-surface-200 hover:bg-surface-800"
+            title={resultExpanded ? 'Exit fullscreen (Esc)' : 'Expand result panel'}
+            aria-label={resultExpanded ? 'Exit fullscreen' : 'Expand result panel'}
+          >
+            {resultExpanded ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+          </button>
         </div>
       </div>
 
@@ -737,7 +890,7 @@ function ResultPanel({ result }: { result: SubmissionResult }) {
       {/* AI feedback on the submission */}
       {result.feedback && (
         <div className="rounded-xl border border-primary-500/20 bg-primary-500/5 p-3">
-          <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-primary-300">
+          <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-primary-300 mb-1.5">
             <Sparkles className="h-3.5 w-3.5" /> AI insights
           </p>
           <MarkdownRenderer content={result.feedback} />
