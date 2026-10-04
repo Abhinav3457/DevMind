@@ -5,26 +5,19 @@ import {
   GitBranch,
   FileCode,
   Code2,
-  Shield,
-  Bug,
-  Star,
-  BookOpen,
   Activity,
   Database,
   RefreshCw,
-  GitCommit,
-  BarChart3,
-  TrendingUp,
-  Zap,
   ChevronDown,
 } from 'lucide-react';
 import { fetchAnalytics } from '../services/analytics';
 import apiClient from '../api/axios';
-import { PageHeader } from '../components/layout/PageHeader';
 import { StatCard } from '../components/dashboard/StatCard';
 import { LanguageChart } from '../components/dashboard/LanguageChart';
 import { HealthScore } from '../components/dashboard/HealthScore';
 import { InteractiveBarChart } from '../components/dashboard/InteractiveBarChart';
+import { ActivityTrendChart } from '../components/dashboard/ActivityTrendChart';
+import { OperationBreakdown } from '../components/dashboard/OperationBreakdown';
 
 interface RepoOption {
   id: string;
@@ -36,64 +29,95 @@ const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: { staggerChildren: 0.06 },
+    transition: { staggerChildren: 0.05 },
   },
 };
 
 const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] } },
+  hidden: { opacity: 0, y: 12 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] } },
 };
 
-/* ── Simple Quality Metric Row ──────────────────────────── */
-interface QualityMetricProps {
-  icon: typeof Shield;
-  label: string;
-  value: number;
-  max: number;
-  color: string;
-  status: 'healthy' | 'warning' | 'critical';
-}
+/** Flat, neutral shell shared by every analytics panel. */
+const panel = 'rounded-xl border border-surface-800 bg-surface-900/60 p-4 sm:p-5';
 
-function QualityMetricBar({ icon: Icon, label, value, max, color, status }: QualityMetricProps) {
-  const percent = max > 0 ? Math.min(Math.round((value / max) * 100), 100) : 0;
-  const statusColors = {
-    healthy: 'from-emerald-500 to-emerald-400',
-    warning: 'from-amber-500 to-amber-400',
-    critical: 'from-rose-500 to-rose-400',
-  };
-  const statusBadge = {
-    healthy: { text: 'Healthy', bg: 'bg-emerald-500/10 text-emerald-400' },
-    warning: { text: 'Attention', bg: 'bg-amber-500/10 text-amber-400' },
-    critical: { text: 'Critical', bg: 'bg-rose-500/10 text-rose-400' },
-  };
-
+/* ── Panel heading: muted icon + micro title over a hairline ── */
+function PanelHeading({
+  icon: Icon,
+  title,
+  action,
+}: {
+  icon: typeof Code2;
+  title: string;
+  action?: React.ReactNode;
+}) {
   return (
-    <div className="rounded-xl border border-surface-700/40 bg-surface-800/30 p-4 transition-all hover:border-surface-600/60 hover:bg-surface-800/50">
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <div className="flex min-w-0 items-center gap-3">
-          <div className={`rounded-lg p-2 bg-gradient-to-br ${color}/10 flex-shrink-0`}>
-            <Icon className={`h-4 w-4 ${color}`} />
-          </div>
-          <p className="truncate text-sm font-semibold text-surface-100">{label}</p>
-        </div>
-        <span className={`flex-shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${statusBadge[status].bg}`}>
-          {statusBadge[status].text}
-        </span>
+    <div className="mb-4 flex items-center justify-between gap-3 border-b border-surface-800 pb-3 sm:mb-5">
+      <div className="flex min-w-0 items-center gap-2">
+        <Icon className="h-4 w-4 flex-shrink-0 text-surface-500" />
+        <h2 className="truncate text-xs font-semibold uppercase tracking-wider text-surface-300">
+          {title}
+        </h2>
       </div>
-      <div className="flex items-center gap-3">
-        <div className="h-2 flex-1 overflow-hidden rounded-full bg-surface-800">
-          <motion.div
-            className={`h-full rounded-full bg-gradient-to-r ${statusColors[status]}`}
-            initial={{ width: 0 }}
-            animate={{ width: `${percent}%` }}
-            transition={{ duration: 1, ease: 'easeOut' }}
-          />
-        </div>
-        <span className="w-10 text-right text-xs font-bold tabular-nums text-surface-200">{percent}%</span>
-      </div>
+      {action}
     </div>
   );
+}
+
+/* ── Loading skeleton ───────────────────────────────────── */
+function AnalyticsSkeleton() {
+  return (
+    <div className="mx-auto w-full max-w-7xl space-y-5 pb-1 sm:space-y-6">
+      <div className="flex animate-pulse items-center gap-3">
+        <div className="space-y-2">
+          <div className="h-4 w-44 rounded bg-surface-800" />
+          <div className="h-3 w-64 rounded bg-surface-800/70" />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-5">
+        {[0, 1, 2, 3, 4].map((i) => (
+          <div
+            key={i}
+            className="h-24 animate-pulse rounded-xl border border-surface-800 bg-surface-900/60 sm:h-28"
+          />
+        ))}
+      </div>
+      <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-3">
+        {[0, 1, 2].map((i) => (
+          <div
+            key={i}
+            className="h-72 animate-pulse rounded-xl border border-surface-800 bg-surface-900/60"
+          />
+        ))}
+      </div>
+      <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
+        {[0, 1].map((i) => (
+          <div
+            key={i}
+            className="h-72 animate-pulse rounded-xl border border-surface-800 bg-surface-900/60"
+          />
+        ))}
+      </div>
+      <div className="h-80 animate-pulse rounded-xl border border-surface-800 bg-surface-900/60" />
+      <p className="text-center text-xs text-surface-500">Compiling your workspace metrics…</p>
+    </div>
+  );
+}
+
+/* ── Helpers ────────────────────────────────────────────── */
+const sum = (values: number[]) => values.reduce((acc, n) => acc + n, 0);
+
+type TrendPill = { trend: 'up' | 'down' | 'neutral'; trendValue: string };
+
+/** Compares the last 7 days of a series against the 7 days before it. */
+function weeklyTrend(series: number[]): TrendPill | undefined {
+  const recent = sum(series.slice(-7));
+  const prior = sum(series.slice(-14, -7));
+  if (recent === 0 && prior === 0) return undefined;
+  const pct = prior === 0 ? 100 : Math.round(((recent - prior) / prior) * 100);
+  if (pct > 0) return { trend: 'up', trendValue: `+${pct}% this week` };
+  if (pct < 0) return { trend: 'down', trendValue: `${pct}% this week` };
+  return { trend: 'neutral', trendValue: 'Flat this week' };
 }
 
 export function AnalyticsPage() {
@@ -101,17 +125,20 @@ export function AnalyticsPage() {
   const [reports, setReports] = useState<RepoOption[]>([]);
 
   useEffect(() => {
-    apiClient.get('/ai/repo-intelligence/reports').then(res => {
-      const list = res.data.data?.reports || [];
-      setReports(list);
-      if (list.length > 0 && !selectedReportId) {
-        setSelectedReportId(list[0].id);
-      }
-    }).catch(() => {});
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    apiClient
+      .get('/ai/repo-intelligence/reports')
+      .then((res) => {
+        const list = res.data.data?.reports || [];
+        setReports(list);
+        if (list.length > 0 && !selectedReportId) {
+          setSelectedReportId(list[0].id);
+        }
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const { data, isLoading, error, refetch, isFetching } = useQuery({
+  const { data, isLoading, error, refetch, isFetching, dataUpdatedAt } = useQuery({
     queryKey: ['analytics', selectedReportId],
     queryFn: () => fetchAnalytics(selectedReportId),
     staleTime: 0,
@@ -120,214 +147,204 @@ export function AnalyticsPage() {
 
   /* ── Loading ────────────────────────────── */
   if (isLoading) {
-    return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center gap-5">
-          <div className="relative">
-            <div className="h-16 w-16 animate-spin rounded-full border-4 border-surface-700 border-t-blue-500" />
-            <Zap className="absolute left-1/2 top-1/2 h-6 w-6 -translate-x-1/2 -translate-y-1/2 text-blue-400" />
-          </div>
-          <div className="text-center">
-            <p className="text-sm font-medium text-surface-200">Loading analytics</p>
-            <p className="mt-1 text-xs text-surface-400">Compiling your workspace metrics…</p>
-          </div>
-        </motion.div>
-      </div>
-    );
+    return <AnalyticsSkeleton />;
   }
 
   /* ── Error ──────────────────────────────── */
   if (error || !data) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="px-4 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-rose-500/10">
-            <Activity className="h-8 w-8 text-rose-400" />
-          </div>
-          <p className="text-lg font-medium text-surface-200">Unable to load analytics</p>
-          <p className="mt-1 text-sm text-surface-400">Please check your connection and try again</p>
-          <button onClick={() => refetch()} className="mt-5 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 px-5 py-2.5 text-sm font-medium text-white shadow-lg shadow-black/25 transition-all hover:scale-105">
-            <RefreshCw className="h-4 w-4" /> Retry
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="px-4 text-center"
+        >
+          <p className="text-sm font-medium text-surface-200">Unable to load analytics</p>
+          <p className="mt-1 text-xs text-surface-400">
+            Please check your connection and try again
+          </p>
+          <button
+            onClick={() => refetch()}
+            className="mt-4 rounded-lg border border-surface-700 px-4 py-2 text-xs font-medium text-surface-200 transition-colors hover:border-surface-600 hover:text-surface-100"
+          >
+            Retry
           </button>
         </motion.div>
       </div>
     );
   }
 
-  const { overview, languages, linesOfCode, repositoryHealth, quality, activity } = data;
+  const { overview, languages, linesOfCode, repositoryHealth, trend, operationBreakdown } = data;
 
   const locBarData = linesOfCode.byLanguage.slice(0, 10).map((l) => ({
-    label: l.language, value: l.lines, tooltip: `${l.language}: ${l.lines.toLocaleString()} lines`,
+    label: l.language,
+    value: l.lines,
+    tooltip: `${l.language}: ${l.lines.toLocaleString()} lines`,
   }));
 
-  /* ── Quality status helpers ─────────────── */
-  const securityStatus = quality.securityIssues === 0 ? 'healthy' : quality.securityIssues <= 2 ? 'warning' : 'critical';
-  const bugStatus = quality.bugCount === 0 ? 'healthy' : quality.bugCount <= 3 ? 'warning' : 'critical';
-  const reviewStatus = quality.reviewScore >= 70 ? 'healthy' : quality.reviewScore >= 40 ? 'warning' : 'critical';
-  const docStatus = quality.documentationCoverage >= 70 ? 'healthy' : quality.documentationCoverage >= 40 ? 'warning' : 'critical';
+  const updatedLabel = dataUpdatedAt
+    ? new Date(dataUpdatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    : null;
+
+  const reportSelect = reports.length > 0 && (
+    <div className="relative">
+      <select
+        value={selectedReportId || ''}
+        onChange={(e) => setSelectedReportId(e.target.value || undefined)}
+        className="max-w-[190px] cursor-pointer appearance-none rounded-lg border border-surface-700/60 bg-surface-900 py-1.5 pl-3 pr-7 text-xs text-surface-300 transition-colors focus:border-surface-600 focus:outline-none sm:max-w-[260px]"
+        aria-label="Select report"
+      >
+        <option value="">All Reports</option>
+        {reports.map((r) => (
+          <option key={r.id} value={r.id} className="truncate">
+            {r.repoName} ({r.fileCount} files)
+          </option>
+        ))}
+      </select>
+      <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-surface-500" />
+    </div>
+  );
 
   return (
     <div className="mx-auto flex h-full min-h-0 w-full max-w-7xl flex-col">
-      <div className="min-h-0 flex-1 space-y-4 overflow-x-hidden overflow-y-auto pb-1 sm:space-y-6">
-        {/* ── Header ────────────────────────────── */}
-        <div className="mb-6 sm:mb-8">
-          <PageHeader
-            icon={BarChart3}
-            title="Analytics Dashboard"
-            description="Insights across your repositories and AI operations"
-            gradient="from-blue-500 to-indigo-600"
-            actions={
-              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-              {reports.length > 0 && (
-                <div className="relative">
-                  <Database className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
-                  <select value={selectedReportId || ''} onChange={(e) => setSelectedReportId(e.target.value || undefined)}
-                    className="max-w-[220px] cursor-pointer appearance-none rounded-xl border border-surface-700 bg-surface-800 py-2.5 pl-9 pr-8 text-xs text-surface-200 transition-all focus:border-blue-500/50 focus:outline-none focus:ring-2 focus:ring-blue-500/20 sm:max-w-[280px] sm:text-sm"
-                    aria-label="Select report">
-                    <option value="">All Reports</option>
-                    {reports.map((r) => (<option key={r.id} value={r.id} className="truncate">{r.repoName} ({r.fileCount} files)</option>))}
-                  </select>
-                  <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
-                </div>
-              )}
-              <button onClick={() => refetch()} disabled={isFetching}
-                className="flex items-center gap-2 rounded-xl border border-surface-700 bg-surface-800 px-3 py-2.5 text-xs text-surface-300 transition-all hover:border-surface-600 hover:bg-surface-700 hover:text-surface-100 disabled:opacity-50 sm:px-4 sm:text-sm"
-                aria-label="Refresh data">
-                <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
-                <span className="hidden sm:inline">{isFetching ? 'Refreshing...' : 'Refresh'}</span>
-              </button>
-              </div>
-            }
-          />
-          <div className="mt-5 h-px bg-gradient-to-r from-transparent via-surface-700 to-transparent sm:mt-6" />
-        </div>
+      <div className="min-h-0 flex-1 space-y-5 overflow-x-hidden overflow-y-auto pb-1 sm:space-y-6">
+        {/* ── Header ───────────────────────────── */}
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] }}
+          className="flex flex-wrap items-end justify-between gap-3 border-b border-surface-800 pb-4"
+        >
+          <div className="min-w-0">
+            <h1 className="text-xl font-semibold tracking-tight text-surface-100 sm:text-2xl">
+              Analytics Dashboard
+            </h1>
+            <p className="mt-1 text-xs text-surface-400">
+              Insights across your repositories and AI operations
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {updatedLabel && (
+              <span className="hidden text-[11px] text-surface-500 sm:inline">
+                Updated {updatedLabel}
+              </span>
+            )}
+            <button
+              onClick={() => refetch()}
+              disabled={isFetching}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-surface-700/60 px-3 py-1.5 text-xs font-medium text-surface-300 transition-colors hover:border-surface-600 hover:text-surface-100 disabled:opacity-50"
+              aria-label="Refresh data"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? 'animate-spin' : ''}`} />
+              {isFetching ? 'Refreshing' : 'Refresh'}
+            </button>
+            {reportSelect}
+          </div>
+        </motion.div>
 
         <motion.div variants={containerVariants} initial="hidden" animate="visible">
-          {/* ── Overview Stats ────────────────────── */}
-          <motion.div variants={itemVariants} className="mb-6 sm:mb-8">
+          {/* ── KPI row ─────────────────────────── */}
+          <motion.div variants={itemVariants} className="mb-5 sm:mb-6">
             <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-5">
-              <StatCard title="Repositories" value={overview.repositories} icon={GitBranch} color="green" delay={0.1} />
-              <StatCard title="Indexed Repos" value={overview.indexedRepos} icon={Database} color="purple" delay={0.2} />
-              <StatCard title="Total Files" value={overview.totalFiles} icon={FileCode} color="cyan" delay={0.25} />
-              <StatCard title="Total Chunks" value={overview.totalChunks} icon={Code2} color="indigo" delay={0.3} />
-              <StatCard title="AI Operations" value={overview.aiOperations} icon={Activity} color="amber" delay={0.35} />
+              <StatCard
+                title="Repositories"
+                value={overview.repositories}
+                icon={GitBranch}
+                delay={0.05}
+              />
+              <StatCard
+                title="Indexed Repos"
+                value={overview.indexedRepos}
+                icon={Database}
+                delay={0.1}
+                sparklineData={trend.indexes}
+                {...weeklyTrend(trend.indexes)}
+              />
+              <StatCard
+                title="Total Files"
+                value={overview.totalFiles}
+                icon={FileCode}
+                delay={0.15}
+              />
+              <StatCard
+                title="Total Chunks"
+                value={overview.totalChunks}
+                icon={Code2}
+                delay={0.2}
+              />
+              <StatCard
+                title="AI Operations"
+                value={overview.aiOperations}
+                icon={Activity}
+                delay={0.25}
+                sparklineData={trend.operations}
+                {...weeklyTrend(trend.operations)}
+              />
             </div>
           </motion.div>
 
-          {/* ── Charts Row: Language · Health · Quality ──── */}
-          <div className="mb-6 grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-3 sm:mb-8">
-            {/* Language Distribution */}
-            <motion.div variants={itemVariants} className="rounded-2xl border border-surface-800 bg-surface-900 p-4 sm:p-6 min-h-[320px] sm:min-h-[360px]">
-              <div className="mb-4 flex items-center gap-2 sm:mb-5">
-                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-cyan-500/10"><Code2 className="h-4 w-4 text-cyan-400" /></div>
-                <h2 className="text-sm font-semibold text-surface-200">Language Distribution</h2>
+          {/* ── Trend + operation mix ───────────── */}
+          <div className="mb-5 grid grid-cols-1 gap-4 sm:mb-6 sm:gap-6 lg:grid-cols-3">
+            <motion.div variants={itemVariants} className={`${panel} min-h-[380px] lg:col-span-2`}>
+              <ActivityTrendChart trend={trend} />
+            </motion.div>
+            <motion.div variants={itemVariants} className={`${panel} min-h-[380px]`}>
+              <OperationBreakdown operationBreakdown={operationBreakdown} />
+            </motion.div>
+          </div>
+
+          {/* ── Language · Health ───────────────── */}
+          <div className="mb-5 grid grid-cols-1 gap-4 sm:mb-6 sm:gap-6 lg:grid-cols-2">
+            <motion.div
+              variants={itemVariants}
+              className={`${panel} min-h-[300px] sm:min-h-[340px]`}
+            >
+              <PanelHeading icon={Code2} title="Language Distribution" />
+              <div className="h-full min-h-[220px] sm:min-h-[260px]">
+                <LanguageChart languages={languages} />
               </div>
-              <div className="h-full min-h-[240px] sm:min-h-[280px]"><LanguageChart languages={languages} /></div>
             </motion.div>
 
-            {/* Repository Health */}
-            <motion.div variants={itemVariants} className="rounded-2xl border border-surface-800 bg-surface-900 p-4 sm:p-6 min-h-[320px] sm:min-h-[360px]">
-              <div className="mb-4 flex items-center gap-2 sm:mb-5">
-                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-emerald-500/10"><Activity className="h-4 w-4 text-emerald-400" /></div>
-                <h2 className="text-sm font-semibold text-surface-200">Repository Health</h2>
-              </div>
-              <div className="h-full min-h-[240px] sm:min-h-[280px] flex items-center justify-center">
-                <HealthScore score={repositoryHealth.score} level={repositoryHealth.level} metrics={repositoryHealth.metrics} />
-              </div>
-            </motion.div>
-
-            {/* Code Quality */}
-            <motion.div variants={itemVariants} className="rounded-2xl border border-surface-800 bg-surface-900 p-4 sm:p-6 min-h-[320px] sm:min-h-[360px]">
-              <div className="mb-4 flex items-center gap-2 sm:mb-5">
-                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-purple-500/10"><Star className="h-4 w-4 text-purple-400" /></div>
-                <div className="min-w-0">
-                  <h2 className="text-sm font-semibold text-surface-200">Code Quality</h2>
-                  <p className="truncate text-[10px] text-surface-400">Across your entire codebase</p>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <QualityMetricBar
-                  icon={Shield} label="Security" value={quality.securityIssues === 0 ? 100 : Math.max(0, 100 - quality.securityIssues * 15)} max={100}
-                  color="text-rose-400" status={securityStatus}
-                />
-                <QualityMetricBar
-                  icon={Bug} label="Stability" value={quality.bugCount === 0 ? 100 : Math.max(0, 100 - quality.bugCount * 10)} max={100}
-                  color="text-amber-400" status={bugStatus}
-                />
-                <QualityMetricBar
-                  icon={Star} label="Code Review" value={quality.reviewScore} max={100}
-                  color="text-blue-400" status={reviewStatus}
-                />
-                <QualityMetricBar
-                  icon={BookOpen} label="Documentation" value={quality.documentationCoverage} max={100}
-                  color="text-indigo-400" status={docStatus}
+            <motion.div
+              variants={itemVariants}
+              className={`${panel} min-h-[300px] sm:min-h-[340px]`}
+            >
+              <PanelHeading icon={Activity} title="Repository Health" />
+              <div className="flex h-full min-h-[220px] items-center justify-center sm:min-h-[260px]">
+                <HealthScore
+                  score={repositoryHealth.score}
+                  level={repositoryHealth.level}
+                  metrics={repositoryHealth.metrics}
                 />
               </div>
             </motion.div>
           </div>
 
-          {/* ── Bottom Row ──── */}
-          <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
-            {/* Lines of Code */}
-            <motion.div variants={itemVariants} className="rounded-2xl border border-surface-800 bg-surface-900 p-4 sm:p-6 min-h-[320px] sm:min-h-[380px]">
-              <div className="mb-4 flex items-center gap-2 sm:mb-5">
-                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-blue-500/10"><FileCode className="h-4 w-4 text-blue-400" /></div>
-                <h2 className="text-sm font-semibold text-surface-200">Lines of Code by Language</h2>
+          {/* ── Lines of code ───────────────────── */}
+          <motion.div variants={itemVariants} className={`${panel} min-h-[300px] sm:min-h-[360px]`}>
+            <PanelHeading icon={FileCode} title="Lines of Code by Language" />
+            <div className="mb-4 rounded-lg border border-surface-800 bg-surface-900/60 p-4 sm:mb-5">
+              <p className="text-2xl font-semibold tabular-nums tracking-tight text-surface-100">
+                {linesOfCode.total.toLocaleString()}
+              </p>
+              <p className="mt-1 text-[11px] text-surface-400">
+                Estimated across {languages.length} languages and {overview.indexedRepos} indexed
+                repos
+              </p>
+            </div>
+            {locBarData.length > 0 ? (
+              <div className="h-[200px] sm:h-[240px]">
+                <InteractiveBarChart data={locBarData} height={200} />
               </div>
-              <div className="mb-5 rounded-xl border border-blue-500/20 bg-blue-500/10 p-4 sm:mb-6">
-                <p className="text-2xl font-bold tracking-tight text-surface-100 sm:text-3xl">{linesOfCode.total.toLocaleString()}</p>
-                <p className="mt-1 text-xs text-surface-400">Estimated lines of code across all indexed repositories</p>
+            ) : (
+              <div className="flex h-[200px] flex-col items-center justify-center rounded-lg border border-dashed border-surface-800 text-center sm:h-[240px]">
+                <p className="text-xs text-surface-400">No code indexed yet</p>
+                <p className="mt-1 text-[11px] text-surface-500">
+                  Import a repository to estimate its lines of code.
+                </p>
               </div>
-              {locBarData.length > 0 && (
-                <div className="h-[200px] sm:h-[240px]">
-                  <InteractiveBarChart data={locBarData} height={200} />
-                </div>
-              )}
-            </motion.div>
-
-            {/* Activity Summary */}
-            <motion.div variants={itemVariants} className="rounded-2xl border border-surface-800 bg-surface-900 p-4 sm:p-6 min-h-[320px] sm:min-h-[380px]">
-              <div className="mb-4 flex items-center gap-2 sm:mb-5">
-                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-amber-500/10"><TrendingUp className="h-4 w-4 text-amber-400" /></div>
-                <h2 className="text-sm font-semibold text-surface-200">Activity Summary</h2>
-              </div>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
-                <div className="group rounded-xl border border-blue-500/20 bg-blue-500/10 p-4 transition-all hover:border-blue-500/40">
-                  <div className="mb-3 flex items-center justify-between">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/20 transition-transform group-hover:scale-110 sm:h-10 sm:w-10"><Database className="h-4 w-4 sm:h-5 sm:w-5 text-blue-400" /></div>
-                    <span className="rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] font-medium text-blue-400">Indexing</span>
-                  </div>
-                  <p className="text-2xl font-bold text-blue-100 sm:text-3xl">{activity.recentIndexes}</p>
-                  <p className="mt-1 text-xs text-surface-400">Repositories indexed</p>
-                </div>
-                <div className="group rounded-xl border border-purple-500/20 bg-purple-500/10 p-4 transition-all hover:border-purple-500/40">
-                  <div className="mb-3 flex items-center justify-between">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-500/20 transition-transform group-hover:scale-110 sm:h-10 sm:w-10"><BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 text-purple-400" /></div>
-                    <span className="rounded-full bg-purple-500/10 px-2 py-0.5 text-[10px] font-medium text-purple-400">AI</span>
-                  </div>
-                  <p className="text-2xl font-bold text-purple-100 sm:text-3xl">{activity.totalAiQueries}</p>
-                  <p className="mt-1 text-xs text-surface-400">AI operations performed</p>
-                </div>
-                <div className="group rounded-xl border border-amber-500/20 bg-amber-500/10 p-4 transition-all hover:border-amber-500/40">
-                  <div className="mb-3 flex items-center justify-between">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/20 transition-transform group-hover:scale-110 sm:h-10 sm:w-10"><Star className="h-4 w-4 sm:h-5 sm:w-5 text-amber-400" /></div>
-                    <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-400">Quality</span>
-                  </div>
-                  <p className="text-2xl font-bold text-amber-100 sm:text-3xl">{activity.avgReviewScore}<span className="text-base text-surface-400 sm:text-lg">/100</span></p>
-                  <p className="mt-1 text-xs text-surface-400">Average review score</p>
-                </div>
-                <div className="group rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 transition-all hover:border-emerald-500/40">
-                  <div className="mb-3 flex items-center justify-between">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/20 transition-transform group-hover:scale-110 sm:h-10 sm:w-10"><GitCommit className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-400" /></div>
-                    <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-400">Engagement</span>
-                  </div>
-                  <p className="text-2xl font-bold text-emerald-100 sm:text-3xl">{activity.activityScore.toLocaleString()}</p>
-                  <p className="mt-1 text-xs text-surface-400">Stars, forks, and issues across all repositories</p>
-                </div>
-              </div>
-            </motion.div>
-          </div>
+            )}
+          </motion.div>
         </motion.div>
       </div>
     </div>

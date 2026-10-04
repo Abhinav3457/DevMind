@@ -1,6 +1,7 @@
 import { Doughnut } from 'react-chartjs-2';
 import { Chart as ChartJS, ArcElement, Tooltip } from 'chart.js';
 import { motion } from 'framer-motion';
+import { useChartSurface } from '../../hooks/useChartAccent';
 
 ChartJS.register(ArcElement, Tooltip);
 
@@ -18,6 +19,7 @@ interface BreakdownDoughnutProps {
 
 /** Generic doughnut with a custom legend and centered total. */
 export function BreakdownDoughnut({ slices, centerValue, centerLabel }: BreakdownDoughnutProps) {
+  const surface = useChartSurface();
   const nonEmpty = slices.filter((s) => s.value > 0);
   const total = nonEmpty.reduce((sum, s) => sum + s.value, 0);
 
@@ -36,7 +38,7 @@ export function BreakdownDoughnut({ slices, centerValue, centerLabel }: Breakdow
       {
         data: nonEmpty.map((s) => s.value),
         backgroundColor: nonEmpty.map((s) => `${s.color}cc`),
-        borderColor: 'rgb(var(--surface-900))',
+        borderColor: surface(900),
         borderWidth: 3,
         hoverBackgroundColor: nonEmpty.map((s) => s.color),
         hoverBorderWidth: 0,
@@ -52,10 +54,10 @@ export function BreakdownDoughnut({ slices, centerValue, centerLabel }: Breakdow
     plugins: {
       legend: { display: false },
       tooltip: {
-        backgroundColor: 'rgb(var(--surface-900))',
-        titleColor: 'rgb(var(--surface-100))',
-        bodyColor: 'rgb(var(--surface-300))',
-        borderColor: 'rgb(var(--surface-700))',
+        backgroundColor: surface(900),
+        titleColor: surface(100),
+        bodyColor: surface(300),
+        borderColor: surface(700),
         borderWidth: 1,
         padding: { top: 10, bottom: 10, left: 14, right: 14 },
         cornerRadius: 10,
@@ -69,7 +71,12 @@ export function BreakdownDoughnut({ slices, centerValue, centerLabel }: Breakdow
         },
       },
     },
-    animation: { animateRotate: true, animateScale: true, duration: 1000, easing: 'easeOutQuart' as const },
+    animation: {
+      animateRotate: true,
+      animateScale: true,
+      duration: 1000,
+      easing: 'easeOutQuart' as const,
+    },
   };
 
   return (
@@ -77,11 +84,13 @@ export function BreakdownDoughnut({ slices, centerValue, centerLabel }: Breakdow
       <div className="relative h-32 w-32 flex-shrink-0">
         <Doughnut data={data} options={options} />
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-xl font-bold tabular-nums text-surface-100">
+          <span className="text-xl font-semibold tabular-nums text-surface-100">
             {(centerValue ?? total).toLocaleString()}
           </span>
           {centerLabel && (
-            <span className="text-[9px] font-semibold uppercase tracking-wider text-surface-500">{centerLabel}</span>
+            <span className="text-[9px] font-semibold uppercase tracking-wider text-surface-500">
+              {centerLabel}
+            </span>
           )}
         </div>
       </div>
@@ -97,8 +106,13 @@ export function BreakdownDoughnut({ slices, centerValue, centerLabel }: Breakdow
               transition={{ delay: 0.25 + i * 0.06 }}
               className="flex items-center gap-2"
             >
-              <span className="h-2 w-2 flex-shrink-0 rounded-full" style={{ backgroundColor: slice.color }} />
-              <span className="min-w-0 flex-1 truncate text-xs capitalize text-surface-300">{slice.label}</span>
+              <span
+                className="h-2 w-2 flex-shrink-0 rounded-full"
+                style={{ backgroundColor: slice.color }}
+              />
+              <span className="min-w-0 flex-1 truncate text-xs capitalize text-surface-300">
+                {slice.label}
+              </span>
               <span className="text-xs font-semibold tabular-nums text-surface-200">{pct}%</span>
             </motion.div>
           );

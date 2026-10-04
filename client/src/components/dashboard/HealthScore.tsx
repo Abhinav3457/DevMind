@@ -12,34 +12,10 @@ interface HealthScoreProps {
 }
 
 const levelConfig = {
-  excellent: { 
-    color: 'text-emerald-400', 
-    ring: 'stroke-emerald-400',
-    bg: 'bg-emerald-500/10', 
-    label: 'Excellent',
-    gradient: 'from-emerald-500 to-emerald-400'
-  },
-  good: { 
-    color: 'text-blue-400', 
-    ring: 'stroke-blue-400',
-    bg: 'bg-blue-500/10', 
-    label: 'Good',
-    gradient: 'from-blue-500 to-blue-400'
-  },
-  fair: { 
-    color: 'text-amber-400', 
-    ring: 'stroke-amber-400',
-    bg: 'bg-amber-500/10', 
-    label: 'Fair',
-    gradient: 'from-amber-500 to-amber-400'
-  },
-  poor: { 
-    color: 'text-rose-400', 
-    ring: 'stroke-rose-400',
-    bg: 'bg-rose-500/10', 
-    label: 'Poor',
-    gradient: 'from-rose-500 to-rose-400'
-  },
+  excellent: { color: 'text-emerald-400', ring: 'stroke-emerald-400', label: 'Excellent' },
+  good: { color: 'text-blue-400', ring: 'stroke-blue-400', label: 'Good' },
+  fair: { color: 'text-amber-400', ring: 'stroke-amber-400', label: 'Fair' },
+  poor: { color: 'text-rose-400', ring: 'stroke-rose-400', label: 'Poor' },
 };
 
 const radius = 54;
@@ -63,93 +39,83 @@ export function HealthScore({ score, level, metrics }: HealthScoreProps) {
   ];
 
   return (
-    <div className="space-y-6">
-      {/* Score Circle Section */}
-      <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:items-center sm:gap-6 sm:text-left">
-        <div className="relative flex h-24 w-24 flex-shrink-0 items-center justify-center sm:h-32 sm:w-32">
-          <svg className="absolute h-24 w-24 -rotate-90 sm:h-32 sm:w-32" viewBox="0 0 120 120">
-            {/* Track */}
-            <circle 
-              cx="60" cy="60" r={radius} 
-              fill="none" 
-              stroke="url(#trackGradient)" 
-              strokeWidth="10" 
-            />
-            {/* Progress */}
-            <motion.circle
-              cx="60" cy="60" r={radius}
+    <div className="w-full space-y-6">
+      {/* Score circle */}
+      <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:gap-5 sm:text-left">
+        <div className="relative flex h-24 w-24 flex-shrink-0 items-center justify-center sm:h-28 sm:w-28">
+          <svg className="absolute h-24 w-24 -rotate-90 sm:h-28 sm:w-28" viewBox="0 0 120 120">
+            <circle
+              cx="60"
+              cy="60"
+              r={radius}
               fill="none"
-              stroke={`url(#progressGradient-${level})`}
-              strokeWidth="10"
+              stroke="rgb(var(--surface-800))"
+              strokeWidth="8"
+            />
+            <motion.circle
+              cx="60"
+              cy="60"
+              r={radius}
+              fill="none"
+              strokeWidth="8"
               strokeLinecap="round"
               strokeDasharray={circumference}
+              className={config.ring}
               initial={{ strokeDashoffset: circumference }}
               animate={{ strokeDashoffset: offset }}
-              transition={{ duration: 1.8, ease: [0.25, 0.46, 0.45, 0.94] }}
+              transition={{ duration: 1.4, ease: [0.25, 0.46, 0.45, 0.94] }}
             />
-            {/* Gradient definitions */}
-            <defs>
-              <linearGradient id="trackGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="rgb(var(--surface-700))" />
-                <stop offset="100%" stopColor="rgb(var(--surface-900))" />
-              </linearGradient>
-              <linearGradient id={`progressGradient-${level}`} x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor={level === 'excellent' ? '#34d399' : level === 'good' ? '#60a5fa' : level === 'fair' ? '#fbbf24' : '#fb7185'} />
-                <stop offset="100%" stopColor={level === 'excellent' ? '#10b981' : level === 'good' ? '#3b82f6' : level === 'fair' ? '#f59e0b' : '#f43f5e'} />
-              </linearGradient>
-            </defs>
           </svg>
-          
+
           <div className="z-10 text-center">
-            <motion.p 
-              className={`text-2xl font-bold sm:text-3xl ${config.color}`}
-              initial={{ opacity: 0, scale: 0.5 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.5, duration: 0.5 }}
+            <motion.p
+              className="text-2xl font-semibold tabular-nums text-surface-100 sm:text-3xl"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.4, duration: 0.4 }}
             >
               {score}
             </motion.p>
-            <p className="text-[10px] font-medium text-surface-400">/ 100</p>
+            <p className="text-[10px] text-surface-500">/ 100</p>
           </div>
         </div>
-        
-        <div className="space-y-2">
-          <p className="text-base font-bold text-surface-100 sm:text-lg">Repository Health</p>
-          <div className={`inline-flex items-center gap-2 rounded-full px-3 py-1 ${config.bg}`}>
-            <div className={`h-2 w-2 rounded-full bg-gradient-to-r ${config.gradient}`} />
-            <span className={`text-sm font-semibold ${config.color}`}>{config.label}</span>
-          </div>
-          <p className="max-w-[220px] text-xs leading-relaxed text-surface-400">
+
+        <div className="space-y-1.5">
+          <p className={`text-sm font-semibold ${config.color}`}>{config.label}</p>
+          <p className="max-w-[220px] text-[11px] leading-relaxed text-surface-400">
             Derived from indexing completeness and documentation coverage
           </p>
         </div>
       </div>
 
-      {/* Metrics Bars */}
+      {/* Metric bars */}
       <div className="space-y-4">
-        {bars.map((bar, index) => (
-          <motion.div 
-            key={bar.label}
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.6 + index * 0.1 }}
+        {bars.map((metric, index) => (
+          <motion.div
+            key={metric.label}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4 + index * 0.08 }}
           >
-            <div className="mb-2 flex items-center justify-between">
-              <span className="text-xs font-medium text-surface-300">{bar.label}</span>
-              <span className="text-xs font-semibold text-surface-200">
-                {bar.value} <span className="text-surface-400">({bar.percent}%)</span>
+            <div className="mb-1.5 flex items-center justify-between">
+              <span className="text-[11px] text-surface-400">{metric.label}</span>
+              <span className="text-[11px] tabular-nums text-surface-300">
+                {metric.value}
+                <span className="ml-1 text-surface-500">({metric.percent}%)</span>
               </span>
             </div>
-            <div className="h-2 rounded-full bg-surface-800 overflow-hidden">
+            <div className="h-1 overflow-hidden rounded-full bg-surface-800">
               <motion.div
-                className={`h-full rounded-full bg-gradient-to-r ${
-                  bar.percent > 70 ? 'from-emerald-500 to-emerald-400' : 
-                  bar.percent > 40 ? 'from-blue-500 to-blue-400' : 
-                  'from-amber-500 to-amber-400'
+                className={`h-full rounded-full ${
+                  metric.percent > 70
+                    ? 'bg-emerald-500'
+                    : metric.percent > 40
+                      ? 'bg-blue-500'
+                      : 'bg-amber-500'
                 }`}
                 initial={{ width: 0 }}
-                animate={{ width: bar.percent + '%' }}
-                transition={{ duration: 1, delay: 0.8 + index * 0.1, ease: 'easeOut' }}
+                animate={{ width: metric.percent + '%' }}
+                transition={{ duration: 0.8, delay: 0.5 + index * 0.08, ease: 'easeOut' }}
               />
             </div>
           </motion.div>
