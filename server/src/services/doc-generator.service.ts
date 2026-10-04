@@ -1,7 +1,9 @@
+import mongoose from 'mongoose';
 import IndexReport from '../models/IndexReport';
 import IndexedFile from '../models/IndexedFile';
 import IndexedChunk from '../models/IndexedChunk';
 import ImportedRepository from '../models/ImportedRepository';
+import GeneratedDoc from '../models/GeneratedDoc';
 import { generatorService } from '../doc-generator/generator.service';
 import { DocType } from '../doc-generator/generator.service';
 import { logActivity } from './activity.service';
@@ -30,6 +32,15 @@ interface GenerateResult {
   content: string;
   documentType: DocType;
   fileName: string;
+}
+
+interface SaveHistoryInput {
+  userId: string;
+  type: string;
+  fileName: string;
+  content: string;
+  context?: string;
+  reportId?: string | null;
 }
 
 export class DocGeneratorService {
@@ -177,6 +188,91 @@ export class DocGeneratorService {
     }
 
     return result;
+  }
+
+  // ─── Generation History ───────────────────────────────────
+
+  /** Persist a generated document (best-effort — never break the response). */
+  async saveHistory(input: SaveHistoryInput): Promise<void> {
+    try {
+      await GeneratedDoc.create({
+        userId: input.userId,
+        type: input.type,
+        fileName: input.fileName,
+        content: input.content,
+        context: input.context || '',
+        reportId: input.reportId || null,
+      });
+    } catch (error) {
+      logger.error('DocGenerator: Failed to save history', error);
+    }
+  }
+
+  async listHistory(
+    userId: string,
+    options: { page?: number; limit?: number } = {},
+  ): Promise<{
+    documents: {
+      id: string;
+      type: string;
+      fileName: string;
+      context: string;
+      createdAt: Date | undefined;
+    }[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const page = options.page || 1;
+    const limit = Math.min(options.limit || 20, 50);
+    const skip = (page - 1) * limit;
+
+    const [docs, total] = await Promise.all([
+      GeneratedDoc.find({ userId }).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+      GeneratedDoc.countDocuments({ userId }),
+    ]);
+
+    return {
+      documents: docs.map((doc) => ({
+        id: (doc._id as mongoose.Types.ObjectId).toString(),
+        type: doc.type,
+        fileName: doc.fileName || '',
+        context: doc.context || '',
+        createdAt: doc.createdAt,
+      })),
+      total,
+      page,
+      limit,
+    };
+  }
+
+  async getHistoryDetail(
+    userId: string,
+    id: string,
+  ): Promise<{
+    id: string;
+    type: string;
+    fileName: string;
+    context: string;
+    content: string;
+    createdAt: Date | undefined;
+  }> {
+    const doc = await GeneratedDoc.findOne({ _id: id, userId }).lean();
+    if (!doc) {
+      throw new ApiError(404, 'Generated document not found');
+    }
+    return {
+      id: (doc._id as mongoose.Types.ObjectId).toString(),
+      type: doc.type,
+      fileName: doc.fileName || '',
+      context: doc.context || '',
+      content: doc.content || '',
+      createdAt: doc.createdAt,
+    };
+  }
+
+  async deleteHistory(userId: string, id: string): Promise<void> {
+    await GeneratedDoc.deleteOne({ _id: id, userId });
   }
 
   getAvailableTypes(): { type: DocType; label: string; description: string }[] {

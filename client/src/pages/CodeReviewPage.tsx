@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Bug, Loader2, Code2, BookOpen, Brain, Wand2, Sparkles, AlertCircle, ExternalLink, Database, Clock, Trash2, Link2 } from 'lucide-react';
+import { Bug, Loader2, Code2, BookOpen, Brain, Wand2, AlertCircle, ExternalLink, Database, Clock, Trash2, Link2 } from 'lucide-react';
 import apiClient from '../api/axios';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
@@ -29,152 +29,9 @@ interface HistoryItem {
   createdAt: string;
 }
 
-/**
- * Detect programming language from code content using keyword and pattern matching.
- * Returns a monaco-compatible language ID.
- */
-function detectLanguage(code: string): string {
-  const trimmed = code.trim();
-  if (!trimmed) return 'typescript';
-
-  // Heuristics sorted by specificity
-  const patterns: [RegExp, string][] = [
-    // JSX/TSX — MUST run before the HTML tag pattern so JSX with <div> etc.
-    // isn't misdetected as HTML
-    [/(?:import\s+React|from\s+['"]react['"])/m, 'tsx'],
-    [/\b(?:className|onClick|onChange|useState|useEffect|useRef|useCallback|useMemo|return\s*\(?\s*<)/, 'tsx'],
-    [/(?:export\s+(?:default\s+)?(?:const|function|class)\s+\w+[\s\S]*?(?:=>\s*\(?\s*<|render\s*\(\s*\)\s*\{))/m, 'tsx'],
-    // HTML/XML
-    [/^<!DOCTYPE html/i, 'html'],
-    [/<(html|body|head|meta|link|script|style|table)\b[^>]*>/i, 'html'],
-    [/<\/(html|body|head)\s*>/i, 'html'],
-    // TypeScript
-    [/\b(?:interface|type|as\s+\w+|: string|: number|: boolean|: any|: void|: Record<|: Partial<|: Pick<|: Omit<|: Promise<)\b/, 'typescript'],
-    [/\b(const|let|var)\s+\w+\s*:\s*\w+/s, 'typescript'],
-    // JavaScript
-    [/^import\s+.*\s+from\s+['"]/m, 'javascript'],
-    [/\b(?:module\.exports|require\s*\(|export\s+default|export\s+const\s+\w+\s*=\s*\(|=>\s*{)/, 'javascript'],
-    [/\b(?:const|let|var)\s+\w+\s*=\s*(?:require|import)\s*\(/m, 'javascript'],
-    // Python
-    [/^import\s+\w+/m, 'python'],
-    [/^from\s+\w+\s+import\s+/m, 'python'],
-    [/\b(?:def\s+\w+\s*\(|class\s+\w+\s*:|print\s*\(|if\s+__name__\s*==\s*['"]__main__['"])/, 'python'],
-    [/\b(?:self\s*[.,]|@(?:staticmethod|classmethod|property)\b)/, 'python'],
-    // CSS/SCSS
-    [/[.#]\w+\s*\{[^}]*\}[.\w\s,#]*\{/s, 'css'],
-    [/^\s*[.#]?\w[\w-]*\s*\{/m, 'css'],
-    [/@(?:import|media|keyframes|mixin|include|extend)\s/m, 'scss'],
-    // JSON
-    [/^\s*\{[\s\S]*"[\w]+"\s*:[\s\S]*\}\s*$/, 'json'],
-    // SQL
-    [/\b(?:SELECT|FROM|WHERE|INSERT|UPDATE|DELETE|CREATE|ALTER|DROP|JOIN|INNER|LEFT|RIGHT|GROUP BY|ORDER BY)\s/i, 'sql'],
-    // Bash
-    [/^#!/m, 'bash'],
-    [/\b(?:npm|yarn|pnpm|echo|curl|wget|grep|sed|awk|chmod|sudo|apt|yum|brew)\s+/, 'bash'],
-    // Markdown
-    [/^#{1,6}\s/m, 'markdown'],
-    [/\*\*[\w\s]+\*\*|__[\w\s]+__/m, 'markdown'],
-    // Go
-    [/\b(?:func\s+\w+|package\s+\w+|import\s+\(|fmt\.Print|defer\s+)/, 'go'],
-    // Rust
-    [/\b(?:fn\s+\w+|let\s+mut\s+|impl\s+|pub\s+(?:fn|struct|enum|trait))\b/, 'rust'],
-    // Java
-    [/\b(?:public\s+(?:class|void|static)|private\s+\w+\s+\w+\s*\(|System\.out\.print|@Override)\b/, 'java'],
-    // C# / CSharp
-    [/\b(?:using\s+System|namespace\s+\w+|Console\.(?:WriteLine|ReadLine)|class\s+\w+\s*:\s*\w+)\b/, 'csharp'],
-    // C / C++
-    [/#include\s*[<"].*[>"]/m, 'cpp'],
-    [/\b(?:int\s+main\s*\(|printf\s*\(|cout\s*<<|std::)/, 'cpp'],
-    // YAML
-    [/^[\w-]+:\s/m, 'yaml'],
-    [/^---\s*$/m, 'yaml'],
-    // Dockerfile
-    [/^FROM\s+\w+/im, 'dockerfile'],
-    [/^RUN\s+/im, 'dockerfile'],
-    // GraphQL
-    [/\b(?:type\s+\w+\s*\{|query\s+\w+\s*\{|mutation\s+\w+\s*\{|scalar\s+)/, 'graphql'],
-  ];
-
-  for (const [regex, lang] of patterns) {
-    if (regex.test(trimmed)) return lang;
-  }
-
-  // Generic HTML tag check — runs AFTER the JSX/TSX patterns above so that
-  // React/JSX snippets (which contain <div>, <span>, etc.) are not classified
-  // as HTML. Only plain HTML with a couple of tags reaches this point.
-  const tagMatches = (trimmed.match(/<\/?[a-z][a-z0-9-]*\b[^>]*>/gi) || []).length;
-  if (tagMatches >= 2) return 'html';
-
-  // Fallback: check for common keywords
-  if (/\b(function|console\.log|async|await|Promise|new Promise|Array\.from|Object\.keys|try\s*{|catch\s*\()/s.test(trimmed)) return 'javascript';
-  if (/\b(public|private|protected|class\s+\w+\s*extends|static\s+void)\b/.test(trimmed)) return 'java';
-  if (/\b(def\s+\w+|class\s+\w+:|import\s+\w+\s*$|print\s*\()/m.test(trimmed)) return 'python';
-
-  return 'typescript';
-}
-
-/**
- * Map our internal language IDs to Monaco-compatible ones.
- */
-function toMonacoLanguage(lang: string): string {
-  const map: Record<string, string> = {
-    jsx: 'javascript',
-    tsx: 'typescript',
-    cpp: 'cpp',
-    csharp: 'csharp',
-    scss: 'scss',
-    yaml: 'yaml',
-    dockerfile: 'dockerfile',
-    graphql: 'graphql',
-    sql: 'sql',
-    bash: 'bash',
-    go: 'go',
-    rust: 'rust',
-    java: 'java',
-    json: 'json',
-    markdown: 'markdown',
-    python: 'python',
-    html: 'html',
-    css: 'css',
-    javascript: 'javascript',
-    typescript: 'typescript',
-  };
-  return map[lang] || 'typescript';
-}
-
-/**
- * Map internal language IDs to extensions for the server.
- */
-function toExtension(lang: string): string {
-  const map: Record<string, string> = {
-    typescript: 'ts',
-    javascript: 'js',
-    python: 'py',
-    jsx: 'jsx',
-    tsx: 'tsx',
-    html: 'html',
-    css: 'css',
-    json: 'json',
-    markdown: 'md',
-    bash: 'sh',
-    sql: 'sql',
-    go: 'go',
-    rust: 'rs',
-    java: 'java',
-    csharp: 'cs',
-    cpp: 'cpp',
-    scss: 'scss',
-    yaml: 'yml',
-    dockerfile: 'Dockerfile',
-    graphql: 'graphql',
-  };
-  return map[lang] || 'ts';
-}
-
 export function CodeReviewPage() {
   const [mode, setMode] = useState<'snippet' | 'repo' | 'history'>('snippet');
   const [code, setCode] = useState('');
-  const [detectedLang, setDetectedLang] = useState('typescript');
   const [review, setReview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [score, setScore] = useState<number | null>(null);
@@ -255,18 +112,8 @@ export function CodeReviewPage() {
   };
 
   const handleCodeChange = useCallback((value: string | undefined) => {
-    const newCode = value || '';
-    setCode(newCode);
-    if (newCode.trim()) {
-      setDetectedLang(detectLanguage(newCode));
-    }
+    setCode(value || '');
   }, []);
-
-  // All languages the detector can return AND the server validator accepts.
-  const supportedLanguages = [
-    'typescript', 'javascript', 'python', 'jsx', 'tsx', 'html', 'css', 'json', 'markdown',
-    'go', 'rust', 'java', 'csharp', 'cpp', 'scss', 'yaml', 'dockerfile', 'graphql', 'sql', 'bash',
-  ];
 
   const handleReviewSnippet = async () => {
     if (!code.trim()) { toast.error('Please enter some code to review'); return; }
@@ -274,12 +121,10 @@ export function CodeReviewPage() {
     setReview(null);
     setScore(null);
     try {
-      // Only send languages the server supports — fall back to typescript for unknown ones
-      const safeLang = supportedLanguages.includes(detectedLang) ? detectedLang : 'typescript';
       const res = await apiClient.post('/ai/code-review/review', {
         code,
-        language: safeLang,
-        fileName: 'input.' + toExtension(safeLang),
+        language: 'typescript',
+        fileName: 'input.ts',
       });
       const data = res.data.data;
       if (data) {
@@ -317,36 +162,6 @@ export function CodeReviewPage() {
   };
 
   const handleReview = mode === 'snippet' ? handleReviewSnippet : handleReviewRepo;
-
-  const examples = [
-    { label: 'TypeScript', code: 'interface User {\n  id: string;\n  name: string;\n  email: string;\n}\n\nfunction greet(user: User): string {\n  return `Hello, ${user.name}!`;\n}' },
-    { label: 'React', code: 'function App() {\n  const [data, setData] = useState(null);\n  useEffect(() => { fetchData().then(setData); }, []);\n  return <div>{data}</div>;\n}' },
-    { label: 'Python', code: 'def fibonacci(n: int) -> list:\n    """Generate Fibonacci sequence up to n."""\n    fib = [0, 1]\n    while fib[-1] + fib[-2] <= n:\n        fib.append(fib[-1] + fib[-2])\n    return fib' },
-    { label: 'HTML', code: '<!DOCTYPE html>\n<html lang="en">\n<head>\n  <meta charset="UTF-8">\n  <title>My Page</title>\n</head>\n<body>\n  <h1>Hello World</h1>\n</body>\n</html>' },
-  ];
-
-  const langColors: Record<string, string> = {
-    typescript: 'bg-blue-500/10 text-blue-400',
-    javascript: 'bg-yellow-500/10 text-yellow-400',
-    python: 'bg-green-500/10 text-green-400',
-    tsx: 'bg-cyan-500/10 text-cyan-400',
-    jsx: 'bg-cyan-500/10 text-cyan-400',
-    html: 'bg-orange-500/10 text-orange-400',
-    css: 'bg-pink-500/10 text-pink-400',
-    json: 'bg-emerald-500/10 text-emerald-400',
-    bash: 'bg-gray-500/10 text-gray-400',
-    sql: 'bg-amber-500/10 text-amber-400',
-    go: 'bg-sky-500/10 text-sky-400',
-    rust: 'bg-red-500/10 text-red-400',
-    java: 'bg-orange-500/10 text-orange-400',
-    csharp: 'bg-purple-500/10 text-purple-400',
-    cpp: 'bg-indigo-500/10 text-indigo-400',
-    markdown: 'bg-gray-500/10 text-gray-400',
-    yaml: 'bg-red-500/10 text-red-400',
-    graphql: 'bg-pink-500/10 text-pink-400',
-    dockerfile: 'bg-sky-500/10 text-sky-400',
-    scss: 'bg-pink-500/10 text-pink-400',
-  };
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex h-full min-h-0 flex-col gap-4 overflow-x-hidden overflow-y-auto pb-1 sm:gap-6">
@@ -497,12 +312,6 @@ export function CodeReviewPage() {
                     <Wand2 className="h-4 w-4 text-primary-400" />
                     Paste your code
                   </label>
-                  {code.trim() && (
-                    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${langColors[detectedLang] || 'bg-surface-800 text-surface-400'}`}>
-                      <Code2 className="h-3 w-3" />
-                      {detectedLang}
-                    </span>
-                  )}
                 </div>
                 {/* Definite height (not min-h) is required: the Monaco editor is
                     sized with `height="100%"`, and a percentage height only
@@ -512,7 +321,7 @@ export function CodeReviewPage() {
                 <div className="h-[300px] min-h-[240px] sm:h-[340px] lg:h-[380px] max-h-[60vh] shrink-0 overflow-hidden rounded-xl border border-surface-700 bg-surface-900/30">
                   <Editor
                     height="100%"
-                    language={toMonacoLanguage(detectedLang)}
+                    language="typescript"
                     value={code}
                     onChange={handleCodeChange}
                     theme="vs-dark"
@@ -537,16 +346,8 @@ export function CodeReviewPage() {
                 </div>
                 </div>
                 {!code.trim() && (
-                  <p className="mt-1.5 text-[10px] text-surface-500">Start typing or paste code — the language is detected automatically</p>
+                  <p className="mt-1.5 text-[10px] text-surface-500">Start typing or paste code, then click Review Code</p>
                 )}
-              </div>
-
-              <div className="flex gap-1.5 sm:gap-2 flex-wrap">
-                {examples.map(ex => (
-                  <button key={ex.label} onClick={() => handleCodeChange(ex.code)}
-                    className="flex items-center gap-1 rounded-lg border border-surface-600 bg-surface-800/50 px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs text-surface-400 transition-all hover:border-primary-500/30 hover:text-surface-200 hover:bg-surface-800/80"
-                  ><Sparkles className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-primary-400" />{ex.label}</button>
-                ))}
               </div>
 
               <button onClick={handleReview} disabled={loading || !code.trim()}
@@ -563,7 +364,7 @@ export function CodeReviewPage() {
           <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
             <label className="text-sm font-medium text-surface-200">Review Results</label>
             <div className="flex items-center gap-2 flex-wrap">
-              {code.trim() && detectedLang && (
+              {code.trim() && (
                 <span className="rounded-full bg-surface-800 px-2 py-0.5 text-[10px] text-surface-400">
                   {code.length} chars
                 </span>

@@ -40,10 +40,7 @@ function GlowHeader({ name, updatedLabel, loading, onRefresh }: {
         <div className="min-w-0">
           <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-cyan-400">Workspace</p>
           <h1 className="mt-1 truncate text-xl font-bold tracking-tight text-surface-50 sm:text-2xl">
-            {greeting},{' '}
-            <span className="text-gradient-dashboard">
-              {name}
-            </span>
+            {greeting}, {name}
           </h1>
           <p className="mt-1 truncate text-xs text-surface-400">
             A live, continuous view of your repositories, code quality and AI activity.

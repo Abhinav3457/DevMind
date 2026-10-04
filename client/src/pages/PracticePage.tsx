@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import type { Dispatch, SetStateAction } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Loader2, Play, CheckCircle2, XCircle, AlertCircle, Clock,
@@ -63,6 +64,30 @@ function pickDefaultLanguage(question: LeetCodeQuestion): string {
     if (langs.includes(preferred)) return preferred;
   }
   return langs[0] || 'python3';
+}
+
+const FENCE_LANGUAGES: Record<string, string> = {
+  python3: 'python', python: 'python', javascript: 'javascript', js: 'javascript',
+  typescript: 'typescript', ts: 'typescript', cpp: 'cpp', c: 'c', java: 'java',
+  csharp: 'csharp', golang: 'go', go: 'go', rust: 'rust', ruby: 'ruby',
+  kotlin: 'kotlin', swift: 'swift', php: 'php', dart: 'dart', scala: 'scala',
+};
+
+function dedentCode(code: string): string {
+  const lines = code.replace(/\t/g, '  ').split('\n');
+  const indents = lines
+    .filter((line) => line.trim().length > 0)
+    .map((line) => (line.match(/^ */) as RegExpMatchArray)[0].length);
+  const common = indents.length > 0 ? Math.min(...indents) : 0;
+  if (common === 0) return lines.join('\n');
+  return lines.map((line) => line.slice(common)).join('\n');
+}
+
+function formatReferenceCode(raw: string, language: string): string {
+  const code = raw.replace(/\s+$/, '');
+  if (code.includes('```')) return code;
+  const lang = FENCE_LANGUAGES[language] || 'plaintext';
+  return `\`\`\`${lang}\n${dedentCode(code)}\n\`\`\``;
 }
 
 export function PracticePage() {
@@ -654,8 +679,7 @@ export function PracticePage() {
                   <div className={`shrink-0 overflow-y-auto ${!resultExpanded ? 'max-h-[50vh]' : ''}`}>
                     <ResultPanel
                       result={result}
-                      aiInsightsExpanded={aiInsightsExpanded}
-                      setAiInsightsExpanded={setAiInsightsExpanded}
+                      language={language}
                       resultExpanded={resultExpanded}
                       setResultExpanded={setResultExpanded}
                     />
@@ -781,8 +805,7 @@ export function PracticePage() {
                     <div className="min-h-0 flex-1 overflow-y-auto p-4">
                       <ResultPanel
                         result={result}
-                        aiInsightsExpanded={aiInsightsExpanded}
-                        setAiInsightsExpanded={setAiInsightsExpanded}
+                        language={language}
                         resultExpanded={resultExpanded}
                         setResultExpanded={setResultExpanded}
                       />
@@ -831,9 +854,12 @@ export function PracticePage() {
   );
 }
 
-import { Dispatch, SetStateAction } from 'react';
-
-function ResultPanel({ result, aiInsightsExpanded, setAiInsightsExpanded, resultExpanded, setResultExpanded }: { result: SubmissionResult; aiInsightsExpanded: boolean; setAiInsightsExpanded: Dispatch<SetStateAction<boolean>>; resultExpanded: boolean; setResultExpanded: Dispatch<SetStateAction<boolean>> }) {
+function ResultPanel({ result, language, resultExpanded, setResultExpanded }: {
+  result: SubmissionResult;
+  language: string;
+  resultExpanded: boolean;
+  setResultExpanded: Dispatch<SetStateAction<boolean>>;
+}) {
   const meta = STATUS_META[result.status];
   const { Icon } = meta;
   const accent = STATUS_ACCENT[result.status];
@@ -922,11 +948,16 @@ function ResultPanel({ result, aiInsightsExpanded, setAiInsightsExpanded, result
       )}
 
       {result.improvedCode && (
-        <div>
-          <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-surface-400">
-            <Code2 className="h-3.5 w-3.5" /> Reference solution
-          </p>
-          <MarkdownRenderer content={result.improvedCode.includes('```') ? result.improvedCode : '```\n' + result.improvedCode + '\n```'} />
+        <div className="overflow-hidden rounded-xl border border-surface-700/60 bg-surface-950/40">
+          <div className="flex items-center gap-1.5 border-b border-surface-700/50 bg-surface-800/60 px-3 py-2">
+            <Code2 className="h-3.5 w-3.5 text-primary-400" />
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-surface-300">
+              Reference code
+            </span>
+          </div>
+          <div className="p-2 [&_.code-block-wrapper]:my-0">
+            <MarkdownRenderer content={formatReferenceCode(result.improvedCode, language)} />
+          </div>
         </div>
       )}
     </motion.div>

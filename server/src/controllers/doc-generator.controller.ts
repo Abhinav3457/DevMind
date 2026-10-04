@@ -8,7 +8,16 @@ export class DocGeneratorController {
     const { reportId } = req.params;
     const { type } = req.body;
 
-    const result = await docGeneratorService.generate(reportId, req.user!.userId, type);
+    const userId = req.user!.userId;
+    const result = await docGeneratorService.generate(reportId, userId, type);
+
+    await docGeneratorService.saveHistory({
+      userId,
+      type: result.documentType,
+      fileName: result.fileName,
+      content: result.content,
+      reportId,
+    });
 
     sendSuccess(res, {
       statusCode: 200,
@@ -42,6 +51,14 @@ export class DocGeneratorController {
 
     const result = await generatorService.generate(type, contextInput);
 
+    await docGeneratorService.saveHistory({
+      userId: req.user!.userId,
+      type: result.documentType,
+      fileName: result.fileName,
+      content: result.content,
+      context,
+    });
+
     sendSuccess(res, {
       statusCode: 200,
       message: result.fileName + ' generated successfully',
@@ -60,6 +77,37 @@ export class DocGeneratorController {
       statusCode: 200,
       message: 'Document types retrieved',
       data: { types },
+    });
+  }
+
+  async listHistory(req: Request, res: Response): Promise<void> {
+    const page = parseInt(req.query.page as string, 10) || 1;
+    const limit = parseInt(req.query.limit as string, 10) || 20;
+    const result = await docGeneratorService.listHistory(req.user!.userId, { page, limit });
+
+    sendSuccess(res, {
+      statusCode: 200,
+      message: 'Document history retrieved',
+      data: result,
+    });
+  }
+
+  async getHistory(req: Request, res: Response): Promise<void> {
+    const result = await docGeneratorService.getHistoryDetail(req.user!.userId, req.params.id);
+
+    sendSuccess(res, {
+      statusCode: 200,
+      message: 'Generated document retrieved',
+      data: result,
+    });
+  }
+
+  async deleteHistory(req: Request, res: Response): Promise<void> {
+    await docGeneratorService.deleteHistory(req.user!.userId, req.params.id);
+
+    sendSuccess(res, {
+      statusCode: 200,
+      message: 'Generated document deleted',
     });
   }
 }
