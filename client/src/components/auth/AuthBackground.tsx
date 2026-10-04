@@ -2,27 +2,56 @@ import { useState, useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { LOGIN_SNIPPETS } from './authSnippets';
 import type { CodeSnippets } from './authSnippets';
+import { useUIStore } from '../../store';
 
-const TYPE_INTERVAL = 32;
-const PAUSE_AFTER_DONE = 2200;
+const TYPE_INTERVAL = 16;
+const CHUNK = 3;
+const PAUSE_AFTER_DONE = 2000;
+const MAX_LINES = 50;
 const MONO_FONT =
   'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace';
 
-const COLORS = {
-  base: '#5b6070',
-  keyword: '#a78bfa',
-  string: '#6ee7b7',
-  comment: '#4a5163',
-  prompt: '#6ee7b7',
-  fn: '#60a5fa',
-  lineNumber: '#2a2c3a',
-  cursor: '#60a5fa',
+type Palette = {
+  base: string;
+  keyword: string;
+  string: string;
+  comment: string;
+  fn: string;
+  lineNumber: string;
+  cursor: string;
+};
+
+/* Muted tones so the code reads as ambient depth, not decoration */
+const DARK_PALETTE: Palette = {
+  base: 'rgba(148,163,184,0.55)',
+  keyword: 'rgba(129,140,248,0.75)',
+  string: 'rgba(110,231,183,0.6)',
+  comment: 'rgba(100,116,139,0.5)',
+  fn: 'rgba(96,165,250,0.7)',
+  lineNumber: 'rgba(100,116,139,0.4)',
+  cursor: 'rgba(96,165,250,0.85)',
+};
+
+/* Deeper, higher-alpha tones so the same code stays visible on light pages */
+const LIGHT_PALETTE: Palette = {
+  base: 'rgba(71,85,105,0.62)',
+  keyword: 'rgba(79,70,229,0.6)',
+  string: 'rgba(5,150,105,0.55)',
+  comment: 'rgba(100,116,139,0.55)',
+  fn: 'rgba(37,99,235,0.6)',
+  lineNumber: 'rgba(100,116,139,0.55)',
+  cursor: 'rgba(37,99,235,0.8)',
 };
 
 const TOKEN_RE =
   /('[^']*'|"[^"]*")|\b(const|let|var|await|async|function|return|if|else|for|while|new|import|from|export|class|typeof|this|of|in)\b|^(\$)|\b([A-Za-z_$][\w$]*)(?=\s*\()/g;
 
-function highlightLine(line: string): ReactNode[] {
+function windowLines(s: string) {
+  const lines = s.split('\n');
+  return lines.length > MAX_LINES ? lines.slice(-MAX_LINES).join('\n') : s;
+}
+
+function highlightLine(line: string, colors: Palette): ReactNode[] {
   let commentAt = -1;
   let quote: string | null = null;
 
@@ -53,13 +82,7 @@ function highlightLine(line: string): ReactNode[] {
 
   while ((m = TOKEN_RE.exec(code)) !== null) {
     if (m.index > last) nodes.push(code.slice(last, m.index));
-    const color = m[1]
-      ? COLORS.string
-      : m[2]
-        ? COLORS.keyword
-        : m[3]
-          ? COLORS.prompt
-          : COLORS.fn;
+    const color = m[1] ? colors.string : m[2] ? colors.keyword : m[3] ? colors.comment : colors.fn;
     nodes.push(
       <span key={`t${key++}`} style={{ color }}>
         {m[0]}
@@ -71,7 +94,7 @@ function highlightLine(line: string): ReactNode[] {
   if (last < code.length) nodes.push(code.slice(last));
   if (comment) {
     nodes.push(
-      <span key={`c${key}`} style={{ color: COLORS.comment }}>
+      <span key={`c${key}`} style={{ color: colors.comment }}>
         {comment}
       </span>,
     );
@@ -79,26 +102,47 @@ function highlightLine(line: string): ReactNode[] {
   return nodes;
 }
 
+function usePrefersReducedMotion() {
+  const [reduced, setReduced] = useState(
+    () =>
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+  );
+
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const handler = (e: MediaQueryListEvent) => setReduced(e.matches);
+    mq.addEventListener?.('change', handler);
+    return () => mq.removeEventListener?.('change', handler);
+  }, []);
+
+  return reduced;
+}
+
+/** Types one endless stream, appending snippets and scrolling a recent-lines window. */
 function TypingCodeBlock({
   snippets,
-  startDelay,
   prefersReducedMotion,
+  colors,
 }: {
   snippets: string[];
-  startDelay: number;
   prefersReducedMotion: boolean;
+  colors: Palette;
 }) {
-  const [text, setText] = useState(() => (prefersReducedMotion ? snippets.join('\n\n') : ''));
+  const [text, setText] = useState(() =>
+    prefersReducedMotion ? windowLines(snippets.join('\n\n')) : '',
+  );
+  const bufferRef = useRef('');
   const timerRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (prefersReducedMotion) {
-      setText(snippets.join('\n\n'));
+      setText(windowLines(snippets.join('\n\n')));
       return;
     }
 
     let cancelled = false;
-    let index = 0;
+    let snippetIndex = 0;
 
     const clearTimer = () => {
       if (timerRef.current !== null) {
@@ -107,22 +151,22 @@ function TypingCodeBlock({
       }
     };
 
-    const typeSnippet = (snippet: string) => {
-      let charIndex = 0;
-      setText('');
+    const typeNext = () => {
+      if (cancelled) return;
+      const snippet = snippets[snippetIndex % snippets.length];
+      snippetIndex += 1;
+      if (snippet === undefined) return;
+      const prefix = bufferRef.current;
+      let done = 0;
 
       const step = () => {
         if (cancelled) return;
-        charIndex += 1;
-        setText(snippet.slice(0, charIndex));
+        done = Math.min(done + CHUNK, snippet.length);
+        setText(windowLines(prefix + snippet.slice(0, done)));
 
-        if (charIndex >= snippet.length) {
-          timerRef.current = window.setTimeout(() => {
-            if (cancelled) return;
-            index = (index + 1) % snippets.length;
-            const next = snippets[index];
-            if (next) typeSnippet(next);
-          }, PAUSE_AFTER_DONE);
+        if (done >= snippet.length) {
+          bufferRef.current = prefix + snippet + '\n\n';
+          timerRef.current = window.setTimeout(typeNext, PAUSE_AFTER_DONE);
         } else {
           timerRef.current = window.setTimeout(step, TYPE_INTERVAL);
         }
@@ -131,16 +175,13 @@ function TypingCodeBlock({
       timerRef.current = window.setTimeout(step, TYPE_INTERVAL);
     };
 
-    timerRef.current = window.setTimeout(() => {
-      const first = snippets[0];
-      if (first) typeSnippet(first);
-    }, startDelay);
+    timerRef.current = window.setTimeout(typeNext, 0);
 
     return () => {
       cancelled = true;
       clearTimer();
     };
-  }, [snippets, startDelay, prefersReducedMotion]);
+  }, [snippets, prefersReducedMotion]);
 
   const lines = text.length > 0 ? text.split('\n') : [''];
 
@@ -150,11 +191,11 @@ function TypingCodeBlock({
         <div key={i} style={{ display: 'flex' }}>
           <span
             style={{
-              width: 26,
+              width: 30,
               flexShrink: 0,
               textAlign: 'right',
-              paddingRight: 12,
-              color: COLORS.lineNumber,
+              paddingRight: 14,
+              color: colors.lineNumber,
               userSelect: 'none',
               fontVariantNumeric: 'tabular-nums',
             }}
@@ -162,16 +203,16 @@ function TypingCodeBlock({
             {i + 1}
           </span>
           <span style={{ flex: 1, minWidth: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-            {highlightLine(line)}
+            {highlightLine(line, colors)}
             {i === lines.length - 1 && !prefersReducedMotion && (
               <span
                 style={{
                   display: 'inline-block',
-                  width: 7,
+                  width: 8,
                   height: '1em',
                   marginLeft: 2,
                   verticalAlign: '-0.15em',
-                  backgroundColor: COLORS.cursor,
+                  backgroundColor: colors.cursor,
                   animation: 'dm-blink 1s steps(1) infinite',
                 }}
               />
@@ -183,13 +224,16 @@ function TypingCodeBlock({
   );
 }
 
-export function AuthCodeBackground({
-  prefersReducedMotion,
-  snippets = LOGIN_SNIPPETS,
-}: {
-  prefersReducedMotion: boolean;
-  snippets?: CodeSnippets;
-}) {
+/**
+ * Ambient background: one snippet stream typed across the full viewport on a
+ * single tilted plane, so the code covers the whole screen with 3D depth.
+ */
+export function AuthCodeBackground({ snippets = LOGIN_SNIPPETS }: { snippets?: CodeSnippets }) {
+  const prefersReducedMotion = usePrefersReducedMotion();
+  const theme = useUIStore((s) => s.theme);
+  const colors = theme === 'light' ? LIGHT_PALETTE : DARK_PALETTE;
+  const stream = [...snippets.blockA, ...snippets.blockB];
+
   return (
     <div
       className="pointer-events-none fixed inset-0 z-0 overflow-hidden"
@@ -197,76 +241,33 @@ export function AuthCodeBackground({
       style={{
         userSelect: 'none',
         fontFamily: MONO_FONT,
-        fontSize: 13,
-        lineHeight: 1.8,
-        color: COLORS.base,
-        backgroundColor: 'transparent',
+        fontSize: 15,
+        lineHeight: 1.75,
+        color: colors.base,
+        perspective: '1600px',
+        perspectiveOrigin: '50% 50%',
       }}
     >
       <style>{`
         @keyframes dm-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
-        @keyframes dm-glow-pulse { from { opacity: 0.8; } to { opacity: 1; } }
-        .dm-code-block {
-          position: absolute;
-          white-space: pre-wrap;
-          overflow: hidden;
-          word-break: break-word;
-        }
-        @media (max-width: 819px) {
-          .dm-code-block--b { display: none; }
-        }
-        @media (max-width: 767px) {
-          .dm-code-block { font-size: 11px !important; width: calc(100% - 24px) !important; }
-          .dm-card-glow { width: 260px !important; height: 260px !important; }
-        }
+        @media (max-width: 767px) { .dm-code-full { font-size: 12px !important; } }
       `}</style>
 
-      <div className="dm-code-block dm-code-block--a" style={{ top: 32, left: 32, width: '45%' }}>
-        <TypingCodeBlock
-          snippets={snippets.blockA}
-          startDelay={0}
-          prefersReducedMotion={prefersReducedMotion}
-        />
-      </div>
-
+      {/* Single full-screen plane, tipped back for depth */}
       <div
-        className="dm-code-block dm-code-block--b"
-        style={{ bottom: 32, right: 16, width: '26%', maxWidth: 460 }}
+        className="dm-code-full h-full w-full overflow-hidden px-4 py-3 sm:px-8"
+        style={{
+          transform: 'rotateX(7deg) scale(1.06)',
+          transformOrigin: 'center',
+          opacity: theme === 'light' ? 1 : 0.9,
+        }}
       >
         <TypingCodeBlock
-          snippets={snippets.blockB}
-          startDelay={1000}
+          snippets={stream}
           prefersReducedMotion={prefersReducedMotion}
+          colors={colors}
         />
       </div>
     </div>
-  );
-}
-
-export function AuthVignette() {
-  return (
-    <div
-      className="pointer-events-none fixed inset-0 z-[1]"
-      aria-hidden="true"
-      style={{
-        background:
-          'radial-gradient(circle at 50% 50%, rgba(9,9,13,0.92) 0%, rgba(9,9,13,0.9) 30%, rgba(9,9,13,0) 72%)',
-      }}
-    />
-  );
-}
-
-export function CardGlow({ prefersReducedMotion }: { prefersReducedMotion: boolean }) {
-  return (
-    <div
-      className={`dm-card-glow pointer-events-none absolute left-1/2 top-1/2 h-[420px] w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-full ${
-        prefersReducedMotion ? '' : 'animate-[dm-glow-pulse_7s_ease-in-out_infinite_alternate]'
-      }`}
-      aria-hidden="true"
-      style={{
-        background:
-          'radial-gradient(circle, rgba(99,102,241,0.28) 0%, rgba(59,130,246,0.14) 45%, rgba(59,130,246,0) 70%)',
-      }}
-    />
   );
 }
