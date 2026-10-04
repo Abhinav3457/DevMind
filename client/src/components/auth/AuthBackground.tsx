@@ -8,6 +8,9 @@ const TYPE_INTERVAL = 16;
 const CHUNK = 3;
 const PAUSE_AFTER_DONE = 2000;
 const MAX_LINES = 50;
+const GUTTER_WIDTH = 40;
+const GUTTER_GAP = 16;
+const COLUMN_STAGGER = 1400;
 const MONO_FONT =
   'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace';
 
@@ -106,10 +109,12 @@ function usePrefersReducedMotion() {
   const [reduced, setReduced] = useState(
     () =>
       typeof window !== 'undefined' &&
+      typeof window.matchMedia === 'function' &&
       window.matchMedia('(prefers-reduced-motion: reduce)').matches,
   );
 
   useEffect(() => {
+    if (typeof window.matchMedia !== 'function') return;
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
     const handler = (e: MediaQueryListEvent) => setReduced(e.matches);
     mq.addEventListener?.('change', handler);
@@ -124,10 +129,12 @@ function TypingCodeBlock({
   snippets,
   prefersReducedMotion,
   colors,
+  startDelay = 0,
 }: {
   snippets: string[];
   prefersReducedMotion: boolean;
   colors: Palette;
+  startDelay?: number;
 }) {
   const [text, setText] = useState(() =>
     prefersReducedMotion ? windowLines(snippets.join('\n\n')) : '',
@@ -175,34 +182,27 @@ function TypingCodeBlock({
       timerRef.current = window.setTimeout(step, TYPE_INTERVAL);
     };
 
-    timerRef.current = window.setTimeout(typeNext, 0);
+    timerRef.current = window.setTimeout(typeNext, startDelay);
 
     return () => {
       cancelled = true;
       clearTimer();
     };
-  }, [snippets, prefersReducedMotion]);
+  }, [snippets, prefersReducedMotion, startDelay]);
 
   const lines = text.length > 0 ? text.split('\n') : [''];
 
   return (
     <>
       {lines.map((line, i) => (
-        <div key={i} style={{ display: 'flex' }}>
+        <div key={i} className="dm-line">
           <span
-            style={{
-              width: 30,
-              flexShrink: 0,
-              textAlign: 'right',
-              paddingRight: 14,
-              color: colors.lineNumber,
-              userSelect: 'none',
-              fontVariantNumeric: 'tabular-nums',
-            }}
+            className="dm-line-no"
+            style={{ width: GUTTER_WIDTH, paddingRight: GUTTER_GAP, color: colors.lineNumber }}
           >
             {i + 1}
           </span>
-          <span style={{ flex: 1, minWidth: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+          <span className="dm-line-code">
             {highlightLine(line, colors)}
             {i === lines.length - 1 && !prefersReducedMotion && (
               <span
@@ -225,14 +225,13 @@ function TypingCodeBlock({
 }
 
 /**
- * Ambient background: one snippet stream typed across the full viewport on a
- * single tilted plane, so the code covers the whole screen with 3D depth.
+ * Ambient background: two strictly left-aligned columns of code typing at
+ * different times, covering the full viewport, softened by an edge fade mask.
  */
 export function AuthCodeBackground({ snippets = LOGIN_SNIPPETS }: { snippets?: CodeSnippets }) {
   const prefersReducedMotion = usePrefersReducedMotion();
   const theme = useUIStore((s) => s.theme);
   const colors = theme === 'light' ? LIGHT_PALETTE : DARK_PALETTE;
-  const stream = [...snippets.blockA, ...snippets.blockB];
 
   return (
     <div
@@ -244,29 +243,67 @@ export function AuthCodeBackground({ snippets = LOGIN_SNIPPETS }: { snippets?: C
         fontSize: 15,
         lineHeight: 1.75,
         color: colors.base,
-        perspective: '1600px',
-        perspectiveOrigin: '50% 50%',
+        opacity: theme === 'light' ? 1 : 0.92,
+        fontVariantNumeric: 'tabular-nums',
+        fontFeatureSettings: '"tnum" 1',
+        letterSpacing: 0,
       }}
     >
       <style>{`
         @keyframes dm-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
-        @media (max-width: 767px) { .dm-code-full { font-size: 12px !important; } }
+        .dm-code {
+          -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 12%, #000 88%, transparent 100%);
+          mask-image: linear-gradient(to bottom, transparent 0, #000 12%, #000 88%, transparent 100%);
+        }
+        .dm-col {
+          position: absolute;
+          top: 0;
+          bottom: 0;
+          overflow: hidden;
+          padding: 16px 24px;
+          box-sizing: border-box;
+        }
+        .dm-col-a { left: 0; width: 50%; padding-left: 20px; }
+        .dm-col-b { left: 50%; width: 50%; padding-left: 36px; }
+        .dm-line { display: flex; align-items: baseline; }
+        .dm-line-no {
+          flex: 0 0 auto;
+          text-align: right;
+          user-select: none;
+          font-variant-numeric: tabular-nums;
+          font-feature-settings: "tnum" 1;
+        }
+        .dm-line-code { white-space: pre; min-width: 0; }
+        @media (max-width: 767px) {
+          .dm-code { font-size: 11px; }
+          .dm-col-a { width: 100%; padding-left: 14px; padding-right: 14px; }
+          .dm-col-b { display: none; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .dm-line-code span { animation: none !important; }
+        }
       `}</style>
 
-      {/* Single full-screen plane, tipped back for depth */}
-      <div
-        className="dm-code-full h-full w-full overflow-hidden px-4 py-3 sm:px-8"
-        style={{
-          transform: 'rotateX(7deg) scale(1.06)',
-          transformOrigin: 'center',
-          opacity: theme === 'light' ? 1 : 0.9,
-        }}
-      >
-        <TypingCodeBlock
-          snippets={stream}
-          prefersReducedMotion={prefersReducedMotion}
-          colors={colors}
-        />
+      {/* Left column: code stream */}
+      <div className="dm-code absolute inset-0 overflow-hidden">
+        <div className="dm-col dm-col-a">
+          <TypingCodeBlock
+            snippets={snippets.blockA}
+            prefersReducedMotion={prefersReducedMotion}
+            colors={colors}
+            startDelay={0}
+          />
+        </div>
+
+        {/* Right column: terminal / helper stream, typed on a stagger */}
+        <div className="dm-col dm-col-b">
+          <TypingCodeBlock
+            snippets={snippets.blockB}
+            prefersReducedMotion={prefersReducedMotion}
+            colors={colors}
+            startDelay={COLUMN_STAGGER}
+          />
+        </div>
       </div>
     </div>
   );
