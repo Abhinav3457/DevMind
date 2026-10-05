@@ -8,6 +8,7 @@ const router = Router();
 router.use(authenticate);
 
 router.get('/', asyncHandler(notificationController.list));
+router.delete('/clear-all', asyncHandler(notificationController.clearAll));
 router.patch('/read-all', asyncHandler(notificationController.markAllRead));
 router.patch('/:id/read', asyncHandler(notificationController.markRead));
 

@@ -1,13 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
-import { motion } from 'framer-motion';
-import { Bug, Loader2, Code2, BookOpen, Brain, Wand2, AlertCircle, ExternalLink, Database, Clock, Trash2, Link2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Bug, Loader2, Code2, BookOpen, Brain, Wand2, AlertCircle, ExternalLink, Database, Clock, Trash2, Link2, Sun, Moon, Maximize2, Minimize2 } from 'lucide-react';
+import { createPortal } from 'react-dom';
 import apiClient from '../api/axios';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
+import { useUIStore } from '../store';
 import { PageHeader } from '../components/layout/PageHeader';
 import { MarkdownRenderer } from '../components/ui/MarkdownRenderer';
 import { renderReviewMarkdown } from '../utils/reviewMarkdown';
-import Editor from '@monaco-editor/react';
+import { CODE_LANGUAGES, detectCodeLanguage, getLanguage, fileForLanguage } from '../utils/codeLanguage';
+import Editor, { useMonaco } from '@monaco-editor/react';
 
 interface IndexedReport {
   id: string;
@@ -35,7 +38,27 @@ export function CodeReviewPage() {
   const [review, setReview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [score, setScore] = useState<number | null>(null);
+  const [language, setLanguage] = useState('typescript');
+  const [langTouched, setLangTouched] = useState(false);
+  // Editor theme follows the app's light/dark mode until the user overrides it.
+  const appTheme = useUIStore((s) => s.theme);
+  const [editorThemeOverride, setEditorThemeOverride] = useState<'vs' | 'vs-dark' | null>(null);
+  const editorTheme = editorThemeOverride ?? (appTheme === 'light' ? 'vs' : 'vs-dark');
+  const [editorExpanded, setEditorExpanded] = useState(false);
+  const [resultsExpanded, setResultsExpanded] = useState(false);
   const navigate = useNavigate();
+  const monaco = useMonaco();
+
+  // Snippets pasted here are intentionally incomplete (no imports, no project
+  // context), so Monaco's TypeScript language service marks almost every line
+  // with a red squiggle. Turn its diagnostics off — the AI, not Monaco, is the
+  // reviewer here.
+  useEffect(() => {
+    if (!monaco?.typescript) return;
+    const diagnostics = { noSemanticValidation: true, noSyntaxValidation: true, noSuggestionDiagnostics: true };
+    monaco.typescript.typescriptDefaults.setDiagnosticsOptions(diagnostics);
+    monaco.typescript.javascriptDefaults.setDiagnosticsOptions(diagnostics);
+  }, [monaco]);
 
   // Repo review state
   const [reports, setReports] = useState<IndexedReport[]>([]);
@@ -50,7 +73,19 @@ export function CodeReviewPage() {
   useEffect(() => {
     if (mode === 'repo') fetchReports();
     if (mode === 'history') fetchHistory();
+    if (mode !== 'snippet') setEditorExpanded(false);
   }, [mode]);
+
+  useEffect(() => {
+    if (!editorExpanded && !resultsExpanded) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      setEditorExpanded(false);
+      setResultsExpanded(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [editorExpanded, resultsExpanded]);
 
   const fetchReports = async () => {
     setLoadingReports(true);
@@ -112,8 +147,16 @@ export function CodeReviewPage() {
   };
 
   const handleCodeChange = useCallback((value: string | undefined) => {
-    setCode(value || '');
-  }, []);
+    const next = value || '';
+    setCode(next);
+    // Keep tracking the language automatically until the user picks one.
+    if (!langTouched) setLanguage(detectCodeLanguage(next));
+  }, [langTouched]);
+
+  const handleLanguageChange = (value: string) => {
+    setLanguage(value);
+    setLangTouched(true);
+  };
 
   const handleReviewSnippet = async () => {
     if (!code.trim()) { toast.error('Please enter some code to review'); return; }
@@ -123,8 +166,8 @@ export function CodeReviewPage() {
     try {
       const res = await apiClient.post('/ai/code-review/review', {
         code,
-        language: 'typescript',
-        fileName: 'input.ts',
+        language,
+        fileName: fileForLanguage(language),
       });
       const data = res.data.data;
       if (data) {
@@ -162,6 +205,182 @@ export function CodeReviewPage() {
   };
 
   const handleReview = mode === 'snippet' ? handleReviewSnippet : handleReviewRepo;
+
+  /* ── Editor card, reused inline and inside the expanded overlay ── */
+  const editorToolbar = (expanded: boolean) => (
+    <div className={'flex flex-wrap items-center justify-between gap-2 ' + (expanded ? 'shrink-0 border-b border-surface-700/60 px-3 py-2 sm:px-4 sm:py-3' : 'mb-2')}>
+      <label className="flex items-center gap-2 text-sm font-medium text-surface-200">
+        <Wand2 className="h-4 w-4 text-primary-400" />
+        Paste your code
+      </label>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setEditorThemeOverride(editorTheme === 'vs-dark' ? 'vs' : 'vs-dark')}
+          className="rounded-full border border-surface-600 bg-surface-800 p-1.5 text-surface-400 transition-colors hover:text-surface-200"
+          title={editorTheme === 'vs-dark' ? 'Switch editor to light theme' : 'Switch editor to dark theme'}
+          aria-label={editorTheme === 'vs-dark' ? 'Switch editor to light theme' : 'Switch editor to dark theme'}
+        >
+          {editorTheme === 'vs-dark' ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
+        </button>
+        <select
+          value={language}
+          onChange={(e) => handleLanguageChange(e.target.value)}
+          className="rounded-full border border-surface-600 bg-surface-800 px-3 py-1 text-xs text-surface-300 focus:border-primary-500/50 focus:outline-none"
+          title="Detected automatically — override if wrong"
+        >
+          {CODE_LANGUAGES.map((l) => (
+            <option key={l.value} value={l.value}>{l.label}</option>
+          ))}
+        </select>
+        <button
+          type="button"
+          onClick={() => setEditorExpanded((v) => !v)}
+          className="rounded-full border border-surface-600 bg-surface-800 p-1.5 text-surface-400 transition-colors hover:text-surface-200"
+          title={expanded ? 'Minimize editor (Esc)' : 'Expand editor'}
+          aria-label={expanded ? 'Minimize editor' : 'Expand editor'}
+        >
+          {expanded ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+        </button>
+      </div>
+    </div>
+  );
+
+  // Definite height (not min-h) is required: Monaco sizes itself with
+  // `height="100%"`, which only resolves against a parent with a definite
+  // height — with only min-height the editor collapsed to zero height.
+  const editorPane = (
+    <div className={
+      'overflow-hidden rounded-xl border border-surface-700 bg-surface-900/30 ' +
+      (editorExpanded ? 'h-full w-full' : 'h-[300px] min-h-[240px] sm:h-[340px] lg:h-[380px] max-h-[60vh] shrink-0')
+    }>
+      <Editor
+        height="100%"
+        language={getLanguage(language).monaco}
+        value={code}
+        onChange={handleCodeChange}
+        theme={editorTheme}
+        options={{
+          minimap: { enabled: false },
+          fontSize: 13,
+          fontFamily: "'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace",
+          lineNumbers: 'on',
+          scrollBeyondLastLine: false,
+          padding: { top: 12, bottom: 12 },
+          folding: true,
+          foldingHighlight: true,
+          automaticLayout: true,
+          tabSize: 2,
+          renderWhitespace: 'selection',
+          bracketPairColorization: { enabled: true },
+          suggestOnTriggerCharacters: false,
+          quickSuggestions: false,
+          wordWrap: 'on',
+          renderValidationDecorations: 'off',
+        }}
+      />
+    </div>
+  );
+
+  const renderEditorCard = (expanded: boolean) => (
+    expanded
+      ? <div className="flex h-full w-full flex-col overflow-hidden rounded-2xl border border-surface-700 bg-surface-900 shadow-2xl shadow-black/50">
+          {editorToolbar(true)}
+          <div className="min-h-0 flex-1 p-2 sm:p-4">{editorPane}</div>
+        </div>
+      : <div className="flex flex-col">
+          {editorToolbar(false)}
+          {editorPane}
+        </div>
+  );
+
+  /* ── Results card, reused inline and inside the expanded overlay ── */
+  const renderResultsHeader = (expanded: boolean) => (
+    <div className={'flex flex-wrap items-center justify-between gap-2 ' + (expanded ? 'shrink-0 border-b border-surface-700/60 px-3 py-2 sm:px-4 sm:py-3' : 'mb-3')}>
+      <label className="text-sm font-medium text-surface-200">Review Results</label>
+      <div className="flex items-center gap-2 flex-wrap">
+        {code.trim() && (
+          <span className="rounded-full border border-surface-700 bg-surface-800 px-2 py-0.5 text-[10px] text-surface-400">
+            {code.length} chars
+          </span>
+        )}
+        {score !== null && (
+          <span className={
+            'rounded-full border border-surface-700 px-3 py-1 text-xs font-medium ' +
+            (score >= 80 ? 'bg-emerald-500/10 text-emerald-400' :
+             score >= 50 ? 'bg-amber-500/10 text-amber-400' :
+             'bg-red-500/10 text-red-400')
+          }>Score: {score}/100</span>
+        )}
+        {lastShareToken && (
+          <button
+            onClick={() => copyShareLink(lastShareToken)}
+            className="flex items-center gap-1 rounded-full border border-surface-700 bg-surface-800 px-2.5 py-1 text-[10px] font-medium text-surface-300 transition-all hover:bg-primary-500/10 hover:text-primary-400"
+            title="Copy share link"
+          >
+            <Link2 className="h-3 w-3" /> Share
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={() => setResultsExpanded((v) => !v)}
+          className="rounded-full border border-surface-600 bg-surface-800 p-1.5 text-surface-400 transition-colors hover:text-surface-200"
+          title={expanded ? 'Minimize results (Esc)' : 'Expand results'}
+          aria-label={expanded ? 'Minimize results' : 'Expand results'}
+        >
+          {expanded ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+        </button>
+      </div>
+    </div>
+  );
+
+  const renderResultsBody = (expanded: boolean) => (
+    <div className={
+      'overflow-y-auto ' +
+      (expanded
+        ? 'min-h-0 flex-1 p-3 sm:p-6'
+        : 'min-h-[300px] sm:min-h-[350px] lg:min-h-[400px] max-h-[70vh] rounded-xl border border-surface-700 bg-surface-900 p-3 sm:p-4')
+    }>
+      {review ? (
+        <div className="max-w-none">
+          <MarkdownRenderer content={review} />
+        </div>
+      ) : (
+        <div className="flex h-full flex-col items-center justify-center text-center">
+          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 ring-1 ring-blue-500/20">
+            <Brain className="h-7 w-7 text-primary-400" />
+          </div>
+          <p className="text-sm font-medium text-surface-300">Ready to review</p>
+          <p className="mt-1 text-xs text-surface-500 max-w-xs">
+            Paste code on the left, then click <span className="text-primary-400 font-medium">Review Code</span> for AI-powered feedback
+          </p>
+          <div className="mt-5 grid grid-cols-1 gap-2 text-[10px] text-surface-500 min-[420px]:grid-cols-3">
+            <div className="rounded-lg bg-surface-800/50 p-2 text-center">
+              <div className="font-medium text-surface-400">Quality</div>
+              <div className="mt-0.5">Bugs &amp; style</div>
+            </div>
+            <div className="rounded-lg bg-surface-800/50 p-2 text-center">
+              <div className="font-medium text-surface-400">Security</div>
+              <div className="mt-0.5">Vulnerabilities</div>
+            </div>
+            <div className="rounded-lg bg-surface-800/50 p-2 text-center">
+              <div className="font-medium text-surface-400">Performance</div>
+              <div className="mt-0.5">Optimizations</div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  const renderResultsCard = (expanded: boolean) => (
+    expanded
+      ? <div className="flex h-full w-full flex-col overflow-hidden rounded-2xl border border-surface-700 bg-surface-900 shadow-2xl shadow-black/50">
+          {renderResultsHeader(true)}
+          {renderResultsBody(true)}
+        </div>
+      : <>{renderResultsHeader(false)}{renderResultsBody(false)}</>
+  );
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex h-full min-h-0 flex-col gap-4 overflow-x-hidden overflow-y-auto pb-1 sm:gap-6">
@@ -306,45 +525,19 @@ export function CodeReviewPage() {
           ) : (
             <>
               <div className="flex min-h-0 flex-1 flex-col gap-3">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-sm font-medium text-surface-200 flex items-center gap-2">
-                    <Wand2 className="h-4 w-4 text-primary-400" />
-                    Paste your code
-                  </label>
-                </div>
-                {/* Definite height (not min-h) is required: the Monaco editor is
-                    sized with `height="100%"`, and a percentage height only
-                    resolves against a parent that has a definite height. With
-                    only min-height the editor collapsed to zero height and the
-                    code area was not typeable. */}
-                <div className="h-[300px] min-h-[240px] sm:h-[340px] lg:h-[380px] max-h-[60vh] shrink-0 overflow-hidden rounded-xl border border-surface-700 bg-surface-900/30">
-                  <Editor
-                    height="100%"
-                    language="typescript"
-                    value={code}
-                    onChange={handleCodeChange}
-                    theme="vs-dark"
-                    options={{
-                      minimap: { enabled: false },
-                      fontSize: 13,
-                      fontFamily: "'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace",
-                      lineNumbers: 'on',
-                      scrollBeyondLastLine: false,
-                      padding: { top: 12, bottom: 12 },
-                      folding: true,
-                      foldingHighlight: true,
-                      automaticLayout: true,
-                      tabSize: 2,
-                      renderWhitespace: 'selection',
-                      bracketPairColorization: { enabled: true },
-                      suggestOnTriggerCharacters: false,
-                      quickSuggestions: false,
-                      wordWrap: 'on',
-                    }}
-                  />
-                </div>
-                </div>
+                {editorExpanded ? (
+                  <div className="flex h-[300px] min-h-[240px] sm:h-[340px] lg:h-[380px] max-h-[60vh] shrink-0 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-surface-700 bg-surface-900/30 text-center">
+                    <Maximize2 className="h-5 w-5 text-surface-500" />
+                    <p className="text-xs text-surface-400">Editor is expanded</p>
+                    <button
+                      type="button"
+                      onClick={() => setEditorExpanded(false)}
+                      className="rounded-full border border-surface-600 bg-surface-800 px-3 py-1 text-xs text-surface-300 transition-colors hover:text-surface-100"
+                    >
+                      Minimize
+                    </button>
+                  </div>
+                ) : renderEditorCard(false)}
                 {!code.trim() && (
                   <p className="mt-1.5 text-[10px] text-surface-500">Start typing or paste code, then click Review Code</p>
                 )}
@@ -361,66 +554,69 @@ export function CodeReviewPage() {
         </div>
 
 <div className="flex min-h-0 flex-1 lg:w-1/2 flex-col">
-          <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-            <label className="text-sm font-medium text-surface-200">Review Results</label>
-            <div className="flex items-center gap-2 flex-wrap">
-              {code.trim() && (
-                <span className="rounded-full bg-surface-800 px-2 py-0.5 text-[10px] text-surface-400">
-                  {code.length} chars
-                </span>
-              )}
-              {score !== null && (
-                <span className={
-                  'rounded-full px-3 py-1 text-xs font-medium ' +
-                  (score >= 80 ? 'bg-emerald-500/10 text-emerald-400' :
-                   score >= 50 ? 'bg-amber-500/10 text-amber-400' :
-                   'bg-red-500/10 text-red-400')
-                }>Score: {score}/100</span>
-              )}
-              {lastShareToken && (
-                <button
-                  onClick={() => copyShareLink(lastShareToken)}
-                  className="flex items-center gap-1 rounded-full bg-surface-800 px-2.5 py-1 text-[10px] font-medium text-surface-300 transition-all hover:bg-primary-500/10 hover:text-primary-400"
-                  title="Copy share link"
-                >
-                  <Link2 className="h-3 w-3" /> Share
-                </button>
-              )}
-            </div>
-          </div>
-          <div className="min-h-[300px] sm:min-h-[350px] lg:min-h-[400px] max-h-[70vh] overflow-y-auto rounded-xl border border-surface-700 bg-surface-900 p-3 sm:p-4">
-            {review ? (
-              <div className="max-w-none">
-                <MarkdownRenderer content={review} />
-              </div>
-            ) : (
-              <div className="flex h-full flex-col items-center justify-center text-center">
-                <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 ring-1 ring-blue-500/20">
-                  <Brain className="h-7 w-7 text-primary-400" />
-                </div>
-                <p className="text-sm font-medium text-surface-300">Ready to review</p>
-                <p className="mt-1 text-xs text-surface-500 max-w-xs">
-                  Paste code on the left, then click <span className="text-primary-400 font-medium">Review Code</span> for AI-powered feedback
-                </p>
-                <div className="mt-5 grid grid-cols-1 gap-2 text-[10px] text-surface-500 min-[420px]:grid-cols-3">
-                  <div className="rounded-lg bg-surface-800/50 p-2 text-center">
-                    <div className="font-medium text-surface-400">Quality</div>
-                    <div className="mt-0.5">Bugs & style</div>
-                  </div>
-                  <div className="rounded-lg bg-surface-800/50 p-2 text-center">
-                    <div className="font-medium text-surface-400">Security</div>
-                    <div className="mt-0.5">Vulnerabilities</div>
-                  </div>
-                  <div className="rounded-lg bg-surface-800/50 p-2 text-center">
-                    <div className="font-medium text-surface-400">Performance</div>
-                    <div className="mt-0.5">Optimizations</div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
+          {renderResultsCard(false)}
         </div>
       </div>
+
+      {typeof document !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {editorExpanded && mode === 'snippet' && (
+            <>
+              <motion.div
+                key="editor-backdrop"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-[60] bg-surface-950/60 backdrop-blur-md"
+                onClick={() => setEditorExpanded(false)}
+              />
+              <motion.div
+                key="editor-overlay"
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.98 }}
+                transition={{ duration: 0.18 }}
+                className="fixed inset-0 z-[70] flex items-center justify-center p-1.5 sm:p-3"
+              >
+                <div className="h-[94vh] w-[97vw] sm:h-[92vh] sm:w-[92vw] md:h-[89vh] md:w-[89vw]">
+                  {renderEditorCard(true)}
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>,
+        document.body,
+      )}
+
+      {typeof document !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {resultsExpanded && (
+            <>
+              <motion.div
+                key="results-backdrop"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-[60] bg-surface-950/60 backdrop-blur-md"
+                onClick={() => setResultsExpanded(false)}
+              />
+              <motion.div
+                key="results-overlay"
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.98 }}
+                transition={{ duration: 0.18 }}
+                className="fixed inset-0 z-[70] flex items-center justify-center p-1.5 sm:p-3"
+              >
+                <div className="h-[94vh] w-[97vw] sm:h-[92vh] sm:w-[92vw] md:h-[89vh] md:w-[89vw]">
+                  {renderResultsCard(true)}
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>,
+        document.body,
+      )}
     </motion.div>
   );
 }

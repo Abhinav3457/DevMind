@@ -55,6 +55,10 @@ export class NotificationService {
   async markAllRead(userId: string): Promise<void> {
     await Notification.updateMany({ userId, read: false }, { read: true, readAt: new Date() });
   }
+
+  async clearAll(userId: string): Promise<void> {
+    await Notification.deleteMany({ userId });
+  }
 }
 
 export const notificationService = new NotificationService();

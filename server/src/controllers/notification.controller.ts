@@ -18,6 +18,11 @@ export class NotificationController {
     await notificationService.markAllRead(req.user!.userId);
     sendSuccess(res, { statusCode: 200, message: 'All notifications marked as read' });
   }
+
+  async clearAll(req: Request, res: Response): Promise<void> {
+    await notificationService.clearAll(req.user!.userId);
+    sendSuccess(res, { statusCode: 200, message: 'All notifications cleared' });
+  }
 }
 
 export const notificationController = new NotificationController();

@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Loader2, Play, CheckCircle2, XCircle, AlertCircle, Clock,
   Lightbulb, ChevronDown, ChevronLeft, ChevronRight, Sparkles, Search, RotateCcw, Copy, ExternalLink, Flame, X, List,
-  Maximize2, Minimize2, Gauge, Cpu, Code2, Sun, Moon,
+  Maximize2, Minimize2, Gauge, Cpu, Code2, Sun, Moon, Plus, Minus,
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import Editor from '@monaco-editor/react';
@@ -116,6 +116,9 @@ export function PracticePage() {
   const [aiInsightsExpanded, setAiInsightsExpanded] = useState(false);
   const [resultExpanded, setResultExpanded] = useState(false);
   const [editorTheme, setEditorTheme] = useState<'vs-dark' | 'vs'>('vs-dark');
+  const [editorFontSize, setEditorFontSize] = useState(13);
+  const changeFontSize = (delta: number) =>
+    setEditorFontSize((s) => Math.min(28, Math.max(10, s + delta)));
   const langBarRef = useRef<HTMLDivElement>(null);
   const [langScroll, setLangScroll] = useState({ left: false, right: false });
 
@@ -463,6 +466,29 @@ export function PracticePage() {
           >
             {editorTheme === 'vs-dark' ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
           </button>
+          <div className="flex items-center gap-0.5 rounded-md border border-surface-600/60 px-1 py-0.5">
+            <button
+              onClick={() => changeFontSize(-1)}
+              disabled={editorFontSize <= 10}
+              className="flex items-center rounded-md p-1 text-xs font-medium text-surface-200 hover:bg-surface-800 disabled:opacity-30 disabled:hover:bg-transparent"
+              title="Decrease font size"
+              aria-label="Decrease editor font size"
+            >
+              <Minus className="h-3.5 w-3.5" />
+            </button>
+            <span className="hidden min-w-[2.5rem] text-center text-[11px] font-medium text-surface-400 sm:inline">
+              {editorFontSize}px
+            </span>
+            <button
+              onClick={() => changeFontSize(1)}
+              disabled={editorFontSize >= 28}
+              className="flex items-center rounded-md p-1 text-xs font-medium text-surface-200 hover:bg-surface-800 disabled:opacity-30 disabled:hover:bg-transparent"
+              title="Increase font size"
+              aria-label="Increase editor font size"
+            >
+              <Plus className="h-3.5 w-3.5" />
+            </button>
+          </div>
           <button
             onClick={() => void handleSubmit()}
             disabled={submitting}
@@ -482,7 +508,7 @@ export function PracticePage() {
           onChange={(v) => setCode(v ?? '')}
           options={{
             minimap: { enabled: false },
-            fontSize: 13,
+            fontSize: editorFontSize,
             scrollBeyondLastLine: false,
             tabSize: 2,
             automaticLayout: true,
