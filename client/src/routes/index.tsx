@@ -13,6 +13,7 @@ import { GitHubCallback } from '../pages/GitHubCallback';
 import { SharedReviewPage } from '../pages/SharedReviewPage';
 import { AnalyticsPage } from '../pages/AnalyticsPage';
 import { PracticePage } from '../pages/PracticePage';
+import { SettingsPage } from '../pages/SettingsPage';
 import { AppLayout } from '../components/layout/AppLayout';
 import { AuthGuard } from '../components/layout/AuthGuard';
 
@@ -35,6 +36,7 @@ export function AppRoutes() {
         <Route path="/ai/docs" element={<DocGeneratorPage />} />
         <Route path="/practice" element={<PracticePage />} />
         <Route path="/analytics" element={<AnalyticsPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/auth/login" replace />} />
     </Routes>

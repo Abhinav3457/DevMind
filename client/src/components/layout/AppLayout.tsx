@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, Code2, Brain, Bug, FileText,
   Github, BarChart3, LogOut, ChevronLeft,
-  Bell, Menu, X, Sun, Moon, Loader2,
+  Bell, Menu, X, Loader2,
   CheckCheck, Search, Settings, ChevronRight, Trophy, Trash2,
 } from 'lucide-react';
 import { CommandPalette } from './CommandPalette';
@@ -75,6 +75,7 @@ const breadcrumbMap: Record<string, string> = {
   docs: 'Documentation',
   analytics: 'Analytics',
   practice: 'Practice Arena',
+  settings: 'Settings',
 };
 
 function Breadcrumbs() {
@@ -113,7 +114,7 @@ export function AppLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, clearUser } = useAuthStore();
-  const { theme, setTheme, sidebarOpen, toggleSidebar } = useUIStore();
+  const { sidebarOpen, toggleSidebar } = useUIStore();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -173,10 +174,6 @@ export function AppLayout() {
       navigate('/auth/login', { replace: true });
       setLoggingOut(false);
     }
-  };
-
-  const toggleTheme = () => {
-    setTheme(theme === 'dark' ? 'light' : 'dark');
   };
 
   const timeAgo = (dateStr: string) => {
@@ -495,19 +492,13 @@ export function AppLayout() {
 
                     {/* Menu Items */}
                     <div className="p-1.5">
-                      {/* Theme Toggle */}
-                      <button
-                        onClick={toggleTheme}
-                        className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-surface-300 transition-colors hover:bg-surface-800 hover:text-surface-100"
-                      >
-                        {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                        <span>{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
-                      </button>
-
-                      {/* Settings placeholder */}
+                      {/* Settings */}
                       <button
                         className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-surface-300 transition-colors hover:bg-surface-800 hover:text-surface-100"
-                        onClick={() => setProfileOpen(false)}
+                        onClick={() => {
+                          setProfileOpen(false);
+                          navigate('/settings');
+                        }}
                       >
                         <Settings className="h-4 w-4" />
                         <span>Settings</span>

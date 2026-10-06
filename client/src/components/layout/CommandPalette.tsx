@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, Github, Brain, Bug, FileText, BarChart3,
-  Moon, Sun, Plus, Search, CornerDownLeft, FolderGit2,
+  Moon, Sun, Plus, Search, CornerDownLeft, FolderGit2, Settings,
 } from 'lucide-react';
 import apiClient from '../../api/axios';
 import { useUIStore } from '../../store';
@@ -23,6 +23,7 @@ const navTargets = [
   { to: '/ai/code-review', label: 'Code Review', icon: Bug },
   { to: '/ai/docs', label: 'Documentation', icon: FileText },
   { to: '/analytics', label: 'Analytics', icon: BarChart3 },
+  { to: '/settings', label: 'Settings', icon: Settings },
 ];
 
 interface ImportedRepo {
