@@ -28,6 +28,19 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
+// Root endpoint — gives uptime monitors and curious visitors a clear "alive"
+// signal instead of a 404. Read-only and touches no existing route.
+app.get('/', (_req: Request, res: Response) => {
+  res.status(200).json({
+    success: true,
+    name: 'DevMind AI Server',
+    message: 'DevMind AI Server is running',
+    health: '/api/v1/health',
+    api: '/api/v1',
+    timestamp: new Date().toISOString(),
+  });
+});
+
 // Health check endpoint (before rate limiter so monitoring doesn't consume quota)
 app.get('/api/v1/health', (_req: Request, res: Response) => {
   res.status(200).json({
