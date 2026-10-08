@@ -1,7 +1,7 @@
 import { env } from '../../config/environment';
 import logger from '../../utils/logger';
 import IndexedChunk from '../../models/IndexedChunk';
-import { EmbeddingInputType, EmbeddingProvider } from './embedding-provider';
+import { EmbeddingProvider } from './embedding-provider';
 import { NvidiaNemotronEmbeddingProvider } from './nvidia-nemotron.provider';
 import { GeminiEmbeddingProvider } from './gemini.provider';
 

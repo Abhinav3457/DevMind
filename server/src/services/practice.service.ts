@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import PracticeProblem, { IPracticeProblem, PracticeDifficulty } from '../models/PracticeProblem';
+import PracticeProblem, { PracticeDifficulty } from '../models/PracticeProblem';
 import PracticeSubmission from '../models/PracticeSubmission';
 import { PROBLEM_BANK } from '../practice/problem-bank';
 import { judgeService, JudgeResult, JudgeProblem } from '../practice/judge.service';
@@ -371,33 +371,32 @@ export class PracticeService {
   async getStats(userId: string): Promise<PracticeStats> {
     await this.ensureSeeded();
 
-    const [totalsByDifficulty, solvedRows, totalSubmissions, acceptedSubmissions] = await Promise.all([
-      PracticeProblem.aggregate<{ _id: PracticeDifficulty; count: number }>([
-        { $group: { _id: '$difficulty', count: { $sum: 1 } } },
-      ]),
-      // Derive solved-by-difficulty straight from submissions so both DevMind
-      // and LeetCode solves are counted without a cross-collection lookup.
-      PracticeSubmission.aggregate<{ _id: string; difficulty: string }>([
+    const [bankProblems, solvedRows, totalSubmissions, acceptedSubmissions] = await Promise.all([
+      PracticeProblem.find({}, 'slug difficulty').lean(),
+      PracticeSubmission.aggregate<{ _id: string }>([
         { $match: { userId: new mongoose.Types.ObjectId(userId), status: 'accepted' } },
-        { $group: { _id: '$problemSlug', difficulty: { $first: '$difficulty' } } },
+        { $group: { _id: '$problemSlug' } },
       ]),
       PracticeSubmission.countDocuments({ userId }),
       PracticeSubmission.countDocuments({ userId, status: 'accepted' }),
     ]);
 
+    // `totalProblems`/`totals` can only ever describe the curated bank, because
+    // the LeetCode catalogue is not stored. So `solved` is restricted to the
+    // same bank slugs: progress numbers can never contradict each other
+    // (solved <= total), no matter how many LeetCode problems are solved.
+    // LeetCode activity still counts in the submission-scoped fields below.
+    const bankDifficulty = new Map<string, PracticeDifficulty>();
     const totals = { easy: 0, medium: 0, hard: 0 };
-    for (const row of totalsByDifficulty) {
-      if (row._id === 'easy' || row._id === 'medium' || row._id === 'hard') {
-        totals[row._id] = row.count;
-      }
+    for (const problem of bankProblems) {
+      bankDifficulty.set(problem.slug, problem.difficulty);
+      totals[problem.difficulty] += 1;
     }
 
     const solved = { easy: 0, medium: 0, hard: 0, total: 0 };
     for (const row of solvedRows) {
-      const d = row.difficulty;
-      if (d === 'easy' || d === 'medium' || d === 'hard') {
-        solved[d] += 1;
-      }
+      const difficulty = bankDifficulty.get(row._id);
+      if (difficulty) solved[difficulty] += 1;
     }
     solved.total = solved.easy + solved.medium + solved.hard;
 
@@ -421,6 +420,3 @@ export class PracticeService {
 }
 
 export const practiceService = new PracticeService();
-
-// Re-exported so consumers (controllers/tests) share one problem type.
-export type { IPracticeProblem };

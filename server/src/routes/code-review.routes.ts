@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { authenticate } from '../middleware/auth';
 import { validate } from '../middleware/validate';
+import { idempotency } from '../middleware/idempotency';
 import { codeReviewController } from '../controllers/code-review.controller';
 import { reviewRepoSchema, reviewCodeSchema } from '../validators/code-review.validator';
 
@@ -18,9 +19,9 @@ router.get('/history/:id', asyncHandler(codeReviewController.getHistory));
 router.delete('/history/:id', asyncHandler(codeReviewController.deleteHistory));
 
 // Direct code review (send raw code, get AI review)
-router.post('/review', validate({ body: reviewCodeSchema }), asyncHandler(codeReviewController.reviewCode));
+router.post('/review', validate({ body: reviewCodeSchema }), idempotency('code-review.review-code'), asyncHandler(codeReviewController.reviewCode));
 
 // Repository code review (review an indexed repository)
-router.post('/:reportId', validate({ body: reviewRepoSchema }), asyncHandler(codeReviewController.reviewRepository));
+router.post('/:reportId', validate({ body: reviewRepoSchema }), idempotency('code-review.review-repository'), asyncHandler(codeReviewController.reviewRepository));
 
 export default router;

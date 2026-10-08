@@ -79,6 +79,18 @@ services:
         sync: false
 
       # ──────────────────────────────
+      # Embeddings (RAG vector search)
+      # 'nvidia' (recommended) or 'gemini'. Empty disables semantic
+      # search and the retriever falls back to keyword-only.
+      # ──────────────────────────────
+      - key: EMBEDDING_PROVIDER
+        value: nvidia
+      - key: NVIDIA_API_KEY
+        sync: false
+      - key: NVIDIA_EMBEDDING_MODEL
+        value: nvidia/nemotron-3-embed-1b
+
+      # ──────────────────────────────
       # GitHub Integration
       # ──────────────────────────────
       - key: GITHUB_TOKEN
@@ -109,3 +121,7 @@ services:
     envVars:
       - key: VITE_API_URL
         value: https://devmind-backend-26uw.onrender.com/api/v1
+      # Socket.io origin (backend root, no /api/v1) so real-time
+      # notifications connect to the deployed API in production.
+      - key: VITE_SOCKET_URL
+        value: https://devmind-backend-26uw.onrender.com

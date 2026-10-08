@@ -17,8 +17,10 @@ export function globalErrorHandler(
     statusCode = error.statusCode;
     message = error.message;
   } else {
-    // Use the actual error message for unknown errors instead of generic 'Internal Server Error'
-    message = error.message || 'Internal Server Error';
+    // Unknown/unexpected errors (including raw upstream provider errors) are
+    // never echoed to clients — they could leak secrets, tokens or internals.
+    // The full detail is logged server-side below.
+    message = 'Internal Server Error';
   }
 
   // Handle Mongoose validation errors

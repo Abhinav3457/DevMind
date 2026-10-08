@@ -63,11 +63,15 @@ export class ChunkerService {
     }
 
     for (const func of file.functions) {
-      const funcContent = this.extractLines(content, func.startLine, func.endLine);
+      // Fold the symbol's leading doc comment into its chunk. Otherwise the
+      // comment becomes a separate section chunk that often outranks the code
+      // it describes, so the LLM receives a description without the body.
+      const startLine = this.includeLeadingComments(lines, func.startLine);
+      const funcContent = this.extractLines(content, startLine, func.endLine);
       chunks.push({
         index: chunkIndex++,
         content: funcContent,
-        startLine: func.startLine,
+        startLine,
         endLine: func.endLine,
         type: 'function',
         metadata: { functionName: func.name },
@@ -76,11 +80,12 @@ export class ChunkerService {
     }
 
     for (const cls of file.classes) {
-      const classContent = this.extractLines(content, cls.startLine, cls.endLine);
+      const startLine = this.includeLeadingComments(lines, cls.startLine);
+      const classContent = this.extractLines(content, startLine, cls.endLine);
       chunks.push({
         index: chunkIndex++,
         content: classContent,
-        startLine: cls.startLine,
+        startLine,
         endLine: cls.endLine,
         type: 'class',
         metadata: { className: cls.name },
@@ -160,6 +165,23 @@ export class ChunkerService {
     await IndexedChunk.insertMany(docs, { ordered: false }).catch((err) => {
       logger.warn('Chunker: Some chunks may have duplicate keys - ' + (err instanceof Error ? err.message : String(err)));
     });
+  }
+
+  /**
+   * Walk a symbol's declaration upward over an immediately-preceding comment
+   * block so its documentation travels with the code. Stops at the first
+   * non-comment (including a blank) line.
+   */
+  private includeLeadingComments(lines: string[], startLine: number): number {
+    let start = startLine;
+    while (start > 1) {
+      const prev = lines[start - 2]!.trim();
+      const isComment =
+        prev.startsWith('//') || prev.startsWith('/*') || prev.startsWith('*') || prev.endsWith('*/');
+      if (!isComment) break;
+      start -= 1;
+    }
+    return start;
   }
 
   private findImportBlockEnd(lines: string[]): number {

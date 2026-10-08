@@ -296,11 +296,12 @@ describe('ChatController', () => {
       const res = createMockRes();
       const mockAnswer = 'Use CSS Flexbox: `display: flex; justify-content: center; align-items: center;`';
       mockGenerateFromAI.mockResolvedValue(mockAnswer);
-      mockChatFindById.mockResolvedValue({ _id: 'chat-123', lastMessage: '' });
+      mockChatFindOne.mockResolvedValue({ _id: 'chat-123', lastMessage: '' });
       mockMessageInsertMany.mockResolvedValue([{}, {}]);
 
       await chatController.generate(req, res);
 
+      expect(mockChatFindOne).toHaveBeenCalledWith({ _id: 'chat-123', participants: 'user-123' });
       expect(mockGenerateFromAI).toHaveBeenCalledWith(
         expect.objectContaining({
           prompt: expect.stringContaining('How do I center a div?'),
@@ -363,7 +364,7 @@ describe('ChatController', () => {
       });
       const res = createMockRes();
       mockGenerateFromAI.mockResolvedValue('Async/await is syntactic sugar over promises.');
-      mockChatFindById.mockResolvedValue({ _id: 'chat-123', lastMessage: '' });
+      mockChatFindOne.mockResolvedValue({ _id: 'chat-123', lastMessage: '' });
       mockMessageInsertMany.mockResolvedValue([{}, {}]);
 
       await chatController.generate(req, res);
@@ -374,13 +375,49 @@ describe('ChatController', () => {
       );
     });
 
+    it('should reject injecting into a chat owned by another user (ownership enforced)', async () => {
+      const req = createMockReq({
+        body: { message: 'Hijack attempt', chatId: 'chat-of-another-user' },
+      });
+      const res = createMockRes();
+      mockGenerateFromAI.mockResolvedValue('answer');
+      // The ownership-scoped lookup finds nothing for this user
+      mockChatFindOne.mockResolvedValue(null);
+
+      await expect(chatController.generate(req, res)).rejects.toThrow('Chat session not found');
+      expect(mockChatFindOne).toHaveBeenCalledWith({
+        _id: 'chat-of-another-user',
+        participants: 'user-123',
+      });
+      expect(mockMessageInsertMany).not.toHaveBeenCalled();
+      expect(mockChatFindByIdAndUpdate).not.toHaveBeenCalled();
+    });
+
+    it('should map raw AI provider errors to a safe, generic message', async () => {
+      const req = createMockReq({ body: { message: 'hi' } });
+      const res = createMockRes();
+      mockGenerateFromAI.mockRejectedValue(
+        new Error('401 Invalid API key sk-secret-123 for provider groq'),
+      );
+
+      await expect(chatController.generate(req, res)).rejects.toThrow(ApiError);
+      try {
+        await chatController.generate(req, res);
+      } catch (error) {
+        expect(error).toBeInstanceOf(ApiError);
+        // Raw provider detail (including the fake secret) must never leak
+        expect((error as ApiError).message).not.toContain('sk-secret-123');
+        expect((error as ApiError).message).not.toContain('groq');
+      }
+    });
+
     it('should NOT overwrite title if chat already has messages', async () => {
       const req = createMockReq({
         body: { message: 'Another question?', chatId: 'chat-123' },
       });
       const res = createMockRes();
       mockGenerateFromAI.mockResolvedValue('Here is the answer.');
-      mockChatFindById.mockResolvedValue({
+      mockChatFindOne.mockResolvedValue({
         _id: 'chat-123',
         lastMessage: 'Previous conversation',
         title: 'Existing Title',

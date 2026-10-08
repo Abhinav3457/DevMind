@@ -57,6 +57,16 @@ describe('RepoIntelligenceService', () => {
       await expect(service.ask('rep-1', 'user-1', 'Question?')).rejects.toThrow('Index report not found');
     });
 
+    it('scopes the report lookup to the requesting user (cross-user isolation)', async () => {
+      mockIndexReport.findOne.mockResolvedValue(null);
+
+      await expect(service.ask('rep-1', 'user-1', 'Question?')).rejects.toThrow('Index report not found');
+
+      // The userId is part of the query, so a report owned by another user is
+      // indistinguishable from one that does not exist.
+      expect(mockIndexReport.findOne).toHaveBeenCalledWith({ _id: 'rep-1', userId: 'user-1' });
+    });
+
     it('should throw 400 if report not completed', async () => {
       mockIndexReport.findOne.mockResolvedValue({ status: 'processing' } as never);
       await expect(service.ask('rep-1', 'user-1', 'Question?')).rejects.toThrow('not completed');

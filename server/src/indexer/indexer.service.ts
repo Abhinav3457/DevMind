@@ -20,6 +20,21 @@ import logger from '../utils/logger';
 import { ApiError } from '../utils/apiResponse';
 import AdmZip from 'adm-zip';
 
+/** Server-managed root for repository working copies (see cloneFromGitHub). */
+const REPO_WORK_ROOT = path.resolve(os.tmpdir());
+
+/**
+ * A repository working directory is only safe when it lives strictly inside
+ * the server's temporary root. This blocks path traversal and absolute paths
+ * supplied by a caller (e.g. '/etc', 'C:\\Windows', or the temp root itself),
+ * so repository indexing can never be steered to read arbitrary server files.
+ */
+export function isRepoDirWithinTempRoot(repoDir: string): boolean {
+  if (typeof repoDir !== 'string' || repoDir.trim() === '') return false;
+  const resolved = path.resolve(repoDir);
+  return resolved !== REPO_WORK_ROOT && resolved.startsWith(REPO_WORK_ROOT + path.sep);
+}
+
 export class IndexerService {
   async indexRepository(
     userId: string,
@@ -27,6 +42,19 @@ export class IndexerService {
     repoDir?: string,
   ): Promise<{ reportId: string; summary: string }> {
     const startTime = Date.now();
+
+    // Defence in depth: even when called internally with a working copy, the
+    // path must resolve inside the server temp root. The HTTP layer additionally
+    // forbids clients from supplying repoDir at all (see indexer.validator).
+    if (repoDir) {
+      const realRepoDir = await fs.realpath(repoDir).catch(() => null);
+      if (!realRepoDir || !isRepoDirWithinTempRoot(realRepoDir)) {
+        throw new ApiError(
+          400,
+          'Invalid repository directory. Repository indexing is restricted to server-managed temporary directories.',
+        );
+      }
+    }
 
     const report = await IndexReport.create({
       repositoryId,

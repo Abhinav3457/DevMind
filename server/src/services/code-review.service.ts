@@ -156,15 +156,26 @@ export class CodeReviewService {
       shareToken: '',
     };
 
-    // Persist to review history + notify (best-effort — never break the review response)
+    // Resolve the repo label for the stored record (best-effort — a lookup
+    // failure must not block the review from being persisted).
+    let repoName = '';
     try {
       const importedRepo = await ImportedRepository.findById(report.repositoryId).select('fullName').lean();
-      const shareToken = crypto.randomBytes(16).toString('hex');
+      repoName = importedRepo?.fullName || '';
+    } catch (error) {
+      logger.warn('CodeReview: Failed to resolve repo name', error);
+    }
+
+    // Persist the review BEFORE issuing a share token. If persistence fails the
+    // request must fail — we never return a share token for a review that was
+    // not stored (such a token would point at a non-existent record).
+    const shareToken = crypto.randomBytes(16).toString('hex');
+    try {
       await CodeReview.create({
         userId,
         reportId,
         repositoryId: report.repositoryId,
-        repoName: importedRepo?.fullName || '',
+        repoName,
         score: result.score,
         summary: result.summary,
         filesReviewed: result.filesReviewed,
@@ -172,12 +183,19 @@ export class CodeReviewService {
         shareToken,
         details: result,
       });
-      result.shareToken = shareToken;
+    } catch (error) {
+      // Keep the real cause in the logs; return a safe, generic message.
+      logger.error('CodeReview: Failed to persist review history', error);
+      throw new ApiError(500, 'Failed to save the code review. Please try again.');
+    }
+    result.shareToken = shareToken;
 
+    // Side effects are best-effort — they must never break the review response.
+    try {
       void logActivity({
         userId,
         type: 'review_completed',
-        description: 'Reviewed ' + (importedRepo?.fullName || 'a repository') + ' — score ' + result.score + '/100',
+        description: 'Reviewed ' + (repoName || 'a repository') + ' — score ' + result.score + '/100',
         metadata: { score: result.score, totalIssues: result.totalIssues },
       });
 
@@ -185,21 +203,20 @@ export class CodeReviewService {
         userId,
         type: 'review_complete',
         title: 'Code review finished',
-        message: 'Review of "' + (importedRepo?.fullName || 'your repository') + '" scored ' + result.score + '/100 with ' + result.totalIssues + ' issues',
+        message: 'Review of "' + (repoName || 'your repository') + '" scored ' + result.score + '/100 with ' + result.totalIssues + ' issues',
         data: { score: result.score, totalIssues: result.totalIssues },
       });
 
-      // Best-effort email notification
       const user = await User.findById(userId).select('email name').lean();
       if (user?.email) {
         void sendReviewCompleteEmail(user.email, user.name, {
-          repoName: importedRepo?.fullName || 'your repository',
+          repoName: repoName || 'your repository',
           score: result.score,
           totalIssues: result.totalIssues,
         });
       }
     } catch (error) {
-      logger.error('CodeReview: Failed to persist review history', error);
+      logger.error('CodeReview: Failed to record review notifications', error);
     }
 
     return result;

@@ -5,12 +5,14 @@ import IndexReport from '../../models/IndexReport';
 import IndexedFile from '../../models/IndexedFile';
 import IndexedChunk from '../../models/IndexedChunk';
 import ActivityLog from '../../models/ActivityLog';
+import CodeReview from '../../models/CodeReview';
 
 vi.mock('../../models/ImportedRepository', () => ({ default: { countDocuments: vi.fn(), aggregate: vi.fn() } }));
 vi.mock('../../models/IndexReport', () => ({ default: { find: vi.fn(), countDocuments: vi.fn() } }));
 vi.mock('../../models/IndexedFile', () => ({ default: { aggregate: vi.fn() } }));
 vi.mock('../../models/IndexedChunk', () => ({ default: { aggregate: vi.fn() } }));
 vi.mock('../../models/ActivityLog', () => ({ default: { aggregate: vi.fn().mockResolvedValue([]) } }));
+vi.mock('../../models/CodeReview', () => ({ default: { aggregate: vi.fn().mockResolvedValue([]) } }));
 vi.mock('../../utils/logger', () => ({ default: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() } }));
 
 const VALID_USER_ID = '507f191e810c19729de860ea';
@@ -114,5 +116,68 @@ describe('AnalyticsService', () => {
       { type: 'practice_solved', count: 2 },
       { type: 'repo_indexed', count: 1 },
     ]);
+  });
+
+  // ─── Quality metrics derived from persisted Code Reviews ────────
+
+  describe('quality metrics (securityIssues / bugCount)', () => {
+    function mockBaseAggregates() {
+      vi.mocked(IndexReport.find).mockReturnValue(makeFindMock([]) as never);
+      vi.mocked(ImportedRepository.countDocuments).mockResolvedValue(0);
+      vi.mocked(IndexReport.countDocuments).mockResolvedValue(0);
+      vi.mocked(ImportedRepository.aggregate).mockResolvedValue([]);
+    }
+
+    it('returns 0 for both values when the user has no reviews', async () => {
+      mockBaseAggregates();
+      vi.mocked(CodeReview.aggregate).mockResolvedValue([]);
+
+      const result = await service.getAnalytics(VALID_USER_ID);
+
+      expect(result.quality.securityIssues).toBe(0);
+      expect(result.quality.bugCount).toBe(0);
+    });
+
+    it('increases securityIssues from a review with security findings', async () => {
+      mockBaseAggregates();
+      vi.mocked(CodeReview.aggregate).mockResolvedValue([{ securityIssues: 3, bugCount: 0 }] as never);
+
+      const result = await service.getAnalytics(VALID_USER_ID);
+
+      expect(result.quality.securityIssues).toBe(3);
+      expect(result.quality.bugCount).toBe(0);
+    });
+
+    it('increases bugCount from a review with bug findings', async () => {
+      mockBaseAggregates();
+      vi.mocked(CodeReview.aggregate).mockResolvedValue([{ securityIssues: 0, bugCount: 4 }] as never);
+
+      const result = await service.getAnalytics(VALID_USER_ID);
+
+      expect(result.quality.bugCount).toBe(4);
+      expect(result.quality.securityIssues).toBe(0);
+    });
+
+    it('aggregates findings across multiple reviews', async () => {
+      mockBaseAggregates();
+      // The aggregation sums every review's findings into one row.
+      vi.mocked(CodeReview.aggregate).mockResolvedValue([{ securityIssues: 3, bugCount: 5 }] as never);
+
+      const result = await service.getAnalytics(VALID_USER_ID);
+
+      expect(result.quality.securityIssues).toBe(3);
+      expect(result.quality.bugCount).toBe(5);
+    });
+
+    it('scopes the review aggregation to the authenticated user only', async () => {
+      mockBaseAggregates();
+
+      await service.getAnalytics(VALID_USER_ID);
+
+      const pipeline = vi.mocked(CodeReview.aggregate).mock.calls[0]?.[0] as Array<{ $match?: { userId?: unknown } }>;
+      expect(pipeline[0]?.$match?.userId).toBeDefined();
+      // Another user's reviews can never be included.
+      expect(String(pipeline[0]?.$match?.userId)).toBe(VALID_USER_ID);
+    });
   });
 });

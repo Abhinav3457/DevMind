@@ -4,16 +4,20 @@ import { PracticeService } from '../practice.service';
 const {
   mockProblemFindOne,
   mockProblemEstimatedCount,
+  mockProblemFind,
   mockSubmissionCreate,
   mockSubmissionCountDocuments,
+  mockSubmissionAggregate,
   mockJudge,
   mockLogActivity,
   mockNotificationCreate,
 } = vi.hoisted(() => ({
   mockProblemFindOne: vi.fn(),
   mockProblemEstimatedCount: vi.fn().mockResolvedValue(8),
+  mockProblemFind: vi.fn(),
   mockSubmissionCreate: vi.fn(),
   mockSubmissionCountDocuments: vi.fn().mockResolvedValue(0),
+  mockSubmissionAggregate: vi.fn(),
   mockJudge: vi.fn(),
   mockLogActivity: vi.fn().mockResolvedValue(undefined),
   mockNotificationCreate: vi.fn().mockResolvedValue(null),
@@ -24,7 +28,7 @@ vi.mock('../../models/PracticeProblem', () => ({
     findOne: mockProblemFindOne,
     estimatedDocumentCount: mockProblemEstimatedCount,
     updateOne: vi.fn(),
-    find: vi.fn(),
+    find: mockProblemFind,
     aggregate: vi.fn(),
   },
 }));
@@ -34,7 +38,7 @@ vi.mock('../../models/PracticeSubmission', () => ({
     create: mockSubmissionCreate,
     countDocuments: mockSubmissionCountDocuments,
     find: vi.fn(),
-    aggregate: vi.fn(),
+    aggregate: mockSubmissionAggregate,
   },
 }));
 
@@ -137,6 +141,43 @@ describe('PracticeService', () => {
 
       expect(mockLogActivity).not.toHaveBeenCalled();
       expect(mockNotificationCreate).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('getStats scope', () => {
+    // getStats builds a real ObjectId for the aggregation match.
+    const userId = '507f1f77bcf86cd799439011';
+    const bank = [
+      { slug: 'two-sum', difficulty: 'easy' },
+      { slug: 'valid-parentheses', difficulty: 'easy' },
+      { slug: 'product-except-self', difficulty: 'medium' },
+    ];
+
+    beforeEach(() => {
+      mockProblemFind.mockReturnValue({ lean: () => Promise.resolve(bank) });
+    });
+
+    it('counts only curated-bank solves so solved can never exceed the bank total', async () => {
+      // One curated solve plus one LeetCode-only solve.
+      mockSubmissionAggregate.mockResolvedValue([{ _id: 'two-sum' }, { _id: 'some-leetcode-slug' }]);
+
+      const stats = await service.getStats(userId);
+
+      expect(stats.totalProblems).toBe(3);
+      expect(stats.totals).toEqual({ easy: 2, medium: 1, hard: 0 });
+      expect(stats.solved).toEqual({ easy: 1, medium: 0, hard: 0, total: 1 });
+      expect(stats.solved.total).toBeLessThanOrEqual(stats.totalProblems);
+    });
+
+    it('still counts submissions from both sources in the submission-scoped fields', async () => {
+      mockSubmissionAggregate.mockResolvedValue([{ _id: 'two-sum' }]);
+      mockSubmissionCountDocuments.mockResolvedValueOnce(10).mockResolvedValueOnce(4);
+
+      const stats = await service.getStats(userId);
+
+      expect(stats.totalSubmissions).toBe(10);
+      expect(stats.acceptedSubmissions).toBe(4);
+      expect(stats.acceptanceRate).toBe(40);
     });
   });
 });

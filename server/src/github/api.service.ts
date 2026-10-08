@@ -3,6 +3,7 @@ import { Document } from 'mongoose';
 import { env } from '../config/environment';
 import GitHubAccount, { IGitHubAccount } from '../models/GitHubAccount';
 import logger from '../utils/logger';
+import { ApiError } from '../utils/apiResponse';
 
 const RATE_LIMIT_THRESHOLD = 100;
 
@@ -25,7 +26,7 @@ export class GitHubApiService {
   async getUserClient(userId: string): Promise<Octokit> {
     const account = await GitHubAccount.findOne({ userId, isConnected: true });
     if (!account) {
-      throw new Error('GitHub account not connected. Please connect your GitHub account first.');
+      throw new ApiError(400, 'GitHub account not connected. Please connect your GitHub account first.');
     }
 
     await this.checkRateLimit(account);

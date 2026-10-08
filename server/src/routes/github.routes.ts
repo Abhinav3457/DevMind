@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { authenticate } from '../middleware/auth';
 import { validate } from '../middleware/validate';
+import { idempotency } from '../middleware/idempotency';
 import { gitHubController } from '../controllers/github.controller';
 import {
   oAuthCallbackSchema,
@@ -30,7 +31,7 @@ router.get('/status', asyncHandler(gitHubController.getConnectionStatus));
 
 router.get('/repos', asyncHandler(gitHubController.listRepositories));
 router.get('/repos/imported', asyncHandler(gitHubController.listImportedRepos));
-router.post('/repos/import', validate({ body: importRepoSchema }), asyncHandler(gitHubController.importRepository));
+router.post('/repos/import', validate({ body: importRepoSchema }), idempotency('github.repo.import'), asyncHandler(gitHubController.importRepository));
 router.delete('/repos/imported/:id', asyncHandler(gitHubController.deleteImportedRepo));
 router.post('/repos/sync', validate({ body: syncRepoSchema }), asyncHandler(gitHubController.syncRepository));
 router.get('/repos/:owner/:repo', validate({ params: repoParamsSchema }), asyncHandler(gitHubController.getRepoMetadata));

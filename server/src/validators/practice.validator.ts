@@ -5,21 +5,30 @@ const SUPPORTED_LANGUAGES = [
   'go', 'golang', 'rust', 'ruby', 'kotlin', 'swift', 'php', 'dart', 'scala', 'elixir', 'erlang', 'racket',
 ] as const;
 
-export const submitSolutionSchema = Joi.object({
-  code: Joi.string().min(1).max(50000).required().messages({
-    'string.empty': 'Your solution cannot be empty',
-    'string.min': 'Your solution cannot be empty',
-    'string.max': 'Solution cannot exceed 50000 characters',
-    'any.required': 'A solution is required to submit',
-  }),
-  language: Joi.string()
-    .trim()
-    .valid(...SUPPORTED_LANGUAGES)
-    .default('typescript')
-    .messages({
-      'any.only': 'Unsupported language. Supported: ' + SUPPORTED_LANGUAGES.join(', '),
+/**
+ * Both submission endpoints validate the same payload; the only difference is
+ * the default language (DevMind bank problems ship TypeScript starters, the
+ * LeetCode catalogue defaults to Python3), so the shared shape lives here and
+ * the two exported schemas differ by that one argument.
+ */
+const buildSubmitSchema = (defaultLanguage: string) =>
+  Joi.object({
+    code: Joi.string().min(1).max(50000).required().messages({
+      'string.empty': 'Your solution cannot be empty',
+      'string.min': 'Your solution cannot be empty',
+      'string.max': 'Solution cannot exceed 50000 characters',
+      'any.required': 'A solution is required to submit',
     }),
-});
+    language: Joi.string()
+      .trim()
+      .valid(...SUPPORTED_LANGUAGES)
+      .default(defaultLanguage)
+      .messages({
+        'any.only': 'Unsupported language. Supported: ' + SUPPORTED_LANGUAGES.join(', '),
+      }),
+  });
+
+export const submitSolutionSchema = buildSubmitSchema('typescript');
 
 export const leetcodeListQuerySchema = Joi.object({
   difficulty: Joi.string().trim().valid('easy', 'medium', 'hard').optional(),
@@ -29,21 +38,7 @@ export const leetcodeListQuerySchema = Joi.object({
   limit: Joi.number().integer().min(1).max(50).optional(),
 });
 
-export const leetcodeSubmitSchema = Joi.object({
-  code: Joi.string().min(1).max(50000).required().messages({
-    'string.empty': 'Your solution cannot be empty',
-    'string.min': 'Your solution cannot be empty',
-    'string.max': 'Solution cannot exceed 50000 characters',
-    'any.required': 'A solution is required to submit',
-  }),
-  language: Joi.string()
-    .trim()
-    .valid(...SUPPORTED_LANGUAGES)
-    .default('python3')
-    .messages({
-      'any.only': 'Unsupported language. Supported: ' + SUPPORTED_LANGUAGES.join(', '),
-    }),
-});
+export const leetcodeSubmitSchema = buildSubmitSchema('python3');
 
 export const problemSlugParamsSchema = Joi.object({
   slug: Joi.string()

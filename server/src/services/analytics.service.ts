@@ -5,6 +5,7 @@ import IndexReport from '../models/IndexReport';
 import IndexedFile from '../models/IndexedFile';
 import IndexedChunk from '../models/IndexedChunk';
 import PracticeSubmission from '../models/PracticeSubmission';
+import CodeReview from '../models/CodeReview';
 import logger from '../utils/logger';
 
 export interface AnalyticsData {
@@ -175,6 +176,7 @@ export class AnalyticsService {
       activityScore,
       activityTrendAgg,
       activityTotalsAgg,
+      codeReviewQualityAgg,
     ] = await Promise.all([
       reportId ? 1 : ImportedRepository.countDocuments({ userId }),
       IndexReport.countDocuments(reportFilter),
@@ -227,12 +229,33 @@ export class AnalyticsService {
         { $group: { _id: '$type', count: { $sum: 1 } } },
         { $sort: { count: -1 } },
       ]),
+      // Security/bug findings from the user's persisted Code Reviews.
+      // The $match on userId guarantees another user's reviews are never
+      // counted, and each finding (issue) is counted exactly once per review.
+      CodeReview.aggregate([
+        { $match: { userId: new mongoose.Types.ObjectId(userId) } },
+        {
+          $group: {
+            _id: null,
+            securityIssues: { $sum: { $size: { $ifNull: ['$details.categories.security.issues', []] } } },
+            bugCount: { $sum: { $size: { $ifNull: ['$details.categories.bugs.issues', []] } } },
+          },
+        },
+      ]),
     ]);
 
     const totalFiles = indexedFiles.length > 0 ? (indexedFiles[0] as { total: number })!.total : 0;
     const totalChunks = indexedChunks.length > 0 ? (indexedChunks[0] as { total: number })!.total : 0;
     const totalTokens = chunkAgg.length > 0 ? (chunkAgg[0] as { totalTokens: number })!.totalTokens : 0;
     const totalActivityScore = activityScore.length > 0 ? (activityScore[0] as { total: number })!.total : 0;
+
+    // Quality metrics derived from persisted Code Review findings.
+    // No reviews (or no findings in a category) → 0, never a fabricated value.
+    const codeReviewQuality = codeReviewQualityAgg.length > 0
+      ? (codeReviewQualityAgg[0] as { securityIssues: number; bugCount: number })
+      : null;
+    const securityIssues = codeReviewQuality ? codeReviewQuality.securityIssues : 0;
+    const bugCount = codeReviewQuality ? codeReviewQuality.bugCount : 0;
 
     // Languages breakdown
     const totalLangFiles = languageAgg.reduce((sum: number, l: { files: number }) => sum + l.files, 0);
@@ -349,8 +372,8 @@ export class AnalyticsService {
         },
       },
       quality: {
-        securityIssues: 0,
-        bugCount: 0,
+        securityIssues,
+        bugCount,
         reviewScore: avgReviewScore,
         documentationCoverage,
       },

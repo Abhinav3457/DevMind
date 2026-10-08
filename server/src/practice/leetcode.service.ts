@@ -9,6 +9,17 @@ const STATS_CACHE_TTL_MS = 10 * 60 * 1000;
 const LIST_CACHE_TTL_MS = 5 * 60 * 1000;
 const QUESTION_CACHE_TTL_MS = 30 * 60 * 1000;
 
+/**
+ * Hard caps on the in-process caches. They are keyed partly by user input
+ * (search text, problem slugs), so without a cap a long-lived server would
+ * grow them without bound. Oldest-inserted entries are evicted first.
+ */
+export const CACHE_LIMITS = {
+  stats: 500,
+  list: 300,
+  question: 800,
+} as const;
+
 export type LeetCodeDifficulty = 'easy' | 'medium' | 'hard';
 
 export interface LeetCodeStats {
@@ -167,6 +178,12 @@ export class LeetCodeService {
       };
     }>(LIST_QUERY, { categorySlug: 'all-code-essentials', limit, skip, filters: gqlFilters });
 
+    // An absent container means LeetCode changed its response shape. Surface it
+    // instead of silently reporting "no problems" for every query.
+    if (!Object.prototype.hasOwnProperty.call(body, 'questionList')) {
+      throw new ApiError(502, 'LeetCode returned an unexpected problem-list response. Please try again later.');
+    }
+
     const raw = body.questionList?.data || [];
     const result: LeetCodeProblemList = {
       total: body.questionList?.totalNum || 0,
@@ -181,7 +198,7 @@ export class LeetCodeService {
       })),
     };
 
-    this.listCache.set(cacheKey, { data: result, expiresAt: Date.now() + LIST_CACHE_TTL_MS });
+    this.put(this.listCache, cacheKey, result, LIST_CACHE_TTL_MS, CACHE_LIMITS.list);
     return result;
   }
 
@@ -211,6 +228,10 @@ export class LeetCodeService {
       } | null;
     }>(QUESTION_QUERY, { titleSlug }, titleSlug);
 
+    if (!Object.prototype.hasOwnProperty.call(body, 'question')) {
+      throw new ApiError(502, 'LeetCode returned an unexpected question response. Please try again later.');
+    }
+
     const q = body.question;
     if (!q) {
       throw new ApiError(404, 'LeetCode problem "' + titleSlug + '" was not found');
@@ -223,7 +244,7 @@ export class LeetCodeService {
       title: q.title || titleSlug,
       difficulty: this.normalizeDifficulty(q.difficulty),
       description: this.htmlToMarkdown(q.content || '') || 'No description available (this may be a premium problem).',
-      exampleTestcases: this.splitTestCases(q.exampleTestcases || '', meta.params.length),
+      exampleTestcases: this.splitTestCases(q.exampleTestcases || '', meta.params.length, q.codeSnippets || []),
       hints: (q.hints || []).filter(Boolean),
       tags: (q.topicTags || []).map((t) => t.name || '').filter(Boolean),
       functionName: meta.name,
@@ -233,7 +254,7 @@ export class LeetCodeService {
       paidOnly: !!q.isPaidOnly,
     };
 
-    this.questionCache.set(titleSlug, { data: question, expiresAt: Date.now() + QUESTION_CACHE_TTL_MS });
+    this.put(this.questionCache, titleSlug, question, QUESTION_CACHE_TTL_MS, CACHE_LIMITS.question);
     return question;
   }
 
@@ -263,6 +284,10 @@ export class LeetCodeService {
         topPercentage?: number;
       } | null;
     }>(STATS_QUERY, { username }, username);
+
+    if (!Object.prototype.hasOwnProperty.call(body, 'matchedUser')) {
+      throw new ApiError(502, 'LeetCode returned an unexpected profile response. Please try again later.');
+    }
 
     const user = body.matchedUser;
     if (!user) {
@@ -297,7 +322,7 @@ export class LeetCodeService {
       fetchedAt: new Date().toISOString(),
     };
 
-    this.statsCache.set(cacheKey, { data: stats, expiresAt: Date.now() + STATS_CACHE_TTL_MS });
+    this.put(this.statsCache, cacheKey, stats, STATS_CACHE_TTL_MS, CACHE_LIMITS.stats);
     return stats;
   }
 
@@ -368,13 +393,28 @@ export class LeetCodeService {
   }
 
   /**
-   * exampleTestcases is newline-separated, one line per parameter. Grouping by
-   * the parameter count turns it back into one entry per example.
+   * `exampleTestcases` is newline-separated, one line per parameter. The
+   * parameter count is authoritative only when it comes from the problem
+   * metadata or the function signature.
+   *
+   * When neither is available we try to recover the group size from the shape
+   * of the values, and if that is ambiguous too we return NO test cases rather
+   * than guessing: a wrong grouping would be judged as a genuine failure (or
+   * worse, a genuine pass) against a spec that was never real.
    */
-  private splitTestCases(raw: string, paramCount: number): string[] {
+  private splitTestCases(
+    raw: string,
+    paramCount: number,
+    snippets: Array<{ code?: string; langSlug?: string }> = [],
+  ): string[] {
     const lines = raw.split('\n').map((l) => l.trim()).filter((l) => l.length > 0);
     if (lines.length === 0) return [];
-    const size = paramCount > 0 ? paramCount : 1;
+
+    let size = paramCount;
+    if (size <= 0) size = this.inferParamCountFromSnippets(snippets);
+    if (size <= 0) size = this.inferGroupSizeFromShapes(lines);
+    if (size <= 0) return [];
+
     if (lines.length <= size) return [lines.join('\n')];
 
     const groups: string[] = [];
@@ -382,6 +422,154 @@ export class LeetCodeService {
       groups.push(lines.slice(i, i + size).join('\n'));
     }
     return groups;
+  }
+
+  // ── Parameter / grouping inference ─────────────────────────
+
+  /** Parameter count from the first usable starter signature, else 0. */
+  private inferParamCountFromSnippets(snippets: Array<{ code?: string; langSlug?: string }>): number {
+    for (const snippet of snippets) {
+      const code = typeof snippet?.code === 'string' ? snippet.code : '';
+      if (!code.trim()) continue;
+      const list = this.extractParamList(code);
+      if (list === null) continue;
+      const count = this.countParams(list, (snippet.langSlug || '').startsWith('python'));
+      if (count > 0) return count;
+    }
+    return 0;
+  }
+
+  /**
+   * The first `(` that directly follows an identifier, plus its balanced
+   * contents. This matches `def twoSum(...)`, `function twoSum(...)`,
+   * `var twoSum = function(...)`, `public int[] twoSum(...)` and
+   * `func twoSum(...)` without language-specific parsing.
+   */
+  private extractParamList(code: string): string | null {
+    for (let i = 0; i < code.length; i += 1) {
+      if (code[i] !== '(') continue;
+      let j = i - 1;
+      while (j >= 0 && /\s/.test(code[j])) j -= 1;
+      if (j < 0 || !/[\w$]/.test(code[j])) continue;
+      const end = this.matchParen(code, i);
+      if (end === -1) continue;
+      const inner = code.slice(i + 1, end);
+      if (inner.includes('\n')) continue;
+      return inner;
+    }
+    return null;
+  }
+
+  private matchParen(code: string, open: number): number {
+    let depth = 0;
+    for (let i = open; i < code.length; i += 1) {
+      const ch = code[i];
+      if (ch === '"' || ch === "'" || ch === '`') {
+        i = this.skipString(code, i);
+        continue;
+      }
+      if (ch === '(') depth += 1;
+      else if (ch === ')') {
+        depth -= 1;
+        if (depth === 0) return i;
+      }
+    }
+    return -1;
+  }
+
+  private skipString(code: string, start: number): number {
+    const quote = code[start];
+    for (let i = start + 1; i < code.length; i += 1) {
+      if (code[i] === '\\') {
+        i += 1;
+        continue;
+      }
+      if (code[i] === quote) return i;
+    }
+    return code.length - 1;
+  }
+
+  /** Count comma-separated parameters, ignoring `self`/`cls` and nested types. */
+  private countParams(list: string, isPython: boolean): number {
+    const parts: string[] = [];
+    let depth = 0;
+    let current = '';
+    for (const ch of list) {
+      if (ch === '(' || ch === '[' || ch === '{' || ch === '<') depth += 1;
+      else if (ch === ')' || ch === ']' || ch === '}' || ch === '>') depth = Math.max(0, depth - 1);
+      if (ch === ',' && depth === 0) {
+        parts.push(current);
+        current = '';
+        continue;
+      }
+      current += ch;
+    }
+    parts.push(current);
+
+    return parts
+      .map((p) => p.trim())
+      .filter((p) => p.length > 0)
+      .filter((p) => !(isPython && /^(self|cls)\b/.test(p))).length;
+  }
+
+  /**
+   * Smallest group size that makes the value *shapes* repeat across examples,
+   * or 0 when the sequence is ambiguous. All-identical shapes are ambiguous:
+   * they fit both "1 parameter, N examples" and "N parameters, 1 example".
+   */
+  private inferGroupSizeFromShapes(lines: string[]): number {
+    const shapes = lines.map((line) => this.valueShape(line));
+    if (shapes.every((shape) => shape === shapes[0])) return 0;
+
+    for (let size = 2; size <= lines.length; size += 1) {
+      if (lines.length % size !== 0) continue;
+      let consistent = true;
+      for (let i = size; i < lines.length; i += 1) {
+        if (shapes[i] !== shapes[i % size]) {
+          consistent = false;
+          break;
+        }
+      }
+      if (consistent) return size;
+    }
+    return 0;
+  }
+
+  private valueShape(line: string): string {
+    const value = line.trim();
+    if (value.startsWith('[')) return 'list';
+    if (value.startsWith('{')) return 'object';
+    if (value.startsWith('"') || value.startsWith("'")) return 'string';
+    if (value === 'true' || value === 'false') return 'boolean';
+    if (value === 'null' || value === 'None') return 'null';
+    if (/^-?\d+(\.\d+)?$/.test(value)) return 'number';
+    return 'other';
+  }
+
+  // ── Cache bookkeeping ──────────────────────────────────────
+
+  private put<T>(
+    cache: Map<string, CacheEntry<T>>,
+    key: string,
+    data: T,
+    ttlMs: number,
+    maxEntries: number,
+  ): void {
+    cache.set(key, { data, expiresAt: Date.now() + ttlMs });
+    this.prune(cache, maxEntries);
+  }
+
+  /** Drop expired entries, then the oldest entries until the cache fits. */
+  private prune<T>(cache: Map<string, CacheEntry<T>>, maxEntries: number): void {
+    const now = Date.now();
+    for (const [key, entry] of cache) {
+      if (entry.expiresAt <= now) cache.delete(key);
+    }
+    while (cache.size > maxEntries) {
+      const oldest = cache.keys().next();
+      if (oldest.done) break;
+      cache.delete(oldest.value);
+    }
   }
 
   private parseCalendar(raw?: string): Map<number, number> {

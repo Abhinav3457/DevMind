@@ -75,7 +75,7 @@ Routes (route definitions + validation)
 | **Stateless REST + JWT** | Access token in `Authorization` header, refresh token in an `httpOnly` cookie |
 | **Service-Repository pattern** | Controllers stay thin; services own business rules |
 | **Modular domain folders** | `indexer/`, `code-review/`, `doc-generator/`, `repo-intelligence/` are self-contained domains with their own sub-services |
-| **AI provider abstraction** | `generateFromAI()` tries **Groq first, Gemini as fallback** — one entry point for all AI calls |
+| **AI provider abstraction** | `generateFromAI()` is the single entry point for all AI calls: **Groq first for small prompts**, **Gemini first for large prompts** (>30k chars, higher TPM), with automatic retries and fallback to the other provider so one outage never takes a feature down |
 | **User-scoped GitHub tokens** | Each user's GitHub account is stored separately; server falls back to a global `GITHUB_TOKEN` when no user token exists |
 
 ---
@@ -388,7 +388,7 @@ The pipeline that turns a GitHub repo into a queryable code corpus:
 
 Endpoint: `POST /api/v1/ai/repo-intelligence/:reportId/ask` (or `/query`).
 
-This is a lightweight **RAG pipeline** built on the index. It does **not** use embeddings/vector search — it uses rule-based classification + regex/aggregation retrieval.
+This is a **RAG pipeline** built on the index. It combines rule-based classification + regex/aggregation retrieval with optional **semantic vector search**: when `EMBEDDING_PROVIDER` is configured, chunks and the query are embedded and ranked by cosine similarity; if embeddings are unavailable the retriever degrades gracefully to keyword-only matching (`semanticExecuted: false`).
 
 ```
 Question ("Where is JWT generated?")
@@ -412,7 +412,8 @@ Question ("Where is JWT generated?")
    │
    ▼
 4. GENERATE  generateFromAI({ systemInstruction, prompt, temperature: 0.3 })
-      → Groq first (mixtral-8x7b-32768 → llama-3.1-8b-instant), Gemini fallback
+      → Groq first for small prompts (openai/gpt-oss-120b → gpt-oss-20b → qwen3.6-27b → llama-3.3-70b-versatile);
+        Gemini first for large prompts (gemini-3.5-flash); automatic fallback + retries
    │
    ▼
 Answer + contextSummary { filesUsed, chunksUsed, hasTechStack, hasFolderStructure }
@@ -522,7 +523,7 @@ Notifications are emitted to the authenticated user's room (`user:<userId>`), so
 | `ImportedRepository` | Repos saved for indexing | unique (userId, githubId), fullName, stars/forks, permissions, lastSyncedAt |
 | `IndexReport` | One per indexing run | status, summary, techStack, folderStructure, fileCount, chunkCount, totalTokens |
 | `IndexedFile` | File metadata per report | unique (reportId, path), functions/classes/imports/exports/dependencies |
-| `IndexedChunk` | Code fragments | (reportId, fileId, index), content, type, tokenCount, embedding (reserved: null) |
+| `IndexedChunk` | Code fragments | (reportId, fileId, index), content, type, tokenCount, embedding (vector), embeddingModel (`null` when semantic search is disabled) |
 | `Notification` / `Upload` | Notifications & uploaded file metadata | — |
 
 **Serialization:** all models expose `id` (string) instead of `_id`/`__v` via `toJSON` transforms, and sensitive fields (`password`, `refreshToken`, `accessToken`, verification tokens) are stripped — unless explicitly selected.
@@ -566,8 +567,11 @@ Server (`.env` in `server/`):
 | `CLIENT_URL` | `http://localhost:5173` | |
 | `CLOUDINARY_CLOUD_NAME` / `_API_KEY` / `_API_SECRET` | empty | for uploads |
 | `SMTP_HOST` / `_PORT` / `_USER` / `_PASS` / `_FROM` | gmail defaults | for email |
-| `GEMINI_API_KEY` | empty | for AI (fallback) |
-| `GROQ_API_KEY` | empty | for AI (primary) |
+| `GEMINI_API_KEY` | empty | for AI (preferred for large prompts, fallback otherwise) |
+| `GROQ_API_KEY` | empty | for AI (preferred for small prompts, fallback otherwise) |
+| `EMBEDDING_PROVIDER` | empty → keyword-only retrieval (`nvidia` or `gemini`) | for RAG semantic search |
+| `NVIDIA_API_KEY` | empty | when `EMBEDDING_PROVIDER=nvidia` |
+| `NVIDIA_EMBEDDING_MODEL` | `nvidia/nemotron-3-embed-1b` | |
 | `GITHUB_TOKEN` | empty | global fallback GitHub token |
 | `GITHUB_CLIENT_ID` | empty | for GitHub OAuth |
 | `GITHUB_CLIENT_SECRET` | empty | for GitHub OAuth |
@@ -581,7 +585,7 @@ Client (`.env` in `client/`):
 | Variable | Default |
 |---|---|
 | `VITE_API_URL` | `/api/v1` (falls back to same-origin proxy) |
-| `VITE_SOCKET_URL` | `''` (same origin) |
+| `VITE_SOCKET_URL` | `''` (same origin; set to the deployed API origin in production) |
 
 ---
 
@@ -635,8 +639,8 @@ npm start            # runs server/dist/index.js (serves API only)
 
 The repo includes a `render.yaml` for Render.com blueprints:
 
-- **`devmind-ai-api`** — Node web service (`server/`): `npm install --include=dev && npm run build`, start `npm start`, health check at `/api/v1/health`. All secrets (`MONGODB_URI`, JWT secrets, `CLIENT_URL`, GitHub OAuth, Cloudinary, SMTP, AI keys) are `sync: false` — set them in the Render dashboard.
-- **`devmind-ai-frontend`** — Static site (`client/`): builds with `vite build`, publishes `./dist`, and rewrites all routes to `/index.html` for SPA routing. `VITE_API_URL` points at the deployed API.
+- **`devmind-ai-api`** — Node web service (`server/`): `npm install --include=dev && npm run build`, start `npm start`, health check at `/api/v1/health`. All secrets (`MONGODB_URI`, JWT secrets, `CLIENT_URL`, GitHub OAuth, Cloudinary, SMTP, AI keys, `NVIDIA_API_KEY`) are `sync: false` — set them in the Render dashboard. `EMBEDDING_PROVIDER` and `NVIDIA_EMBEDDING_MODEL` have non-secret defaults.
+- **`devmind-ai-frontend`** — Static site (`client/`): builds with `vite build`, publishes `./dist`, and rewrites all routes to `/index.html` for SPA routing. `VITE_API_URL` points at the deployed API, and `VITE_SOCKET_URL` at the API origin (no `/api/v1`) so Socket.io connects to the backend.
 
 After deploying the API, set `CLIENT_URL` and `SOCKET_CORS_ORIGIN` to the frontend URL, and update the GitHub OAuth App's callback URL to the production frontend.
 

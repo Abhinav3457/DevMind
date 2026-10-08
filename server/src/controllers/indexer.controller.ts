@@ -4,13 +4,13 @@ import { sendSuccess, sendCreated } from '../utils/apiResponse';
 
 export class IndexerController {
   async indexRepository(req: Request, res: Response): Promise<void> {
-    const { repoDir } = req.body;
     const { repositoryId } = req.params;
 
+    // Never pass a client-supplied path: indexing always uses the
+    // server-managed working copy cloned from GitHub.
     const result = await indexerService.indexRepository(
       req.user!.userId,
       repositoryId,
-      repoDir,
     );
     sendCreated(res, { message: 'Repository indexing started', data: result });
   }

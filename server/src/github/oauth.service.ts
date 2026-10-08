@@ -7,6 +7,7 @@ import IndexedChunk from '../models/IndexedChunk';
 import OAuthState from '../models/OAuthState';
 import { env } from '../config/environment';
 import logger from '../utils/logger';
+import { ApiError } from '../utils/apiResponse';
 
 const STATE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
@@ -33,7 +34,7 @@ export class GitHubOAuthService {
       });
     } catch (err) {
       logger.error('Failed to store OAuth state:', err);
-      throw new Error('Failed to initialize GitHub authorization. Please try again.');
+      throw new ApiError(500, 'Failed to initialize GitHub authorization. Please try again.');
     }
 
     return { url: `https://github.com/login/oauth/authorize?${params.toString()}`, state };
@@ -51,7 +52,7 @@ export class GitHubOAuthService {
 
   async handleCallback(code: string): Promise<{ accessToken: string; login: string }> {
     if (!env.GITHUB_CLIENT_ID || !env.GITHUB_CLIENT_SECRET) {
-      throw new Error('GitHub OAuth is not configured. Missing GITHUB_CLIENT_ID or GITHUB_CLIENT_SECRET environment variables.');
+      throw new ApiError(503, 'GitHub OAuth is not configured. Missing GITHUB_CLIENT_ID or GITHUB_CLIENT_SECRET environment variables.');
     }
 
     const tokenResponse = await fetch('https://github.com/login/oauth/access_token', {
@@ -65,8 +66,12 @@ export class GitHubOAuthService {
     });
     const tokenData = await tokenResponse.json() as { access_token?: string; error?: string; error_description?: string };
     if (!tokenData.access_token) {
-      const errorDesc = tokenData.error_description ? ` — ${tokenData.error_description}` : '';
-      throw new Error(`GitHub OAuth error: ${tokenData.error || 'No access token received'}${errorDesc}`);
+      // Keep the provider detail in server logs only — never send it to clients.
+      logger.error('GitHub OAuth token exchange failed:', {
+        error: tokenData.error || 'no_access_token',
+        description: tokenData.error_description,
+      });
+      throw new ApiError(502, 'Could not complete GitHub authorization. Please try again.');
     }
 
     const { Octokit } = await import('octokit');
@@ -79,14 +84,14 @@ export class GitHubOAuthService {
     // Validate state to prevent CSRF attacks on OAuth flow
     const stored = await OAuthState.findOne({ state }).lean();
     if (!stored) {
-      throw new Error('Invalid or expired OAuth state parameter. Please try again.');
+      throw new ApiError(400, 'Invalid or expired OAuth state parameter. Please try again.');
     }
     if (stored.userId.toString() !== userId) {
-      throw new Error('OAuth state parameter does not match user. Possible CSRF attack.');
+      throw new ApiError(400, 'OAuth state parameter does not match user. Possible CSRF attack.');
     }
     if (stored.expiresAt < new Date()) {
       await OAuthState.deleteOne({ state });
-      throw new Error('OAuth state parameter has expired. Please try again.');
+      throw new ApiError(400, 'OAuth state parameter has expired. Please try again.');
     }
 
     // Remove state immediately to prevent replay attacks
@@ -106,8 +111,9 @@ export class GitHubOAuthService {
     // Check if this GitHub account is already connected to another user
     const existingByGithubId = await GitHubAccount.findOne({ githubId: user.id, userId: { $ne: userId } }).lean();
     if (existingByGithubId) {
-      throw new Error(
-        `GitHub account "${login}" (ID: ${user.id}) is already connected to another user. ` +
+      throw new ApiError(
+        409,
+        `GitHub account "${login}" is already connected to another user. ` +
         'Please disconnect it from that account first, or use a different GitHub account.',
       );
     }
@@ -173,20 +179,21 @@ export class GitHubOAuthService {
   }
 
   /**
-   * Force-disconnect a GitHub account by its GitHub numeric ID, regardless of which user owns it.
-   * Useful for cleaning up orphaned records or resolving "already connected to another user" errors.
+   * Force-disconnect the authenticated user's own GitHub account by its numeric ID.
+   * Always scoped by userId: a user can never disconnect (or delete the repos of)
+   * another user's GitHub account.
    */
-  async forceDisconnectByGithubId(githubId: number): Promise<{ deleted: boolean; login?: string }> {
-    const account = await GitHubAccount.findOne({ githubId }).lean();
+  async forceDisconnectByGithubId(userId: string, githubId: number): Promise<{ deleted: boolean; login?: string }> {
+    const account = await GitHubAccount.findOne({ githubId, userId }).lean();
     if (!account) {
       return { deleted: false };
     }
 
-    // Clean up repos and indexed data for the user who owned this account
-    await this.disconnectAccount(account.userId.toString());
+    // Clean up repos and indexed data for this user
+    await this.disconnectAccount(userId);
 
     // Also hard-delete the record in case disconnectAccount only soft-disconnects
-    await GitHubAccount.deleteOne({ githubId });
+    await GitHubAccount.deleteOne({ githubId, userId });
 
     logger.info(`Force-disconnected GitHub account ${account.login} (ID: ${githubId})`);
     return { deleted: true, login: account.login };

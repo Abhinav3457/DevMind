@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { uploadService } from '../services/upload.service';
 import Upload from '../models/Upload';
-import { sendSuccess, sendCreated } from '../utils/apiResponse';
+import { sendSuccess, sendCreated, ApiError } from '../utils/apiResponse';
 
 export class UploadController {
   async uploadSingle(req: Request, res: Response): Promise<void> {
@@ -88,10 +88,17 @@ export class UploadController {
       return;
     }
 
+    // Verify ownership BEFORE touching the underlying Cloudinary asset so a
+    // user can never delete another user's file or its metadata row.
+    const upload = await Upload.findOne({ publicId, userId: req.user!.userId });
+    if (!upload) {
+      throw new ApiError(404, 'File not found or access denied');
+    }
+
     await uploadService.deleteFile(publicId);
 
-    // Remove metadata from MongoDB
-    await Upload.findOneAndDelete({ publicId, userId: req.user!.userId });
+    // Remove the metadata row we already verified belongs to this user.
+    await Upload.deleteOne({ _id: upload._id });
 
     sendSuccess(res, {
       statusCode: 200,

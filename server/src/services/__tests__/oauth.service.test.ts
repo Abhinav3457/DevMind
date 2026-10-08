@@ -7,7 +7,7 @@ vi.mock('../../models/OAuthState', () => ({
   default: { create: vi.fn(), findOne: vi.fn(), deleteOne: vi.fn() },
 }));
 vi.mock('../../models/GitHubAccount', () => ({
-  default: { findOne: vi.fn(), findOneAndUpdate: vi.fn(), find: vi.fn() },
+  default: { findOne: vi.fn(), findOneAndUpdate: vi.fn(), find: vi.fn(), deleteOne: vi.fn() },
 }));
 vi.mock('../../models/ImportedRepository', () => ({ default: { find: vi.fn().mockReturnValue({ select: vi.fn().mockReturnValue({ lean: vi.fn().mockResolvedValue([]) }) }), deleteMany: vi.fn() } }));
 vi.mock('../../models/IndexReport', () => ({ default: { find: vi.fn(), deleteMany: vi.fn() } }));
@@ -75,6 +75,33 @@ describe('GitHubOAuthService', () => {
     it('should disconnect and clean up data', async () => {
       await service.disconnectAccount('user-123');
       expect(GitHubAccount.findOneAndUpdate).toHaveBeenCalled();
+    });
+  });
+
+  describe('forceDisconnectByGithubId', () => {
+    it('is scoped to the owner: finds and deletes by userId + githubId', async () => {
+      vi.mocked(GitHubAccount.findOne).mockReturnValue({
+        lean: vi.fn().mockResolvedValue({ userId: { toString: () => 'user-123' }, login: 'test' }),
+      } as never);
+      vi.mocked(GitHubAccount.deleteOne).mockResolvedValue({} as never);
+
+      const result = await service.forceDisconnectByGithubId('user-123', 999);
+
+      expect(result).toEqual({ deleted: true, login: 'test' });
+      expect(GitHubAccount.findOne).toHaveBeenCalledWith({ githubId: 999, userId: 'user-123' });
+      expect(GitHubAccount.deleteOne).toHaveBeenCalledWith({ githubId: 999, userId: 'user-123' });
+    });
+
+    it('does nothing when the account is not owned by this user', async () => {
+      vi.mocked(GitHubAccount.findOne).mockReturnValue({
+        lean: vi.fn().mockResolvedValue(null),
+      } as never);
+
+      const result = await service.forceDisconnectByGithubId('user-B', 999);
+
+      expect(result).toEqual({ deleted: false });
+      expect(GitHubAccount.findOne).toHaveBeenCalledWith({ githubId: 999, userId: 'user-B' });
+      expect(GitHubAccount.deleteOne).not.toHaveBeenCalled();
     });
   });
 });

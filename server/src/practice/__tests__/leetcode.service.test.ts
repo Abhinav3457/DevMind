@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { LeetCodeService } from '../leetcode.service';
+import { CACHE_LIMITS, LeetCodeService } from '../leetcode.service';
 
 vi.mock('../../utils/logger', () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
@@ -167,5 +167,123 @@ describe('LeetCodeService', () => {
     expect(md).toContain('**fast**');
     expect(md).toContain('&');
     expect(md).not.toContain('<p>');
+  });
+
+  // ── Example grouping (regression: metadata absent) ────────
+
+  function questionPayload(overrides: Record<string, unknown>) {
+    return makeResponse({
+      data: {
+        question: {
+          questionFrontendId: '1',
+          title: 'Sample',
+          titleSlug: 'sample',
+          difficulty: 'Easy',
+          content: '<p>x</p>',
+          hints: [],
+          isPaidOnly: false,
+          topicTags: [],
+          codeSnippets: [],
+          ...overrides,
+        },
+      },
+    });
+  }
+
+  it('groups four example lines into two examples when metadata is missing', async () => {
+    fetchMock.mockResolvedValue(questionPayload({ exampleTestcases: '[2,7,11,15]\n9\n[3,2,4]\n6' }));
+    const service = new LeetCodeService();
+
+    const q = await service.getQuestion('sample');
+
+    expect(q.exampleTestcases).toEqual(['[2,7,11,15]\n9', '[3,2,4]\n6']);
+  });
+
+  it('keeps one example per line for a single-parameter problem', async () => {
+    fetchMock.mockResolvedValue(questionPayload({
+      exampleTestcases: '[1,2,3]\n[4,5]\n[6]',
+      metaData: JSON.stringify({ name: 'solve', params: [{ name: 'nums' }] }),
+    }));
+    const service = new LeetCodeService();
+
+    const q = await service.getQuestion('sample');
+
+    expect(q.exampleTestcases).toEqual(['[1,2,3]', '[4,5]', '[6]']);
+  });
+
+  it('infers the parameter count from the starter signature when metadata is missing', async () => {
+    // Every line is the same shape, so only the signature can disambiguate.
+    fetchMock.mockResolvedValue(questionPayload({
+      exampleTestcases: '1\n2\n3\n4',
+      codeSnippets: [
+        {
+          lang: 'TypeScript',
+          langSlug: 'typescript',
+          code: 'function solve(a: number, b: number): number {\n  return a + b;\n}\n',
+        },
+      ],
+    }));
+    const service = new LeetCodeService();
+
+    const q = await service.getQuestion('sample');
+
+    expect(q.exampleTestcases).toEqual(['1\n2', '3\n4']);
+  });
+
+  it('returns no test cases rather than guessing when grouping is ambiguous', async () => {
+    fetchMock.mockResolvedValue(questionPayload({ exampleTestcases: '1\n2\n3\n4' }));
+    const service = new LeetCodeService();
+
+    const q = await service.getQuestion('sample');
+
+    expect(q.exampleTestcases).toEqual([]);
+  });
+
+  it('treats a missing exampleTestcases field as no test cases instead of crashing', async () => {
+    fetchMock.mockResolvedValue(questionPayload({}));
+    const service = new LeetCodeService();
+
+    const q = await service.getQuestion('sample');
+
+    expect(q.exampleTestcases).toEqual([]);
+  });
+
+  // ── Response-shape robustness ─────────────────────────────
+
+  it('surfaces a clear error when the question response shape changes', async () => {
+    fetchMock.mockResolvedValue(makeResponse({ data: { somethingElse: {} } }));
+    const service = new LeetCodeService();
+
+    await expect(service.getQuestion('two-sum')).rejects.toThrow('unexpected question response');
+  });
+
+  it('surfaces a clear error when the problem-list response shape changes', async () => {
+    fetchMock.mockResolvedValue(makeResponse({ data: { somethingElse: {} } }));
+    const service = new LeetCodeService();
+
+    await expect(service.listProblems({ page: 1, limit: 30 })).rejects.toThrow(
+      'unexpected problem-list response',
+    );
+  });
+
+  it('surfaces a clear error when the profile response shape changes', async () => {
+    fetchMock.mockResolvedValue(makeResponse({ data: { somethingElse: {} } }));
+    const service = new LeetCodeService();
+
+    await expect(service.getStats('devmind')).rejects.toThrow('unexpected profile response');
+  });
+
+  // ── Cache bounds ──────────────────────────────────────────
+
+  it('bounds the problem-list cache so distinct searches cannot grow it forever', async () => {
+    fetchMock.mockResolvedValue(makeResponse({ data: { questionList: { totalNum: 0, data: [] } } }));
+    const service = new LeetCodeService();
+
+    for (let i = 0; i < CACHE_LIMITS.list + 25; i++) {
+      await service.listProblems({ search: 'query-' + i, page: 1, limit: 30 });
+    }
+
+    const cache = (service as unknown as { listCache: Map<string, unknown> }).listCache;
+    expect(cache.size).toBeLessThanOrEqual(CACHE_LIMITS.list);
   });
 });

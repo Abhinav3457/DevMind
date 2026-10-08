@@ -8,6 +8,8 @@ import IndexedChunk from '../../models/IndexedChunk';
 import ImportedRepository from '../../models/ImportedRepository';
 import CodeReview from '../../models/CodeReview';
 import ActivityLog from '../../models/ActivityLog';
+import User from '../../models/User';
+import { notificationService } from '../notification.service';
 
 vi.mock('../../models/IndexReport', () => ({
   default: { findOne: vi.fn(), countDocuments: vi.fn() },
@@ -112,6 +114,49 @@ describe('CodeReviewService', () => {
     vi.mocked(IndexReport.findOne).mockResolvedValue({ status: 'completed' } as never);
     vi.mocked(IndexedFile.find).mockReturnValue(createQueryMock([]) as never);
     await expect(service.reviewRepository('rep-1', 'user-1', ['src/app.ts'])).rejects.toThrow('No files found');
+  });
+
+  function setupReviewableReport() {
+    vi.mocked(IndexReport.findOne).mockResolvedValue({ status: 'completed' } as never);
+    const files = [
+      { _id: 'file-1', path: 'src/test.ts', functions: [], classes: [], imports: [], exports: [], dependencies: [], name: 'test.ts', language: 'typescript', size: 100 },
+    ];
+    vi.mocked(IndexedFile.find).mockReturnValue(createQueryMock(files) as never);
+    const chunks = [
+      { _id: { toString: () => 'chunk-1' }, fileId: { toString: () => 'file-1' }, content: 'const x = 1;', index: 0, startLine: 1, endLine: 1, type: 'function', tokenCount: 5 },
+    ];
+    vi.mocked(IndexedChunk.find).mockReturnValue(createQueryMock(chunks) as never);
+    // Keep best-effort side effects off the database in these tests.
+    vi.spyOn(notificationService, 'create').mockResolvedValue({} as never);
+    vi.spyOn(User, 'findById').mockReturnValue({
+      select: vi.fn().mockReturnValue({ lean: vi.fn().mockResolvedValue(null) }),
+    } as never);
+  }
+
+  it('persists the review before issuing a share token', async () => {
+    setupReviewableReport();
+    vi.mocked(CodeReview.create).mockResolvedValue({} as never);
+
+    const result = await service.reviewRepository('rep-1', 'user-1');
+
+    expect(CodeReview.create).toHaveBeenCalledTimes(1);
+    expect(result.shareToken).toMatch(/^[0-9a-f]{32}$/);
+    const persisted = vi.mocked(CodeReview.create).mock.calls[0]![0] as { shareToken: string };
+    expect(persisted.shareToken).toBe(result.shareToken);
+  });
+
+  it('never returns a share token when persistence fails', async () => {
+    setupReviewableReport();
+    vi.mocked(CodeReview.create).mockRejectedValue(new Error('mongo down'));
+
+    await expect(service.reviewRepository('rep-1', 'user-1')).rejects.toThrow(ApiError);
+    await expect(service.reviewRepository('rep-1', 'user-1')).rejects.toThrow(
+      'Failed to save the code review',
+    );
+
+    const outcome = await service.reviewRepository('rep-1', 'user-1').catch((error: unknown) => error);
+    expect(outcome).toBeInstanceOf(ApiError);
+    expect((outcome as { shareToken?: string }).shareToken).toBeUndefined();
   });
 
   it('should reconstruct file content with accurate line numbers from chunk start/end lines', async () => {

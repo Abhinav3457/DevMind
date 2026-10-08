@@ -58,7 +58,6 @@ export class CodeParserService {
       const funcMatch = trimmed.match(/(?:export\s+)?(?:async\s+)?function\s+(\w+)/);
       if (funcMatch) {
         currentFunction = { name: funcMatch[1]!, startLine: i + 1, endLine: i + 1 };
-        continue;
       }
 
       const arrowFuncMatch = trimmed.match(/^(?:export\s+)?(?:const|let|var)\s+(\w+)\s*[:=]\s*(?:async\s*)?\(/);
@@ -69,7 +68,6 @@ export class CodeParserService {
       const classMatch = trimmed.match(/(?:export\s+)?(?:abstract\s+)?class\s+(\w+)/);
       if (classMatch) {
         currentClass = { name: classMatch[1]!, startLine: i + 1, endLine: i + 1 };
-        continue;
       }
 
       for (const ch of line) {

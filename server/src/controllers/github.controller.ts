@@ -1,10 +1,10 @@
 import { Request, Response } from 'express';
-import { gitHubService } from '../services/github.service';
+import { gitHubService, mapGitHubError } from '../services/github.service';
 import { gitHubOAuthService } from '../github/oauth.service';
 import ImportedRepository from '../models/ImportedRepository';
 import IndexReport from '../models/IndexReport';
 import { env } from '../config/environment';
-import { sendSuccess, sendError } from '../utils/apiResponse';
+import { sendSuccess, sendError, ApiError } from '../utils/apiResponse';
 import logger from '../utils/logger';
 
 export class GitHubController {
@@ -31,9 +31,10 @@ export class GitHubController {
       const result = await gitHubService.handleOAuthCallback(req.user!.userId, code, state);
       sendSuccess(res, { statusCode: 200, message: 'GitHub account connected successfully', data: result });
     } catch (error) {
-      const message = (error as Error).message || 'Failed to connect GitHub account';
-      logger.error('GitHub OAuth callback error:', { message });
-      sendError(res, 500, message);
+      logger.error('GitHub OAuth callback error:', { message: (error as Error).message });
+      // Only safe, mapped messages reach the client.
+      const safe = error instanceof ApiError ? error : new ApiError(500, 'Failed to connect GitHub account');
+      sendError(res, safe.statusCode, safe.message);
     }
   }
 
@@ -58,7 +59,8 @@ export class GitHubController {
       return res.redirect(`${env.CLIENT_URL}/github?github_status=success`);
     } catch (err) {
       logger.error('GitHub OAuth direct callback error:', { message: (err as Error).message });
-      const message = encodeURIComponent((err as Error).message);
+      const safe = mapGitHubError(err, 'account');
+      const message = encodeURIComponent(safe.message);
       return res.redirect(`${env.CLIENT_URL}/github?github_status=error&message=${message}`);
     }
   }
@@ -76,7 +78,7 @@ export class GitHubController {
       return;
     }
 
-    const result = await gitHubService.forceDisconnectByGithubId(Number(githubId));
+    const result = await gitHubService.forceDisconnectByGithubId(req.user!.userId, Number(githubId));
 
     if (!result.deleted) {
       sendError(res, 404, `No GitHub account found with githubId: ${githubId}`);

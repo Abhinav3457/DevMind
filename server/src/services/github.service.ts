@@ -25,6 +25,19 @@ interface GitHubRepoMetadata {
   permissions: { admin: boolean; push: boolean; pull: boolean };
 }
 
+/**
+ * Map raw Octokit/HTTP failures to safe ApiErrors so upstream messages, tokens
+ * and response bodies are never returned to clients. Callers log the detail.
+ */
+export function mapGitHubError(error: unknown, resource = 'repository'): ApiError {
+  if (error instanceof ApiError) return error;
+  const status = (error as { status?: number } | null)?.status;
+  if (status === 404) return new ApiError(404, 'The requested GitHub ' + resource + ' was not found or is not accessible.');
+  if (status === 401) return new ApiError(401, 'GitHub authentication failed. Please reconnect your GitHub account.');
+  if (status === 403 || status === 429) return new ApiError(429, 'GitHub rate limit reached. Please try again in a little while.');
+  return new ApiError(502, 'Could not reach GitHub. Please try again later.');
+}
+
 export class GitHubService {
   async getAuthorizationUrl(userId: string, callbackUrl?: string): Promise<{ url: string; state: string }> {
     return gitHubOAuthService.getAuthorizationUrl(userId, callbackUrl);
@@ -65,7 +78,7 @@ export class GitHubService {
       sort: (options.sort as 'created' | 'updated' | 'pushed' | 'full_name') || 'updated',
       per_page: options.per_page || 30,
       page: options.page || 1,
-    });
+    }).catch((error: unknown) => { throw mapGitHubError(error, 'repositories'); });
     const repos = response.data.map((repo: { id: number; name: string; full_name: string; owner: { id: number; login: string; avatar_url: string }; description: string | null; html_url: string; private: boolean; default_branch: string; language: string | null; topics?: string[]; stargazers_count: number; forks_count: number; open_issues_count: number; permissions?: { admin: boolean; push: boolean; pull: boolean } }) => ({
       githubId: repo.id,
       name: repo.name,
@@ -89,7 +102,8 @@ export class GitHubService {
 
   async listBranches(userId: string, owner: string, repo: string): Promise<{ name: string; sha: string; protected: boolean }[]> {
     const octokit = await gitHubApiService.getUserClient(userId);
-    const response = await octokit.rest.repos.listBranches({ owner, repo, per_page: 100 });
+    const response = await octokit.rest.repos.listBranches({ owner, repo, per_page: 100 })
+      .catch((error: unknown) => { throw mapGitHubError(error, 'branches'); });
     return response.data.map((branch: { name: string; commit: { sha: string }; protected: boolean }) => ({
       name: branch.name,
       sha: branch.commit.sha,
@@ -104,7 +118,7 @@ export class GitHubService {
       sha: options.branch,
       per_page: options.per_page || 30,
       page: options.page || 1,
-    });
+    }).catch((error: unknown) => { throw mapGitHubError(error, 'commits'); });
     return response.data.map((commit: { sha: string; commit: { message: string; author?: { name?: string; date?: string } | null }; html_url: string }) => ({
       sha: commit.sha,
       message: commit.commit.message,
@@ -121,7 +135,7 @@ export class GitHubService {
       state: (options.state as 'open' | 'closed' | 'all') || 'open',
       per_page: options.per_page || 30,
       page: options.page || 1,
-    });
+    }).catch((error: unknown) => { throw mapGitHubError(error, 'pull requests'); });
     return response.data.map((pr: { number: number; title: string; state: string; user?: { login: string } | null; created_at: string; html_url: string }) => ({
       number: pr.number, title: pr.title, state: pr.state,
       author: pr.user?.login || 'Unknown', createdAt: pr.created_at, url: pr.html_url,
@@ -130,7 +144,8 @@ export class GitHubService {
 
   async getFileTree(userId: string, owner: string, repo: string, branch = 'main', path = ''): Promise<{ path: string; type: 'tree' | 'blob'; size: number; name: string }[]> {
     const octokit = await gitHubApiService.getUserClient(userId);
-    const response = await octokit.rest.git.getTree({ owner, repo, tree_sha: branch, recursive: '1' });
+    const response = await octokit.rest.git.getTree({ owner, repo, tree_sha: branch, recursive: '1' })
+      .catch((error: unknown) => { throw mapGitHubError(error, 'file tree'); });
     const items = response.data.tree.filter((item: { path?: string }) => !path || item.path?.startsWith(path));
     return items.map((item: { path?: string; type: string; size?: number }) => ({
       path: item.path || '', type: item.type as 'tree' | 'blob', size: item.size || 0,
@@ -140,7 +155,8 @@ export class GitHubService {
 
   async getRepoMetadata(userId: string, owner: string, repo: string): Promise<GitHubRepoMetadata> {
     const octokit = await gitHubApiService.getUserClient(userId);
-    const response = await octokit.rest.repos.get({ owner, repo });
+    const response = await octokit.rest.repos.get({ owner, repo })
+      .catch((error: unknown) => { throw mapGitHubError(error, 'repository'); });
     const d = response.data;
     return {
       githubId: d.id, name: d.name, fullName: d.full_name,
@@ -177,8 +193,10 @@ export class GitHubService {
       lastSyncedAt: new Date(),
     };
 
+    // Scope the upsert to the authenticated user. Using githubId alone would
+    // let one user overwrite (and take ownership of) another user's record.
     await ImportedRepository.findOneAndUpdate(
-      { githubId: metadata.githubId },
+      { userId, githubId: metadata.githubId },
       updateData,
       { upsert: true, new: true },
     );
@@ -220,16 +238,17 @@ export class GitHubService {
     logger.info(`Repository ${repo.fullName} and its index data deleted`);
   }
 
-  async forceDisconnectByGithubId(githubId: number): Promise<{ deleted: boolean; login?: string }> {
-    return gitHubOAuthService.forceDisconnectByGithubId(githubId);
+  async forceDisconnectByGithubId(userId: string, githubId: number): Promise<{ deleted: boolean; login?: string }> {
+    return gitHubOAuthService.forceDisconnectByGithubId(userId, githubId);
   }
 
   async syncRepository(userId: string, owner: string, repo: string): Promise<{ synced: boolean; branches: number }> {
     const metadata = await this.getRepoMetadata(userId, owner, repo);
     const branches = await this.listBranches(userId, owner, repo);
 
+    // Scoped by userId so a sync can never touch another user's record.
     await ImportedRepository.findOneAndUpdate(
-      { githubId: metadata.githubId },
+      { userId, githubId: metadata.githubId },
       {
         stars: metadata.stars,
         forks: metadata.forks,

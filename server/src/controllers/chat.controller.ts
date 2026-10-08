@@ -4,6 +4,7 @@ import { sendSuccess, sendCreated, ApiError } from '../utils/apiResponse';
 import Chat from '../models/Chat';
 import Message from '../models/Message';
 import { repoIntelligenceService } from '../services/repo-intelligence.service';
+import logger from '../utils/logger';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -161,18 +162,37 @@ export class ChatController {
       ? `Previous conversation:\n${historyContext}\n\nUser: ${message}`
       : message;
 
-    const answer = await generateFromAI({
-      systemInstruction,
-      prompt,
-      temperature: 0.5,
-      maxTokens: 4096,
-    });
+    let answer: string;
+    try {
+      answer = await generateFromAI({
+        systemInstruction,
+        prompt,
+        temperature: 0.5,
+        maxTokens: 4096,
+      });
+    } catch (aiError: unknown) {
+      // Never surface raw provider errors/secrets — map to safe, generic messages.
+      const errMsg = aiError instanceof Error ? aiError.message : String(aiError);
+      if (errMsg.includes('429') || errMsg.includes('quota') || errMsg.includes('Too Many Requests')) {
+        throw new ApiError(429, 'AI service quota exceeded. Please wait a moment and try again.');
+      }
+      if (errMsg.includes('413') || errMsg.includes('too large')) {
+        throw new ApiError(413, 'The request is too large for the AI model. Try a shorter message.');
+      }
+      if (errMsg.includes('403') || errMsg.includes('Forbidden') || errMsg.includes('API key')) {
+        throw new ApiError(403, 'AI service authentication failed. Please contact support.');
+      }
+      logger.error('Chat: AI generation failed', aiError);
+      throw new ApiError(502, 'AI service is temporarily unavailable. Please try again later.');
+    }
 
     // Save messages to chat session if chatId is provided
     if (chatId) {
+      // Verify the chat belongs to the authenticated user before reading/writing it.
+      const chat = await Chat.findOne({ _id: chatId, participants: userId });
+      if (!chat) throw new ApiError(404, 'Chat session not found');
       // Use first user message as chat title if this is the first exchange
-      const chat = await Chat.findById(chatId);
-      const needsTitle = chat && (!chat.lastMessage || chat.lastMessage === '');
+      const needsTitle = !chat.lastMessage || chat.lastMessage === '';
       const title = needsTitle ? message.slice(0, 100) : undefined;
       await this.saveMessages(chatId, userId, message, answer, title);
     }

@@ -6,7 +6,8 @@ import { IIndexedFile } from '../models/IndexedFile';
 import CodeReview from '../models/CodeReview';
 import User from '../models/User';
 import { sendReviewCompleteEmail } from '../helpers/email.helper';
-import { sendSuccess } from '../utils/apiResponse';
+import { sendSuccess, ApiError } from '../utils/apiResponse';
+import logger from '../utils/logger';
 
 export class CodeReviewController {
   async reviewRepository(req: Request, res: Response): Promise<void> {
@@ -52,27 +53,33 @@ export class CodeReviewController {
 
     const result = await reviewerService.reviewFiles([virtualFile]);
 
-    // Save to review history (best-effort, non-blocking)
+    // Persist BEFORE issuing a share token. If persistence fails we return an
+    // error instead of a token that would point at a non-existent record.
     const shareToken = crypto.randomBytes(16).toString('hex');
-    CodeReview.create({
-      userId: req.user!.userId,
-      fileName: name,
-      language: language || 'typescript',
-      score: result.score,
-      summary: result.summary,
-      filesReviewed: 1,
-      totalIssues: result.totalIssues,
-      shareToken,
-      details: {
+    try {
+      await CodeReview.create({
+        userId: req.user!.userId,
+        fileName: name,
+        language: language || 'typescript',
         score: result.score,
         summary: result.summary,
-        categories: result.categories,
-        refactoringSuggestions: result.refactoringSuggestions,
-        fixedVersion: result.fixedVersion,
-        totalIssues: result.totalIssues,
         filesReviewed: 1,
-      },
-    }).catch(() => undefined);
+        totalIssues: result.totalIssues,
+        shareToken,
+        details: {
+          score: result.score,
+          summary: result.summary,
+          categories: result.categories,
+          refactoringSuggestions: result.refactoringSuggestions,
+          fixedVersion: result.fixedVersion,
+          totalIssues: result.totalIssues,
+          filesReviewed: 1,
+        },
+      });
+    } catch (error) {
+      logger.error('CodeReview: Failed to persist direct review', error);
+      throw new ApiError(500, 'Failed to save the code review. Please try again.');
+    }
 
     // Best-effort email notification (matches repo reviews)
     User.findById(req.user!.userId).select('email name').lean()

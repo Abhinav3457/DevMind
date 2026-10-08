@@ -12,9 +12,13 @@ import toast from 'react-hot-toast';
 import { MarkdownRenderer } from '../components/ui/MarkdownRenderer';
 import {
   fetchLeetcodeProblems, fetchLeetcodeProblem, submitLeetcodeSolution, fetchLeetcodeStats,
-  type LeetCodeProblemSummary, type LeetCodeQuestion, type SubmissionResult,
+  fetchProblems, fetchProblem, submitSolution,
+  type LeetCodeQuestion, type SubmissionResult,
   type PracticeDifficulty, type JudgeIssue, type LeetCodeStats,
 } from '../services/practice';
+import {
+  devmindProblemToQuestion, devmindProblemToSummary, type PracticeSummary,
+} from '../utils/practiceAdapters';
 
 const DIFFICULTY_STYLES: Record<PracticeDifficulty, string> = {
   easy: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
@@ -37,6 +41,9 @@ const MONACO_LANGUAGE: Record<string, string> = {
 };
 
 const QUICK_TAGS = ['array', 'string', 'hash-table', 'dynamic-programming', 'tree', 'graph'];
+
+/** DevMind's curated bank is the default; the live LeetCode catalogue stays available. */
+type PracticeSource = 'devmind' | 'leetcode';
 
 const STATUS_META: Record<SubmissionResult['status'], { label: string; className: string; Icon: typeof CheckCircle2 }> = {
   accepted: { label: 'Accepted', className: 'text-emerald-400', Icon: CheckCircle2 },
@@ -92,7 +99,8 @@ function formatReferenceCode(raw: string, language: string): string {
 
 export function PracticePage() {
   // Problem list
-  const [problems, setProblems] = useState<LeetCodeProblemSummary[]>([]);
+  const [source, setSource] = useState<PracticeSource>('devmind');
+  const [problems, setProblems] = useState<PracticeSummary[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [loadingList, setLoadingList] = useState(true);
@@ -130,6 +138,15 @@ export function PracticePage() {
   const loadProblems = useCallback(async (targetPage: number, append: boolean) => {
     setLoadingList(true);
     try {
+      if (source === 'devmind') {
+        // The curated bank is finite and returns the user's own progress.
+        const data = await fetchProblems({ difficulty, search: search.trim() || undefined });
+        setTotal(data.length);
+        setPage(1);
+        setProblems(data.map(devmindProblemToSummary));
+        return;
+      }
+
       const data = await fetchLeetcodeProblems({
         difficulty,
         search: search.trim() || undefined,
@@ -145,7 +162,7 @@ export function PracticePage() {
     } finally {
       setLoadingList(false);
     }
-  }, [difficulty, search, tag]);
+  }, [difficulty, search, tag, source]);
 
   useEffect(() => {
     const handle = setTimeout(() => { void loadProblems(1, false); }, 300);
@@ -181,6 +198,19 @@ export function PracticePage() {
     setShowHints(false);
     setCopied(false);
     try {
+      if (source === 'devmind') {
+        const { problem, lastSubmission } = await fetchProblem(slug);
+        const view = devmindProblemToQuestion(problem);
+        setQuestion(view);
+        const lang = (lastSubmission?.language && view.codeSnippets.some((s) => s.langSlug === lastSubmission.language)
+          ? lastSubmission.language
+          : pickDefaultLanguage(view));
+        setLanguage(lang);
+        setCode(lastSubmission?.code || view.codeSnippets.find((s) => s.langSlug === lang)?.code || '');
+        if (lastSubmission) setResult(lastSubmission);
+        return;
+      }
+
       const { problem, lastSubmission } = await fetchLeetcodeProblem(slug);
       setQuestion(problem);
       const lang = (lastSubmission?.language && problem.codeSnippets.some((s) => s.langSlug === lastSubmission.language)
@@ -195,7 +225,19 @@ export function PracticePage() {
     } finally {
       setLoadingQuestion(false);
     }
-  }, []);
+  }, [source]);
+
+  const changeSource = (next: PracticeSource) => {
+    if (next === source) return;
+    setSource(next);
+    setSelectedSlug(null);
+    setQuestion(null);
+    setResult(null);
+    setCode('');
+    setProblems([]);
+    setTotal(0);
+    setPage(1);
+  };
 
   const changeLanguage = (langSlug: string) => {
     setLanguage(langSlug);
@@ -217,7 +259,9 @@ export function PracticePage() {
     if (!question || submitting) return;
     setSubmitting(true);
     try {
-      const verdict = await submitLeetcodeSolution(question.slug, code, language);
+      const verdict = source === 'devmind'
+        ? await submitSolution(question.slug, code, language)
+        : await submitLeetcodeSolution(question.slug, code, language);
       setResult(verdict);
       if (verdict.status === 'accepted') {
         toast.success(`Accepted — ${verdict.passedTests}/${verdict.totalTests} examples passed`);
@@ -231,7 +275,7 @@ export function PracticePage() {
     } finally {
       setSubmitting(false);
     }
-  }, [question, submitting, code, language, username, loadStats]);
+  }, [question, submitting, code, language, username, loadStats, source]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -296,7 +340,15 @@ export function PracticePage() {
               </div>
               <p className="mt-1 flex items-center gap-2 truncate text-[11px] text-surface-500">
                 {p.paidOnly && <span className="text-amber-500">premium</span>}
-                <span>{p.acRate}%</span>
+                {source === 'devmind' ? (
+                  <span>
+                    {p.attempts
+                      ? `best ${p.bestScore ?? 0}/100 · ${p.attempts} attempt${p.attempts === 1 ? '' : 's'}`
+                      : 'not attempted'}
+                  </span>
+                ) : (
+                  <span>{p.acRate}%</span>
+                )}
                 {p.tags.length > 0 && <span className="truncate">· {p.tags.slice(0, 2).join(', ')}</span>}
               </p>
             </button>
@@ -438,13 +490,16 @@ export function PracticePage() {
           <button
             onClick={resetCode}
             className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-surface-400 hover:bg-surface-800 hover:text-surface-200"
-            title="Reset to LeetCode template"
+            title="Reset to starter code"
           >
             <RotateCcw className="h-3.5 w-3.5" />
           </button>
           <button
             onClick={() => void copyAndOpen()}
-            className="flex items-center gap-1.5 rounded-md border border-surface-600/60 px-3 py-1.5 text-xs font-medium text-surface-200 hover:bg-surface-800"
+            className={
+              'items-center gap-1.5 rounded-md border border-surface-600/60 px-3 py-1.5 text-xs font-medium text-surface-200 hover:bg-surface-800 ' +
+              (source === 'devmind' ? 'hidden' : 'flex')
+            }
             title="Copy your code and open the problem on LeetCode"
           >
             {copied ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
@@ -531,12 +586,27 @@ export function PracticePage() {
           Problems
         </button>
 
+        <div className="flex items-center rounded-lg border border-surface-700 bg-surface-900 p-0.5">
+          {(['devmind', 'leetcode'] as const).map((s) => (
+            <button
+              key={s}
+              onClick={() => changeSource(s)}
+              className={
+                'rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors ' +
+                (source === s ? 'bg-primary-500/20 text-primary-300' : 'text-surface-400 hover:text-surface-200')
+              }
+            >
+              {s === 'devmind' ? 'DevMind' : 'LeetCode'}
+            </button>
+          ))}
+        </div>
+
         <div className="relative min-w-[180px] flex-1 sm:max-w-xs">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-500" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search LeetCode problems"
+            placeholder={source === 'devmind' ? 'Search DevMind problems' : 'Search LeetCode problems'}
             className="w-full rounded-lg border border-surface-700 bg-surface-900 py-2 pl-9 pr-3 text-sm text-surface-200 placeholder:text-surface-500 focus:border-primary-500 focus:outline-none"
           />
         </div>
@@ -557,7 +627,7 @@ export function PracticePage() {
         </div>
 
         <div className="hidden items-center gap-1.5 md:flex">
-          {QUICK_TAGS.slice(0, 4).map((t) => (
+          {source === 'leetcode' && QUICK_TAGS.slice(0, 4).map((t) => (
             <button
               key={t}
               onClick={() => setTag(tag === t ? '' : t)}
@@ -624,8 +694,9 @@ export function PracticePage() {
           <div className="flex flex-1 flex-col items-center justify-center rounded-2xl border border-dashed border-surface-700/60 bg-surface-900/20 px-6 py-16 text-center lg:py-0">
             <p className="text-sm font-medium text-surface-300">Select a problem to start</p>
             <p className="mt-1 max-w-md text-xs text-surface-500">
-              Live problems come straight from LeetCode. Your solution is judged by AI against the examples,
-              and one click copies it into LeetCode. Press Ctrl/⌘ + Enter to submit.
+              {source === 'devmind'
+                ? 'DevMind problems ship with their own examples and hidden test cases, so they are judged against a fixed spec. Press Ctrl/⌘ + Enter to submit.'
+                : 'Live problems come straight from LeetCode. Your solution is judged by AI against the examples, and one click copies it into LeetCode. Press Ctrl/⌘ + Enter to submit.'}
             </p>
           </div>
         ) : loadingQuestion ? (
@@ -648,7 +719,7 @@ export function PracticePage() {
             <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-surface-700/60 bg-surface-900/30">
               <header className="flex shrink-0 flex-wrap items-center gap-2 border-b border-surface-700/60 px-4 py-3">
                 <h2 className="text-sm font-bold text-surface-100">
-                  <span className="mr-1.5 text-surface-500">{question.id}.</span>
+                  {question.id && <span className="mr-1.5 text-surface-500">{question.id}.</span>}
                   {question.title}
                 </h2>
                 <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase ${DIFFICULTY_STYLES[question.difficulty]}`}>
