@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Loader2, Play, CheckCircle2, XCircle, AlertCircle, Clock,
   Lightbulb, ChevronDown, ChevronLeft, ChevronRight, Sparkles, Search, RotateCcw, Copy, ExternalLink, Flame, X, List,
-  Maximize2, Minimize2, Gauge, Cpu, Code2, Sun, Moon, Plus, Minus,
+  Maximize2, Minimize2, Gauge, Cpu, Code2, Sun, Moon, Plus, Minus, Check,
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import Editor from '@monaco-editor/react';
@@ -962,100 +962,159 @@ function ResultPanel({ result, language, resultExpanded, setResultExpanded }: {
   const accent = STATUS_ACCENT[result.status];
   const pct = result.totalTests > 0 ? Math.round((result.passedTests / result.totalTests) * 100) : 0;
   const scoreTone = result.score >= 80 ? 'text-emerald-400' : result.score >= 50 ? 'text-amber-400' : 'text-red-400';
+  const expanded = resultExpanded;
+  const split = expanded && Boolean(result.improvedCode);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = useCallback(async () => {
+    const code = result.improvedCode;
+    if (!code) return;
+    try {
+      await navigator.clipboard.writeText(code);
+    } catch {
+      const area = document.createElement('textarea');
+      area.value = code;
+      document.body.appendChild(area);
+      area.select();
+      document.execCommand('copy');
+      document.body.removeChild(area);
+    }
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 2000);
+  }, [result.improvedCode]);
+
+  const referenceBlock = result.improvedCode ? (
+    <div className="overflow-hidden rounded-xl border border-surface-700/60 bg-surface-950/40">
+      <div className="flex items-center gap-1.5 border-b border-surface-700/50 bg-surface-800/60 px-3 py-2">
+        <Code2 className="h-3.5 w-3.5 text-primary-400" />
+        <span className="text-[11px] font-semibold uppercase tracking-wide text-surface-300">
+          Reference code
+        </span>
+        <button
+          onClick={() => void handleCopy()}
+          className="ml-auto flex items-center gap-1 rounded-md px-2 py-1 text-[11px] text-surface-400 transition-colors hover:bg-surface-700/50 hover:text-surface-200"
+          title="Copy reference code"
+        >
+          {copied ? (
+            <>
+              <Check className="h-3.5 w-3.5 text-emerald-400" />
+              <span className="text-emerald-400">Copied!</span>
+            </>
+          ) : (
+            <>
+              <Copy className="h-3.5 w-3.5" />
+              Copy
+            </>
+          )}
+        </button>
+      </div>
+      <div className="p-2 [&_.code-block-wrapper]:my-0">
+        <MarkdownRenderer content={formatReferenceCode(result.improvedCode, language)} />
+      </div>
+    </div>
+  ) : null;
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0 }}
-      className="space-y-3 rounded-2xl border border-surface-700/60 bg-surface-900/40 p-4"
+      className={[
+        'space-y-3 rounded-2xl border border-surface-700/60 bg-surface-900/40 p-4',
+        expanded ? 'lg:h-full' : '',
+        split
+          ? 'lg:grid lg:min-h-0 lg:grid-cols-[1.15fr_1fr] lg:grid-rows-[1fr] lg:gap-4 lg:space-y-0'
+          : '',
+      ].join(' ')}
     >
-      {/* Verdict + score */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-3">
-          <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl ${accent.bg}`}>
-            <Icon className={`h-5 w-5 ${meta.className}`} />
-          </div>
-          <div className="min-w-0">
-            <p className={`text-sm font-bold ${meta.className}`}>{meta.label}</p>
-            <p className="text-[11px] text-surface-400">
-              {result.passedTests}/{result.totalTests} examples passed
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 ${accent.bg} ${accent.border}`}>
-            <Gauge className="h-3.5 w-3.5 text-surface-300" />
-            <span className={`text-sm font-bold tabular-nums ${scoreTone}`}>{result.score}</span>
-            <span className="text-[10px] text-surface-400">/100</span>
-          </div>
-          <button
-            onClick={() => setResultExpanded((v) => !v)}
-            className="flex items-center gap-1 rounded-md border border-surface-600/60 px-2 py-1.5 text-xs font-medium text-surface-200 hover:bg-surface-800"
-            title={resultExpanded ? 'Exit fullscreen (Esc)' : 'Expand result panel'}
-            aria-label={resultExpanded ? 'Exit fullscreen' : 'Expand result panel'}
-          >
-            {resultExpanded ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
-          </button>
-        </div>
-      </div>
-
-      <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-800">
-        <div className={`h-full rounded-full transition-all ${accent.bar}`} style={{ width: `${pct}%` }} />
-      </div>
-
-      {/* Complexity metrics */}
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-        <MetricChip icon={Clock} label="Time" value={result.timeComplexity} />
-        <MetricChip icon={Cpu} label="Space" value={result.spaceComplexity} />
-      </div>
-
-      {/* AI feedback on the submission */}
-      {result.feedback && (
-        <div className="rounded-xl border border-primary-500/20 bg-primary-500/5 p-3">
-          <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-primary-300 mb-1.5">
-            <Sparkles className="h-3.5 w-3.5" /> AI insights
-          </p>
-          <MarkdownRenderer content={result.feedback} />
-        </div>
-      )}
-
-      {result.issues.length > 0 && (
-        <div className="space-y-2">
-          <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-surface-400">
-            <AlertCircle className="h-3.5 w-3.5" /> Findings
-          </p>
-          {result.issues.map((issue, i) => (
-            <div key={i} className={`rounded-lg border px-3 py-2 ${SEVERITY_CLASSES[issue.severity]}`}>
-              <p className="text-xs font-semibold uppercase tracking-wide text-surface-400">{issue.severity}</p>
-              <p className="mt-0.5 text-sm text-surface-200">{issue.message}</p>
-              {issue.suggestion && <p className="mt-1 text-xs text-surface-400">{issue.suggestion}</p>}
+      {/* Left column — verdict, metrics and AI feedback */}
+      <div className={`min-w-0 space-y-3 ${split ? 'lg:min-h-0 lg:overflow-y-auto' : ''}`}>
+        {/* Verdict + score — stays pinned while scrolling in fullscreen */}
+        <div
+          className={`space-y-3 ${
+            expanded ? 'sticky top-0 z-10 border-b border-surface-700/40 bg-surface-900 pb-3' : ''
+          }`}
+        >
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl ${accent.bg}`}>
+                <Icon className={`h-5 w-5 ${meta.className}`} />
+              </div>
+              <div className="min-w-0">
+                <p className={`text-sm font-bold ${meta.className}`}>{meta.label}</p>
+                <p className="text-[11px] text-surface-400">
+                  {result.passedTests}/{result.totalTests} examples passed
+                </p>
+              </div>
             </div>
-          ))}
-        </div>
-      )}
-
-      {result.betterApproach && (
-        <div className="rounded-xl border border-primary-500/20 bg-primary-500/5 p-3">
-          <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-primary-300">
-            <Sparkles className="h-3.5 w-3.5" /> Better approach
-          </p>
-          <MarkdownRenderer content={result.betterApproach} />
-        </div>
-      )}
-
-      {result.improvedCode && (
-        <div className="overflow-hidden rounded-xl border border-surface-700/60 bg-surface-950/40">
-          <div className="flex items-center gap-1.5 border-b border-surface-700/50 bg-surface-800/60 px-3 py-2">
-            <Code2 className="h-3.5 w-3.5 text-primary-400" />
-            <span className="text-[11px] font-semibold uppercase tracking-wide text-surface-300">
-              Reference code
-            </span>
+            <div className="flex items-center gap-2">
+              <div className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 ${accent.bg} ${accent.border}`}>
+                <Gauge className="h-3.5 w-3.5 text-surface-300" />
+                <span className={`text-sm font-bold tabular-nums ${scoreTone}`}>{result.score}</span>
+                <span className="text-[10px] text-surface-400">/100</span>
+              </div>
+              <button
+                onClick={() => setResultExpanded((v) => !v)}
+                className="flex items-center gap-1 rounded-md border border-surface-600/60 px-2 py-1.5 text-xs font-medium text-surface-200 hover:bg-surface-800"
+                title={resultExpanded ? 'Exit fullscreen (Esc)' : 'Expand result panel'}
+                aria-label={resultExpanded ? 'Exit fullscreen' : 'Expand result panel'}
+              >
+                {resultExpanded ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+              </button>
+            </div>
           </div>
-          <div className="p-2 [&_.code-block-wrapper]:my-0">
-            <MarkdownRenderer content={formatReferenceCode(result.improvedCode, language)} />
+
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-800">
+            <div className={`h-full rounded-full transition-all ${accent.bar}`} style={{ width: `${pct}%` }} />
           </div>
         </div>
+
+        {/* Complexity metrics */}
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <MetricChip icon={Clock} label="Time" value={result.timeComplexity} />
+          <MetricChip icon={Cpu} label="Space" value={result.spaceComplexity} />
+        </div>
+
+        {/* AI feedback on the submission */}
+        {result.feedback && (
+          <div className="rounded-xl border border-primary-500/20 bg-primary-500/5 p-3">
+            <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-primary-300 mb-1.5">
+              <Sparkles className="h-3.5 w-3.5" /> AI insights
+            </p>
+            <MarkdownRenderer content={result.feedback} />
+          </div>
+        )}
+
+        {result.issues.length > 0 && (
+          <div className="space-y-2">
+            <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-surface-400">
+              <AlertCircle className="h-3.5 w-3.5" /> Findings
+            </p>
+            {result.issues.map((issue, i) => (
+              <div key={i} className={`rounded-lg border px-3 py-2 ${SEVERITY_CLASSES[issue.severity]}`}>
+                <p className="text-xs font-semibold uppercase tracking-wide text-surface-400">{issue.severity}</p>
+                <p className="mt-0.5 text-sm text-surface-200">{issue.message}</p>
+                {issue.suggestion && <p className="mt-1 text-xs text-surface-400">{issue.suggestion}</p>}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {result.betterApproach && (
+          <div className="rounded-xl border border-primary-500/20 bg-primary-500/5 p-3">
+            <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-primary-300">
+              <Sparkles className="h-3.5 w-3.5" /> Better approach
+            </p>
+            <MarkdownRenderer content={result.betterApproach} />
+          </div>
+        )}
+
+        {!split && referenceBlock}
+      </div>
+
+      {/* Right column — reference code in fullscreen on lg+ screens */}
+      {split && (
+        <div className="min-w-0 lg:min-h-0 lg:overflow-y-auto">{referenceBlock}</div>
       )}
     </motion.div>
   );
