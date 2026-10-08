@@ -874,7 +874,7 @@ export function PracticePage() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="fixed inset-0 z-[60] bg-surface-950/60 backdrop-blur-sm"
+                  className="fixed inset-0 z-[60] bg-surface-950/60 backdrop-blur-md"
                   onClick={() => setResultExpanded(false)}
                 />
                 <motion.div
@@ -885,8 +885,8 @@ export function PracticePage() {
                   transition={{ duration: 0.18 }}
                   className="fixed inset-0 z-[70] flex flex-col p-2 sm:p-4 lg:p-6"
                 >
-                  <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-surface-700/60 bg-surface-900/30 h-full w-full shadow-2xl shadow-black/50">
-                    <div className="flex shrink-0 items-center justify-between gap-2 border-b border-surface-700/60 px-3 py-2">
+                  <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-surface-700/60 bg-surface-900 h-full w-full shadow-2xl shadow-black/50">
+                    <div className="flex shrink-0 items-center justify-between gap-2 border-b border-surface-700/60 bg-surface-900 px-3 py-2">
                       <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-surface-300">
                         <Code2 className="h-3.5 w-3.5" /> Result details
                       </div>
